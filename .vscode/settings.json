@@ -1,0 +1,24 @@
+{
+  "cSpell.words": [
+    "biomejs",
+    "commitlint",
+    "forgejs",
+    "hyperse",
+    "publint",
+    "releaserc",
+    "snodeb",
+    "tsdown",
+    "typedoc",
+    "vitest"
+  ],
+  "editor.codeActionsOnSave": {
+    "source.organizeImports.biome": "explicit",
+    "source.fixAll.biome": "explicit"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  }
+}
