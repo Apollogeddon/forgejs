@@ -1,6 +1,6 @@
-# Node.js DevOps Templates & Configurations
+# Forge.js: DevOps Support for Node.js
 
-A centralised library of **reusable GitHub Actions workflows** and **standardised tooling configurations** designed to streamline DevOps for TypeScript and Node.js projects.
+The `@apollogeddon/forgejs` library provides **reusable GitHub Actions workflows** and **standardised tooling configurations** designed to streamline DevOps for TypeScript and Node.js projects.
 
 This package allows you to maintain consistent quality, testing, and release standards across multiple repositories without duplicating boilerplate code.
 
@@ -156,7 +156,7 @@ Extend the documentation generator config in `typedoc.json`:
 
 ### Commitlint
 
-Extend the shared commitlint configuration in your `commitlint.config.js`:
+Extend the shared commitlint configuration in your `commitlint.config.ts`:
 
 ```js
 import type { UserConfig } from '@commitlint/types';
