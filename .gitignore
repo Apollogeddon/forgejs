@@ -1,0 +1,11 @@
+node_modules
+.npmrc
+.npm
+
+# JS output build directory
+docs
+dist
+
+# Vitest related artifacts
+coverage/
+junit-report.xml
