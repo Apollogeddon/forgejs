@@ -24,10 +24,10 @@ describe("Code Configurations Imports", () => {
     expect(configModule.test).toBeDefined();
   });
 
-  it("should import tsdown.config.ts without errors and check basic structure", async () => {
-    const tsdownConfigPath = path.join(process.cwd(), "tsdown.config.cjs");
+  it("should import tsup.config.ts without errors and check basic structure", async () => {
+    const tsupConfigPath = path.join(process.cwd(), "tsup.config.cjs");
     // Using import() directly for ESM
-    const configModule = await import(tsdownConfigPath);
+    const configModule = await import(tsupConfigPath);
     expect(configModule).toBeDefined();
     expect(configModule.default).toBeDefined();
     expect(configModule.default.entry).toBeDefined();

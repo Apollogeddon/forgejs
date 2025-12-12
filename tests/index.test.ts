@@ -40,7 +40,7 @@ describe("CLI Init Command", () => {
       ".releaserc.json",
       "typedoc.json",
       "commitlint.config.ts",
-      "tsdown.config.ts",
+      "tsup.config.ts",
       "lefthook.yml",
     ];
 
@@ -102,7 +102,7 @@ describe("CLI Init Command", () => {
         start: "node index.js", // Existing script should be preserved
         lint: "biome check --fix",
         type: "tsc --noEmit",
-        build: "tsdown",
+        build: "tsup",
         doc: "typedoc",
         test: "vitest run",
         publint: "publint",
@@ -125,7 +125,7 @@ describe("CLI Init Command", () => {
       expect.objectContaining({
         lint: "biome check --fix",
         type: "tsc --noEmit",
-        build: "tsdown",
+        build: "tsup",
         doc: "typedoc",
         test: "vitest run",
         publint: "publint",

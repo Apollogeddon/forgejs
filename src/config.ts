@@ -6,8 +6,9 @@ export const biomeConfig = JSON.stringify(
   2,
 );
 
-export const vitestConfig = `import { mergeConfig } from 'vitest/config';
+export const vitestConfig = `\
 import baseConfig from '@apollogeddon/forgejs/vitest.config.cjs';
+import { mergeConfig } from 'vitest/config';
 
 export default mergeConfig(baseConfig, {
   test: {
@@ -34,8 +35,9 @@ export const typedocConfig = JSON.stringify(
   2,
 );
 
-export const commitlintConfig = `import type { UserConfig } from '@commitlint/types';
+export const commitlintConfig = `\
 import baseConfig from '@apollogeddon/forgejs/commitlint.config.cjs';
+import type { UserConfig } from '@commitlint/types';
 
 const Configuration: UserConfig = {
   extends: baseConfig.extends,
@@ -45,12 +47,10 @@ const Configuration: UserConfig = {
 export default Configuration;
 `;
 
-export const tsdownConfig = `import { defineConfig } from "tsdown";
-import baseConfig from "@apollogeddon/forgejs/tsdown.config.cjs";
-
+export const tsupConfig = `\
+import baseConfig from "@apollogeddon/forgejs/tsup.config.cjs";
+import { defineConfig } from "tsup";
 export default defineConfig({
   ...baseConfig,
-  // Override or add project-specific properties here
-  entry: ["./src/index.ts"],
 });
 `;

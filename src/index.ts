@@ -38,7 +38,7 @@ function init(force = false) {
     { name: ".releaserc.json", content: templates.releaseConfig },
     { name: "typedoc.json", content: templates.typedocConfig },
     { name: "commitlint.config.ts", content: templates.commitlintConfig },
-    { name: "tsdown.config.ts", content: templates.tsdownConfig },
+    { name: "tsup.config.ts", content: templates.tsupConfig },
   ];
 
   // Lefthook: Copy content from package
@@ -124,7 +124,7 @@ function updatePackageJson(cwd: string) {
     const recommendedScripts = {
       lint: "biome check --fix",
       type: "tsc --noEmit",
-      build: "tsdown",
+      build: "tsup",
       doc: "typedoc",
       test: "vitest run",
       publint: "publint",

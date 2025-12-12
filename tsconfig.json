@@ -4,6 +4,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "baseUrl": ".",
+    "rootDir": ".",
     "paths": {
       "@/*": ["src/*"]
     },
@@ -15,5 +16,5 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "exclude": ["node_modules/"]
+  "exclude": ["node_modules/", "dist"]
 }

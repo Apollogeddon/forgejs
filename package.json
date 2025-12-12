@@ -11,6 +11,7 @@
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
+  "bin": "./dist/index.js",
   "exports": {
     "./.releaserc.json": "./.releaserc.json",
     "./.releaserc.helm.json": "./.releaserc.helm.json",
@@ -23,9 +24,9 @@
       "types": "./snodeb.config.d.ts",
       "import": "./snodeb.config.cjs"
     },
-    "./tsdown.config.cjs": {
-      "types": "./tsdown.config.d.ts",
-      "import": "./tsdown.config.cjs"
+    "./tsup.config.cjs": {
+      "types": "./tsup.config.d.ts",
+      "import": "./tsup.config.cjs"
     },
     "./typedoc.json": "./typedoc.json",
     "./vitest.config.cjs": {
@@ -33,7 +34,6 @@
       "import": "./vitest.config.cjs"
     }
   },
-  "bin": "./dist/index.mjs",
   "files": [
     "dist",
     ".releaserc.json",
@@ -42,8 +42,8 @@
     "commitlint.config.cjs",
     "commitlint.config.d.ts",
     "lefthook.yml",
-    "tsdown.config.cjs",
-    "tsdown.config.d.ts",
+    "tsup.config.cjs",
+    "tsup.config.d.ts",
     "typedoc.json",
     "snodeb.config.cjs",
     "snodeb.config.d.ts",
@@ -51,11 +51,13 @@
     "vitest.config.d.ts"
   ],
   "scripts": {
+    "watch": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
     "lint": "biome check --fix",
     "type": "tsc --noEmit",
-    "build": "tsdown",
-    "doc": "typedoc",
+    "build": "tsup",
     "test": "vitest run",
+    "doc": "typedoc",
     "publint": "publint",
     "prepare": "lefthook install"
   },
@@ -75,7 +77,7 @@
     "semantic-release": "25.0.2",
     "semantic-release-helm3": "2.10.0",
     "snodeb": "1.1.4",
-    "tsdown": "0.17.3",
+    "tsup": "8.5.1",
     "tsx": "4.21.0",
     "typedoc": "0.28.15",
     "typedoc-plugin-coverage": "4.0.2",
