@@ -1,0 +1,79 @@
+name: NodeJS Version
+
+on:
+  workflow_call:
+    inputs:
+      artifact_name:
+        required: false
+        type: string
+        default: 'dist'
+      enable_secrets:
+        required: false
+        type: boolean
+        default: true
+      node_version:
+        required: false
+        type: string
+        default: '22'
+      working_directory:
+        required: false
+        type: string
+        default: '.'
+    outputs:
+      new_release_published:
+        description: "Whether a new release was published"
+        value: ${{ jobs.version.outputs.new_release_published }}
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    with:
+      artifact_name: ${{ inputs.artifact_name }}
+      enable_secrets: ${{ inputs.enable_secrets }}
+      node_version: ${{ inputs.node_version }}
+      working_directory: ${{ inputs.working_directory }}
+
+  version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    outputs:
+      new_release_published: ${{ steps.check_release.outputs.new_release_published }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v6
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: ${{ inputs.working_directory }}/dist
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Version
+        run: npx -p semantic-release -p @semantic-release/github -p @semantic-release/git semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check for new release
+        id: check_release
+        run: |
+          if [ -f build.env ]; then
+            echo "new_release_published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "new_release_published=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Upload updated package.json
+        uses: actions/upload-artifact@v5
+        with:
+          name: updated-package-json
+          path: |
+            ${{ inputs.working_directory }}/package.json
+            ${{ inputs.working_directory }}/package-lock.json

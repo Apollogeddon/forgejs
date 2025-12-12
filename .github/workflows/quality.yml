@@ -1,0 +1,40 @@
+name: NodeJS Quality
+
+on:
+  workflow_call:
+    inputs:
+      working_directory:
+        required: false
+        type: string
+        default: '.'
+      node_version:
+        required: false
+        type: string
+        default: '22'
+
+jobs:
+  setup:
+    uses: ./.github/workflows/default.yml
+    with:
+      node_version: ${{ inputs.node_version }}
+      working_directory: ${{ inputs.working_directory }}
+
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [setup]
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Biome Lint
+        run: npx @biomejs/biome check .
+      - name: Type Check
+        run: npx tsc --noEmit
