@@ -7,7 +7,7 @@
     "publint",
     "releaserc",
     "snodeb",
-    "tsdown",
+    "tsup",
     "typedoc",
     "vitest"
   ],
