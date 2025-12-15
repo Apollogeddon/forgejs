@@ -71,11 +71,11 @@ jobs:
         working-directory: ${{ inputs.working_directory }}
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         with:
           name: ${{ inputs.artifact_name }}
           path: ${{ inputs.working_directory }}/dist
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         with:
           name: updated-package-json
           path: ${{ inputs.working_directory }}
