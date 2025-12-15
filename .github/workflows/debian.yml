@@ -38,7 +38,7 @@ jobs:
         working-directory: ${{ inputs.working_directory }}
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         with:
           name: ${{ inputs.artifact_name }}
           path: ${{ inputs.working_directory }}/dist
@@ -64,7 +64,7 @@ jobs:
           mkdir -p deb_output
           mv ./deb/*.deb ./deb_output/
       - name: Upload Debian Artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: debian-package
           path: ${{ inputs.working_directory }}/deb_output/*.deb
