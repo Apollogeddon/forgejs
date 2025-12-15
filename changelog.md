@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/apollogeddon/forgejs/compare/v1.1.0...v1.1.1) (2025-12-15)
+
+
+### Bug Fixes
+
+* **config:** configure npm for GitHub Packages registry and auth ([0779369](https://github.com/apollogeddon/forgejs/commit/07793690510f9e5b91332b60527229308d7b6e42))
+
 # [1.1.0](https://github.com/apollogeddon/forgejs/compare/v1.0.0...v1.1.0) (2025-12-12)
 
 
