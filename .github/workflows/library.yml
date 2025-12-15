@@ -62,7 +62,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [document]
+    needs: [version, document]
     if: github.ref == 'refs/heads/main' && needs.version.outputs.new_release_published == 'true'
     defaults:
       run:
