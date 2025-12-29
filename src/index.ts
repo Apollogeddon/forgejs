@@ -25,7 +25,7 @@ if (command === "init") {
   process.exit(1);
 }
 
-function init(force = false) {
+export function init(force = false) {
   const cwd = process.cwd();
   console.log(`Initializing CI templates in ${cwd}...`);
   if (force) {
