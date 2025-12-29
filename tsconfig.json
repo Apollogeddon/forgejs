@@ -1,4 +1,5 @@
 {
+  "extends": "astro/tsconfigs/strict",
   "compilerOptions": {
     "target": "esnext",
     "module": "NodeNext",
@@ -16,5 +17,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
+  "include": [".astro/types.d.ts", "**/*"],
   "exclude": ["node_modules/", "dist"]
 }
