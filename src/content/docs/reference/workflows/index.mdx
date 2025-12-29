@@ -1,0 +1,86 @@
+---
+title: Workflows Overview
+description: Introduction and setup guide for reusable GitHub Actions workflows.
+sidebar:
+  order: 1
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+This directory contains a collection of reusable GitHub Actions workflows designed for NodeJS based projects.
+These provide a modular approach to CI/CD pipelines covering common tasks such as quality checks,
+testing, building, versioning, documentation, publishing, and Debian package creation.
+
+## Setup Guide
+
+To integrate these workflows into your project, reference them using the `uses` keyword in your GitHub Actions workflow files.
+
+### Usage Examples
+
+<Tabs>
+  <TabItem label="Basic Testing" icon="approve-check-circle">
+    For simple projects that just need to run tests on every push.
+
+    ```yaml
+    jobs:
+      testing:
+        uses: apollogeddon/forgejs/.github/workflows/testing.yml@main
+    ```
+  </TabItem>
+  <TabItem label="Full Versioning" icon="rocket">
+    For applications that need versioning and releasing.
+
+    ```yaml
+    jobs:
+      version:
+        uses: apollogeddon/forgejs/.github/workflows/version.yml@main
+        secrets:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    ```
+  </TabItem>
+  <TabItem label="NPM Publishing" icon="seti:npm">
+    For npm libraries that need to be published to a registry.
+
+    ```yaml
+    jobs:
+      publish:
+        uses: apollogeddon/forgejs/.github/workflows/library.yml@main
+        with:
+          artifact_name: 'my-lib-dist'
+        secrets:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    ```
+  </TabItem>
+</Tabs>
+
+### Common Inputs
+
+- **`working_directory`** (string, default: `'.'`): Path to the directory containing `package.json`.
+- **`node_version`** (string, default: `'22'`): The version of Node.js to use.
+- **`artifact_name`** (string, default: `'dist'`): The name of the artifact to upload/download between build and publish/package steps. _(Available in `build`, `library`, and `debian` workflows)_
+- **`enable_secrets`** (boolean, default: `true`): Controls whether secrets scanning (Gitleaks) is enabled in workflows that include it.
+
+### Common Secrets
+
+- **`NPM_TOKEN`**: Required for publishing to private npm registries via `library.yml`.
+- **`GITHUB_TOKEN`**: Automatically provided. For security scanning workflows (Gitleaks, Trivy) to upload results to GitHub Code Scanning, the `GITHUB_TOKEN` requires `security-events: write` and `actions: read` permissions. It is also used for `semantic-release`, GitHub Packages, and Dependabot automation.
+
+
+### Required Permissions
+
+When calling these workflows, ensure your caller workflow has the necessary permissions. The `version` and `library` workflows in particular require write access to create releases and push packages.
+
+```yaml
+permissions:
+  contents: write # Required for semantic-release (tagging, changelog)
+  packages: write # Required for publishing to GitHub Packages
+  id-token: write # Required for provenance generation
+  security-events: write # Required for uploading Sarif reports (Trivy/Gitleaks)
+```
+
+
+## Troubleshooting
+
+- **`npm error Missing script: "test"`**: Ensure your `package.json` contains a `test` script. If you have no tests, use `"test": "echo 'No tests' && exit 0"`.
+- **Authentication Errors**: Verify that `GITHUB_TOKEN` is passed to `version.yml` and `NPM_TOKEN` (if needed) is passed to `library.yml`.
+- **Artifact Errors**: If `debian` or `library` fails to find artifacts, ensure the upstream `build` job is producing an artifact matching the `artifact_name` input (default: `dist`).

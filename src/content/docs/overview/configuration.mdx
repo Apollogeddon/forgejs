@@ -1,0 +1,139 @@
+---
+title: Configuration
+description: Extendable configurations for common Node.js tools.
+sidebar:
+  order: 2
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+This library exports "gold standard" configurations for common tools. You can extend these in your project to inherit best practices.
+
+## Quality & Testing
+
+<Tabs>
+  <TabItem label="Biome" icon="approve-check-circle">
+    **Linting & Formatting**
+
+    Extend the shared Biome configuration in your `biome.json`:
+
+    ```json
+    {
+      "$schema": "node_modules/@biomejs/biome/configuration_schema.json",
+      "extends": ["node_modules/@apollogeddon/forgejs/biome.json"]
+    }
+    ```
+  </TabItem>
+
+  <TabItem label="Vitest" icon="beaker">
+    **Testing**
+
+    Import and merge the base configuration in your `vitest.config.ts`:
+
+    ```ts
+    import { mergeConfig } from 'vitest/config';
+    import baseConfig from '@apollogeddon/forgejs/vitest.config.cjs';
+
+    export default mergeConfig(baseConfig, {
+      test: {
+        // Project-specific overrides
+      }
+    });
+    ```
+  </TabItem>
+
+  <TabItem label="Commitlint" icon="git-commit">
+    **Commit Message Linting**
+
+    Extend the shared commitlint configuration in your `commitlint.config.ts`:
+
+    ```js
+    import type { UserConfig } from '@commitlint/types';
+    import baseConfig from '@apollogeddon/forgejs/commitlint.config.cjs';
+
+    const Configuration: UserConfig = {
+      extends: [baseConfig.extends],
+      // Add project-specific rules here
+    };
+
+    export default Configuration;
+    ```
+  </TabItem>
+
+  <TabItem label="Lefthook" icon="laptop">
+    **Git Hooks**
+
+    To use the shared Lefthook configuration, copy it into your project's root directory:
+
+    ```bash
+    cp node_modules/@apollogeddon/forgejs/lefthook.yml ./lefthook.yml
+    ```
+  </TabItem>
+</Tabs>
+
+## Build & Release
+
+<Tabs>
+  <TabItem label="Tsup" icon="package">
+    **TypeScript Bundler**
+
+    Import the base configuration and override properties in your `tsup.config.ts`:
+
+    ```ts
+    import { defineConfig } from "tsup";
+    import baseConfig from "@apollogeddon/forgejs/tsup.config.cjs";
+
+    export default defineConfig({
+      ...baseConfig,
+      // Override or add project-specific properties here
+      entry: ["./src/index.ts"],
+    });
+    ```
+  </TabItem>
+
+  <TabItem label="Release" icon="rocket">
+    **Semantic Release**
+
+    Inherit the release rules in your `.releaserc.json`:
+
+    ```json
+    {
+      "extends": "@apollogeddon/forgejs/.releaserc.json"
+    }
+    ```
+
+    *For Helm chart projects, use `"extends": "@apollogeddon/forgejs/.releaserc.helm.json"` instead.*
+  </TabItem>
+
+  <TabItem label="Snodeb" icon="linux">
+    **Debian Packaging**
+
+    Import the base configuration and override properties in your `snodeb.config.ts`:
+
+    ```ts
+    import { defineSnodebConfig } from "snodeb";
+    import baseConfig from "@apollogeddon/forgejs/snodeb.config.cjs";
+
+    export default defineSnodebConfig({
+      ...baseConfig,
+      // Override or add project-specific properties here
+      files: {
+        ...baseConfig.files,
+        include: ["dist/index.js"], // Example override
+      },
+    });
+    ```
+  </TabItem>
+
+  <TabItem label="TypeDoc" icon="document">
+    **Documentation Generator**
+
+    Extend the documentation generator config in `typedoc.json`:
+
+    ```json
+    {
+      "extends": "@apollogeddon/forgejs/typedoc.json"
+    }
+    ```
+  </TabItem>
+</Tabs>
