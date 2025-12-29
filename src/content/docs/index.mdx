@@ -1,0 +1,78 @@
+---
+title: Forge.js
+description: DevOps Support for Node.js
+template: splash
+hero:
+  tagline: Reusable GitHub Actions workflows and standardised tooling 
+    configurations for TypeScript and Node.js.
+  image:
+    file: ../../assets/forgejs.png
+  actions:
+    - text: Get Started
+      link: /overview/getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: Using Actions
+      link: /reference/workflows/
+      icon: right-arrow
+      variant: secondary
+    - text: View on GitHub
+      link: https://github.com/apollogeddon/forgejs
+      icon: external
+      variant: secondary
+---
+
+import { Card, CardGrid, LinkButton } from '@astrojs/starlight/components';
+
+## Stop Configuring, Start Shipping
+
+Maintaining configuration files for 15+ different tools (`tsconfig`, `eslintrc`, `prettierrc`, `jest.config`, etc.) is a burden. Forge.js centralizes this into one **Gold Standard**, letting you focus on writing code, not configuring it.
+
+<CardGrid>
+  <Card title="Standardised Tooling" icon="setting">
+    Gold standard configurations for **Biome**, **Vitest**, and more to ensure consistent quality across all your projects.
+  </Card>
+  <Card title="Reusable Workflows" icon="rocket">
+    Modular **GitHub Actions** workflows for testing, building, and releasing your packages without writing YAML from scratch.
+  </Card>
+  <Card title="Zero Boilerplate" icon="puzzle">
+    Quickly scaffold new projects with the `init` command.
+    ```bash
+    npx @apollogeddon/forgejs init
+    ```
+  </Card>
+  <Card title="Automated Releases" icon="list-format">
+    Fully automated **Semantic Releases** with changelog generation, provenance, and package publishing.
+  </Card>
+</CardGrid>
+
+## The Stack
+
+This project provides opinionated, battle-tested configurations for the modern Node.js ecosystem.
+
+<CardGrid>
+  <Card title="Biome" icon="approve-check-circle">
+    Fast, all-in-one linting and formatting to replace ESLint and Prettier.
+  </Card>
+  <Card title="Tsup" icon="package">
+    The simplest and fastest way to bundle your TypeScript libraries with zero config.
+  </Card>
+  <Card title="Vitest" icon="beaker">
+    A blazing fast unit test framework powered by Vite, with built-in coverage reports.
+  </Card>
+  <Card title="Semantic Release" icon="rocket">
+    Fully automated version management and package publishing based on commit history.
+  </Card>
+  <Card title="Lefthook" icon="laptop">
+    A fast Git hooks manager to ensure every commit meets your quality standards.
+  </Card>
+  <Card title="Commitlint" icon="git-commit">
+    Ensures your team follows the Conventional Commits specification for automated changelogs.
+  </Card>
+  <Card title="Publint" icon="magnifier">
+    Validates your `package.json` exports to ensure compatibility across all environments.
+  </Card>
+  <Card title="Snodeb" icon="linux">
+    Easily package your Node.js applications as native Debian (.deb) installers.
+  </Card>
+</CardGrid>
