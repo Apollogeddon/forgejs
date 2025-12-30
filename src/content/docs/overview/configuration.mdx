@@ -7,15 +7,15 @@ sidebar:
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-This library exports "gold standard" configurations for common tools. You can extend these in your project to inherit best practices.
+The project exports configurations for standard tooling. These can be extended to inherit best practices while allowing for project-specific overrides.
 
 ## Quality & Testing
 
 <Tabs>
-  <TabItem label="Biome" icon="approve-check-circle">
+  <TabItem label="Biome" icon="biome">
     **Linting & Formatting**
 
-    Extend the shared Biome configuration in your `biome.json`:
+    Extend the shared Biome configuration in `biome.json`:
 
     ```json
     {
@@ -25,10 +25,10 @@ This library exports "gold standard" configurations for common tools. You can ex
     ```
   </TabItem>
 
-  <TabItem label="Vitest" icon="beaker">
+  <TabItem label="Vitest" icon="seti:vite">
     **Testing**
 
-    Import and merge the base configuration in your `vitest.config.ts`:
+    Import and merge the base configuration in `vitest.config.ts`:
 
     ```ts
     import { mergeConfig } from 'vitest/config';
@@ -42,10 +42,10 @@ This library exports "gold standard" configurations for common tools. You can ex
     ```
   </TabItem>
 
-  <TabItem label="Commitlint" icon="git-commit">
+  <TabItem label="Commitlint" icon="seti:git">
     **Commit Message Linting**
 
-    Extend the shared commitlint configuration in your `commitlint.config.ts`:
+    Extend the shared commitlint configuration in `commitlint.config.ts`:
 
     ```js
     import type { UserConfig } from '@commitlint/types';
@@ -63,7 +63,7 @@ This library exports "gold standard" configurations for common tools. You can ex
   <TabItem label="Lefthook" icon="laptop">
     **Git Hooks**
 
-    To use the shared Lefthook configuration, copy it into your project's root directory:
+    To use the shared Lefthook configuration, copy it into the project root:
 
     ```bash
     cp node_modules/@apollogeddon/forgejs/lefthook.yml ./lefthook.yml
@@ -74,10 +74,10 @@ This library exports "gold standard" configurations for common tools. You can ex
 ## Build & Release
 
 <Tabs>
-  <TabItem label="Tsup" icon="package">
+  <TabItem label="Tsup" icon="node">
     **TypeScript Bundler**
 
-    Import the base configuration and override properties in your `tsup.config.ts`:
+    Import the base configuration and override properties in `tsup.config.ts`:
 
     ```ts
     import { defineConfig } from "tsup";
@@ -94,7 +94,7 @@ This library exports "gold standard" configurations for common tools. You can ex
   <TabItem label="Release" icon="rocket">
     **Semantic Release**
 
-    Inherit the release rules in your `.releaserc.json`:
+    Inherit the release rules in `.releaserc.json`:
 
     ```json
     {
@@ -102,13 +102,13 @@ This library exports "gold standard" configurations for common tools. You can ex
     }
     ```
 
-    *For Helm chart projects, use `"extends": "@apollogeddon/forgejs/.releaserc.helm.json"` instead.*
+    *For Helm chart projects, use `"extends": "@apollogeddon/forgejs/.releaserc.helm.json"`.*
   </TabItem>
 
   <TabItem label="Snodeb" icon="linux">
     **Debian Packaging**
 
-    Import the base configuration and override properties in your `snodeb.config.ts`:
+    Import the base configuration and override properties in `snodeb.config.ts`:
 
     ```ts
     import { defineSnodebConfig } from "snodeb";
@@ -125,15 +125,13 @@ This library exports "gold standard" configurations for common tools. You can ex
     ```
   </TabItem>
 
-  <TabItem label="TypeDoc" icon="document">
-    **Documentation Generator**
+  <TabItem label="Starlight" icon="document">
+    **Documentation Site**
 
-    Extend the documentation generator config in `typedoc.json`:
+    Starlight configuration is scaffolded by the `init` command into `astro.config.mjs`.
 
-    ```json
-    {
-      "extends": "@apollogeddon/forgejs/typedoc.json"
-    }
-    ```
+    Unlike other tools, Astro configuration is not inherited. You can modify `astro.config.mjs` directly to customize your documentation site.
+
+    Requires: `astro`, `@astrojs/starlight`, `starlight-typedoc`, `sharp`.
   </TabItem>
 </Tabs>
