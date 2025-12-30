@@ -189,4 +189,55 @@ describe("CLI Init Command", () => {
     const workflowContent = fs.readFileSync(path.join(tempDir, ".github/workflows/ci.yml"), "utf-8");
     expect(workflowContent).toContain("library.yml");
   });
+
+  it("should not create files or modify package.json with --dry-run", () => {
+    // Create a dummy package.json to verify it's not modified
+    const initialPackageJson = { name: "test", scripts: { test: "echo original" } };
+    fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify(initialPackageJson));
+
+    const stdout = execSync(`npx tsx ${CLI_SCRIPT} init --dry-run`, { cwd: tempDir, encoding: "utf-8" });
+
+    // Should log dry run warnings
+    expect(stdout).toContain("DRY RUN MODE");
+    expect(stdout).toContain("[DryRun] Would");
+
+    // Files should NOT be created
+    expect(fs.existsSync(path.join(tempDir, "biome.json"))).toBe(false);
+
+    // package.json should NOT be modified
+    const currentPackageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
+    expect(currentPackageJson.scripts.test).toBe("echo original");
+  });
+
+  it("should overwrite user scripts when running with --force", () => {
+    // Create package.json with conflicting script
+    const initialPackageJson = {
+      name: "test",
+      scripts: {
+        build: "echo old-build", // Conflict
+        custom: "echo custom", // Non-conflict
+      },
+    };
+    fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify(initialPackageJson));
+
+    execSync(`npx tsx ${CLI_SCRIPT} init --force`, { cwd: tempDir });
+
+    const updatedPackageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
+
+    // Conflicting script should be overwritten
+    expect(updatedPackageJson.scripts.build).toBe("tsup");
+
+    // Non-conflicting script should be preserved (because ...packageJson.scripts is merged in)
+    // Wait, let's check my logic in src/index.ts:
+    // packageJson.scripts = { ...packageJson.scripts, ...scripts };
+    // This merges OLD then NEW. So NEW wins.
+    // But OLD non-conflicting keys are still there.
+    expect(updatedPackageJson.scripts.custom).toBe("echo custom");
+  });
+
+  it("should display help with --help", () => {
+    const stdout = execSync(`npx tsx ${CLI_SCRIPT} --help`, { cwd: tempDir, encoding: "utf-8" });
+    expect(stdout).toContain("Usage: npx @apollogeddon/forgejs init");
+    expect(stdout).toContain("--dry-run");
+  });
 });

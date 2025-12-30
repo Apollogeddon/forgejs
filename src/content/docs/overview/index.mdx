@@ -41,6 +41,8 @@ Forge.js provides **tooling configurations** and **GitHub Actions workflows** fo
     | `--version` | Semantic Versioning (Default) | `.releaserc.json`, `commitlint.config.ts` |
     | `--testing` | Testing framework (Default) | `vitest.config.ts`, `tests/` |
     | `--all` | Enable all standard features | Library, Version, Testing |
+    | `--dry-run` | Simulate execution | Logs changes without writing files |
+    | `--help` | Show help | Displays usage information |
 
     **Example: Debian Only**
     ```bash
@@ -71,9 +73,10 @@ Forge.js provides **tooling configurations** and **GitHub Actions workflows** fo
 
 3.  **Advanced: Overwriting Files**
 
-    To overwrite existing configuration files with the library defaults, use the `--force` flag:
+    To overwrite existing configuration files with the library defaults, use the `--force` flag. You can verify what will happen first using `--dry-run`.
 
     ```bash
+    npx @apollogeddon/forgejs init --dry-run
     npx @apollogeddon/forgejs init --force
     ```
 
