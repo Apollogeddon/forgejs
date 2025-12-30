@@ -63,7 +63,8 @@
     "type": "tsc --noEmit",
     "build": "tsup",
     "test": "vitest run",
-    "docs": "astro build",
+    "docs:init": "astro sync",
+    "docs:build": "astro build",
     "docs:dev": "astro dev",
     "publint": "publint",
     "prepare": "lefthook install"

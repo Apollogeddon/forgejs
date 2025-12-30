@@ -36,5 +36,7 @@ jobs:
         run: npm ci
       - name: Biome Lint
         run: npx @biomejs/biome check .
+      - name: Astro Sync
+        run: npx astro sync
       - name: Type Check
         run: npx tsc --noEmit
