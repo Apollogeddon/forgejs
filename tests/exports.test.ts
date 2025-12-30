@@ -21,7 +21,6 @@ describe("Package Integrity", () => {
           filePath = exportPath;
         } else if (typeof exportPath === "object" && exportPath !== null) {
           // Handle conditional exports like { "import": "./file.js", "types": "./file.d.ts" }
-          // We'll check all paths within the object
           for (const condition in exportPath) {
             if (Object.hasOwn(exportPath, condition)) {
               const conditionalPath = (exportPath as Record<string, unknown>)[condition];
