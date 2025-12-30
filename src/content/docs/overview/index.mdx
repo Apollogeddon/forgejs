@@ -23,27 +23,49 @@ Forge.js provides **tooling configurations** and **GitHub Actions workflows** fo
 
 2.  **Initialisation**
 
-    Use the included CLI to bootstrap the project with recommended configurations.
+    Use the included CLI to bootstrap the project. You can choose a full setup or pick specific features.
 
+    **Standard Setup (Recommended)**
+    Sets up Library tooling, Versioning, and Testing.
     ```bash
     npx @apollogeddon/forgejs init
     ```
 
-    The command performs the following actions:
-    *   Creates configuration files (e.g., `biome.json`, `vitest.config.ts`, `lefthook.yml`) if absent.
-    *   Sets `type: "module"` in `package.json`.
-    *   Injects standard scripts (`lint`, `test`, `build`, etc.) into `package.json`.
+    **Modular Setup**
+    Customise the features you need using flags:
 
-    The following scripts are added:
+    | Flag | Description | Included Features |
+    | :--- | :--- | :--- |
+    | `--debian` | Debian packaging setup | `snodeb.config.cjs`, `build` script (tsup) |
+    | `--library` | Library tooling (Default) | `astro` configs, `tsup`, `src/content/docs`, CI workflows |
+    | `--version` | Semantic Versioning (Default) | `.releaserc.json`, `commitlint.config.ts` |
+    | `--testing` | Testing framework (Default) | `vitest.config.ts`, `tests/` |
+    | `--all` | Enable all standard features | Library, Version, Testing |
+
+    **Example: Debian Only**
+    ```bash
+    npx @apollogeddon/forgejs init --debian
+    ```
+
+    The command performs the following actions:
+    *   Creates configuration files (e.g., `biome.json`, `vitest.config.ts`, `lefthook.yml`) based on selection.
+    *   Sets `type: "module"` in `package.json`.
+    *   Injects relevant scripts into `package.json`.
+
+    The following scripts are added (depending on features):
 
     | Script | Command | Description |
     | :--- | :--- | :--- |
+    | `watch` | `tsx watch src/index.ts` | Watches the project entry point for changes. |
+    | `start` | `tsx src/index.ts` | Runs the project entry point. |
     | `lint` | `biome check --fix` | Runs Biome to lint and format code. |
     | `type` | `tsc --noEmit` | Runs TypeScript type checking. |
     | `build` | `tsup` | Builds the project using Tsup. |
-    | `test` | `vitest run` | Runs unit tests once. |
-    | `docs` | `astro build` | Generates documentation site. |
-    | `docs:dev` | `astro dev` | Runs documentation site in dev mode. |
+    | `test` | `vitest run` | Runs unit tests (if testing enabled). |
+    | `docs:init` | `astro sync` | Initialises Astro types (if library enabled). |
+    | `docs:build` | `astro build` | Builds documentation site (if library enabled). |
+    | `docs:watch` | `astro dev` | Starts documentation dev server (if library enabled). |
+    | `build:deb` | `snodeb` | Builds Debian package (if debian enabled). |
     | `publint` | `publint` | Checks package compatibility. |
     | `prepare` | `lefthook install` | Installs Git hooks. |
 

@@ -42,9 +42,9 @@ This command will:
 
 * **Scaffold Configs:** Create `biome.json`, `vitest.config.ts`, `tsconfig.json`, `tsup.config.ts`, and `lefthook.yml`.
 * **Inject Scripts:** Add `watch`, `start`, `lint`, `test`, `build`, and `docs` to your `package.json`.
-* **Standardize:** Ensure `type: "module"` is set and development standards are enforced.
+* **Standardise:** Ensure `type: "module"` is set and development standards are enforced.
 
-## ⚙️ Standardized Stack
+## ⚙️ Standardised Stack
 
 Forge.js enforces a "Gold Standard" stack designed for performance and reliability:
 
