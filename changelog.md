@@ -1,3 +1,11 @@
+# [1.3.0](https://github.com/apollogeddon/forgejs/compare/v1.2.0...v1.3.0) (2025-12-30)
+
+
+### Features
+
+* **cli:** add dry run and help options ([5f16be7](https://github.com/apollogeddon/forgejs/commit/5f16be7fc1cfaa81e219ae470ba87ea140a09356))
+* **cli:** introduce modular feature setup for init command ([4f5a6fc](https://github.com/apollogeddon/forgejs/commit/4f5a6fc9cf1ec6d4cb5fd4f78ce2552e11d30046))
+
 # [1.2.0](https://github.com/apollogeddon/forgejs/compare/v1.1.1...v1.2.0) (2025-12-30)
 
 
