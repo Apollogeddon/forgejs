@@ -1,0 +1,87 @@
+---
+title: Getting Started
+description: Installation and setup guide for Forge.js.
+sidebar:
+  order: 1
+---
+
+import { Steps, FileTree } from '@astrojs/starlight/components';
+
+Forge.js provides **tooling configurations** and **GitHub Actions workflows** for TypeScript and Node.js projects.
+
+## Setup Guide
+
+<Steps>
+
+1.  **Installation**
+
+    Install the package as a dev dependency:
+
+    ```bash
+    npm install --save-dev @apollogeddon/forgejs
+    ```
+
+2.  **Initialisation**
+
+    Use the included CLI to bootstrap the project with recommended configurations.
+
+    ```bash
+    npx @apollogeddon/forgejs init
+    ```
+
+    The command performs the following actions:
+    *   Creates configuration files (e.g., `biome.json`, `vitest.config.ts`, `lefthook.yml`) if absent.
+    *   Sets `type: "module"` in `package.json`.
+    *   Injects standard scripts (`lint`, `test`, `build`, etc.) into `package.json`.
+
+    The following scripts are added:
+
+    | Script | Command | Description |
+    | :--- | :--- | :--- |
+    | `lint` | `biome check --fix` | Runs Biome to lint and format code. |
+    | `type` | `tsc --noEmit` | Runs TypeScript type checking. |
+    | `build` | `tsup` | Builds the project using Tsup. |
+    | `test` | `vitest run` | Runs unit tests once. |
+    | `docs` | `astro build` | Generates documentation site. |
+    | `docs:dev` | `astro dev` | Runs documentation site in dev mode. |
+    | `publint` | `publint` | Checks package compatibility. |
+    | `prepare` | `lefthook install` | Installs Git hooks. |
+
+3.  **Advanced: Overwriting Files**
+
+    To overwrite existing configuration files with the library defaults, use the `--force` flag:
+
+    ```bash
+    npx @apollogeddon/forgejs init --force
+    ```
+
+</Steps>
+
+## Project Structure
+
+A standard project utilising this library adheres to the following structure:
+
+<FileTree>
+  - .github/
+    - workflows/
+      - index.yml
+  - src/
+    - content/
+      - docs/
+        - index.mdx
+    - index.ts
+  - tests/
+    - index.test.ts
+  - .editorconfig
+  - .releaserc.json
+  - astro.config.mjs
+  - biome.json
+  - commitlint.config.ts
+  - lefthook.yml
+  - package.json
+  - snodeb.config.ts
+  - tsconfig.doc.json
+  - tsconfig.json
+  - tsup.config.ts
+  - vitest.config.ts
+</FileTree>

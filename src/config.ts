@@ -1,5 +1,6 @@
 export const biomeConfig = JSON.stringify(
   {
+    $schema: "node_modules/@biomejs/biome/configuration_schema.json",
     extends: ["node_modules/@apollogeddon/forgejs/biome.json"],
   },
   null,
@@ -25,11 +26,77 @@ export const releaseConfig = JSON.stringify(
   2,
 );
 
-export const typedocConfig = JSON.stringify(
+export const astroConfig = `\
+import starlight from "@astrojs/starlight";
+import { defineConfig } from "astro/config";
+import starlightTypeDoc from "starlight-typedoc";
+
+export default defineConfig({
+  site: "https://example.com",
+  integrations: [
+    starlight({
+      title: "My Project",
+      social: {
+        github: "https://github.com/example/repo",
+      },
+      sidebar: [
+        {
+          label: "Guides",
+          items: [
+            // { label: 'Example Guide', link: '/guides/example/' },
+          ],
+        },
+        {
+          label: "Reference",
+          items: [
+            {
+              label: "API",
+              autogenerate: { directory: "api" },
+            },
+          ],
+        },
+      ],
+      plugins: [
+        starlightTypeDoc({
+          entryPoints: ["src/index.ts"],
+          tsconfig: "./tsconfig.json",
+          sidebar: {
+            label: "API",
+          },
+        }),
+      ],
+    }),
+  ],
+});
+`;
+
+export const starlightContentIndex = `\
+---
+title: Welcome to My Project
+description: Get started with My Project.
+template: splash
+hero:
+  tagline: A great TypeScript library.
+  actions:
+    - text: View API Docs
+      link: /api/
+      icon: right-arrow
+      variant: primary
+---
+
+## Next Steps
+
+[Read the docs](/api/)
+`;
+
+export const tsconfigConfig = JSON.stringify(
   {
-    extends: ["@apollogeddon/forgejs/typedoc.json"],
-    entryPoints: ["src/index.ts"],
-    out: "docs",
+    extends: "@apollogeddon/forgejs/tsconfig.json",
+    compilerOptions: {
+      ignoreDeprecations: "5.0",
+    },
+    include: ["src/**/*", ".astro/types.d.ts"],
+    exclude: ["node_modules", "dist"],
   },
   null,
   2,

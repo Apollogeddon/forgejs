@@ -3,8 +3,13 @@ node_modules
 .npm
 
 # JS output build directory
-docs
 dist
+
+# astro docs build directory
+.astro
+docs
+!src/content/docs/
+src/content/docs/api
 
 # Vitest related artifacts
 coverage/

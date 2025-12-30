@@ -25,7 +25,7 @@ if (command === "init") {
   process.exit(1);
 }
 
-function init(force = false) {
+export function init(force = false) {
   const cwd = process.cwd();
   console.log(`Initializing CI templates in ${cwd}...`);
   if (force) {
@@ -36,7 +36,9 @@ function init(force = false) {
     { name: "biome.json", content: templates.biomeConfig },
     { name: "vitest.config.ts", content: templates.vitestConfig },
     { name: ".releaserc.json", content: templates.releaseConfig },
-    { name: "typedoc.json", content: templates.typedocConfig },
+    { name: "astro.config.mjs", content: templates.astroConfig },
+    { name: "tsconfig.json", content: templates.tsconfigConfig },
+    { name: "src/content/docs/index.mdx", content: templates.starlightContentIndex },
     { name: "commitlint.config.ts", content: templates.commitlintConfig },
     { name: "tsup.config.ts", content: templates.tsupConfig },
   ];
@@ -59,6 +61,12 @@ function init(force = false) {
 
   for (const file of files) {
     const filePath = path.join(cwd, file.name);
+    const dirPath = path.dirname(filePath);
+
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
+
     if (fs.existsSync(filePath) && !force) {
       console.log(`⚠️  ${file.name} already exists. Skipping.`);
     } else {
@@ -122,18 +130,21 @@ function updatePackageJson(cwd: string) {
 
     // Add scripts
     const recommendedScripts = {
+      watch: "tsx watch src/index.ts",
+      start: "tsx src/index.ts",
       lint: "biome check --fix",
       type: "tsc --noEmit",
       build: "tsup",
-      doc: "typedoc",
+      docs: "astro build",
+      "docs:dev": "astro dev",
       test: "vitest run",
       publint: "publint",
       prepare: "lefthook install",
     };
 
     packageJson.scripts = {
-      ...packageJson.scripts,
       ...recommendedScripts,
+      ...packageJson.scripts,
     };
 
     console.log("✅ Added recommended scripts to package.json");
