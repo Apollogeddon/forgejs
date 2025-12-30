@@ -18,8 +18,10 @@ export default defineConfig({
         {
           label: "Overview",
           items: [
-            { label: "Getting Started", link: "/overview/getting-started/" },
+            { label: "Getting Started", link: "/overview/" },
+            { label: "Philosophy & Stack", link: "/overview/philosophy/" },
             { label: "Configuration", link: "/overview/configuration/" },
+            { label: "Migration Guide", link: "/overview/migration/" },
             { label: "Contributing", link: "/overview/contributing/" },
           ],
         },
@@ -30,16 +32,17 @@ export default defineConfig({
               label: "Workflows",
               items: [
                 { label: "Overview", link: "/reference/workflows/" },
-                { label: "Job Reference", link: "/reference/workflows/job-reference/" },
+                { label: "Job Reference", link: "/reference/workflows/reference/" },
               ],
             },
+            { label: "Examples", link: "/reference/examples/" },
           ],
         },
       ],
       plugins: [
         starlightTypeDoc({
           entryPoints: ["src/index.ts"],
-          tsconfig: "./tsconfig.doc.json",
+          tsconfig: "./tsconfig.json",
         }),
       ],
     }),

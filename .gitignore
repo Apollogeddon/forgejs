@@ -11,7 +11,6 @@ docs
 !src/content/docs/
 src/content/docs/api
 
-
 # Vitest related artifacts
 coverage/
 junit-report.xml
