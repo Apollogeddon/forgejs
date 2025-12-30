@@ -228,10 +228,6 @@ describe("CLI Init Command", () => {
     expect(updatedPackageJson.scripts.build).toBe("tsup");
 
     // Non-conflicting script should be preserved (because ...packageJson.scripts is merged in)
-    // Wait, let's check my logic in src/index.ts:
-    // packageJson.scripts = { ...packageJson.scripts, ...scripts };
-    // This merges OLD then NEW. So NEW wins.
-    // But OLD non-conflicting keys are still there.
     expect(updatedPackageJson.scripts.custom).toBe("echo custom");
   });
 
