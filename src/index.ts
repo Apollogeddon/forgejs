@@ -18,6 +18,8 @@ const options = {
   testing: { type: "boolean" },
   force: { type: "boolean" },
   all: { type: "boolean" },
+  "dry-run": { type: "boolean" },
+  help: { type: "boolean" },
 } as const;
 
 // Parse arguments
@@ -37,15 +39,26 @@ const isDefault = !hasSpecificFlag && values.all !== false;
 
 const config = {
   force: !!values.force,
+  dryRun: !!values["dry-run"],
   debian: !!values.debian,
   library: !!(values.library ?? (isDefault || values.all)),
   testing: !!(values.testing ?? (isDefault || values.all)),
   version: !!(values.version ?? (isDefault || values.all)),
 };
 
+if (values.help) {
+  showHelp();
+  process.exit(0);
+}
+
 if (command === "init") {
   init(config);
 } else {
+  showHelp();
+  process.exit(1);
+}
+
+function showHelp() {
   console.log(`
 Usage: npx @apollogeddon/forgejs init [options]
 
@@ -55,18 +68,22 @@ Options:
   --version   Setup Versioning (semantic-release, commitlint) [Default]
   --testing   Setup Testing (vitest) [Default]
   --all       Enable all standard features (Library, Version, Testing)
-  --force     Overwrite existing files
+  --force     Overwrite existing files (and enforce script standards)
+  --dry-run   Simulate the process without making changes
+  --help      Show this help message
 `);
-  process.exit(1);
 }
 
 export function init(cfg: typeof config) {
   const cwd = process.cwd();
   console.log(`Initializing CI templates in ${cwd}...`);
+  if (cfg.dryRun) {
+    console.log("⚠️  DRY RUN MODE: No files will be created or modified.");
+  }
   console.log(
     "Active Features:",
     Object.entries(cfg)
-      .filter(([key, val]) => val === true && key !== "force")
+      .filter(([key, val]) => val === true && key !== "force" && key !== "dryRun")
       .map(([key]) => key)
       .join(", "),
   );
@@ -76,32 +93,32 @@ export function init(cfg: typeof config) {
   }
 
   // 1. Base Setup (Always run)
-  setupBase(cwd, cfg.force);
+  setupBase(cwd, cfg);
 
   // 2. Linting (Always run as part of base standard)
-  setupLinting(cwd, cfg.force);
+  setupLinting(cwd, cfg);
 
   // 3. Build (Always run)
-  setupBuild(cwd, cfg.force);
+  setupBuild(cwd, cfg);
 
   // 4. Testing
   if (cfg.testing) {
-    setupTesting(cwd, cfg.force);
+    setupTesting(cwd, cfg);
   }
 
   // 5. Versioning
   if (cfg.version) {
-    setupVersioning(cwd, cfg.force);
+    setupVersioning(cwd, cfg);
   }
 
   // 6. Library
   if (cfg.library) {
-    setupLibrary(cwd, cfg.force);
+    setupLibrary(cwd, cfg);
   }
 
   // 7. Debian
   if (cfg.debian) {
-    setupDebian(cwd, cfg.force);
+    setupDebian(cwd, cfg);
   }
 
   // 8. Workflows
@@ -116,61 +133,65 @@ export function init(cfg: typeof config) {
   console.log('2. Run "npx lefthook install" to set up git hooks.');
 }
 
-function createFile(cwd: string, fileName: string, content: string, force: boolean) {
+function createFile(cwd: string, fileName: string, content: string, cfg: typeof config) {
   const filePath = path.join(cwd, fileName);
   const dirPath = path.dirname(filePath);
 
-  if (!fs.existsSync(dirPath)) {
+  if (!fs.existsSync(dirPath) && !cfg.dryRun) {
     fs.mkdirSync(dirPath, { recursive: true });
   }
 
-  if (fs.existsSync(filePath) && !force) {
+  if (fs.existsSync(filePath) && !cfg.force) {
     console.log(`⚠️  ${fileName} already exists. Skipping.`);
   } else {
     const exists = fs.existsSync(filePath);
-    fs.writeFileSync(filePath, content);
-    console.log(`✅ ${exists ? "Overwrote" : "Created"} ${fileName}`);
+    if (cfg.dryRun) {
+      console.log(`[DryRun] Would ${exists ? "overwrite" : "create"} ${fileName}`);
+    } else {
+      fs.writeFileSync(filePath, content);
+      console.log(`✅ ${exists ? "Overwrote" : "Created"} ${fileName}`);
+    }
   }
 }
 
-function setupBase(cwd: string, force: boolean) {
-  createFile(cwd, "tsconfig.json", templates.tsconfigConfig, force);
+function setupBase(cwd: string, cfg: typeof config) {
+  createFile(cwd, "tsconfig.json", templates.tsconfigConfig, cfg);
 }
 
-function setupLinting(cwd: string, force: boolean) {
-  createFile(cwd, "biome.json", templates.biomeConfig, force);
+function setupLinting(cwd: string, cfg: typeof config) {
+  createFile(cwd, "biome.json", templates.biomeConfig, cfg);
 
   // Lefthook
   try {
     const lefthookSource = path.join(PACKAGE_ROOT, "lefthook.yml");
     if (fs.existsSync(lefthookSource)) {
-      createFile(cwd, "lefthook.yml", fs.readFileSync(lefthookSource, "utf-8"), force);
+      createFile(cwd, "lefthook.yml", fs.readFileSync(lefthookSource, "utf-8"), cfg);
     }
   } catch (_error) {
     console.warn("Warning: Could not read source lefthook.yml from package.");
   }
 }
 
-function setupBuild(cwd: string, force: boolean) {
-  createFile(cwd, "tsup.config.ts", templates.tsupConfig, force);
+function setupBuild(cwd: string, cfg: typeof config) {
+  createFile(cwd, "tsup.config.ts", templates.tsupConfig, cfg);
 }
 
-function setupTesting(cwd: string, force: boolean) {
-  createFile(cwd, "vitest.config.ts", templates.vitestConfig, force);
+function setupTesting(cwd: string, cfg: typeof config) {
+  createFile(cwd, "vitest.config.ts", templates.vitestConfig, cfg);
 }
 
-function setupVersioning(cwd: string, force: boolean) {
-  createFile(cwd, ".releaserc.json", templates.releaseConfig, force);
-  createFile(cwd, "commitlint.config.ts", templates.commitlintConfig, force);
+function setupVersioning(cwd: string, cfg: typeof config) {
+  createFile(cwd, ".releaserc.json", templates.releaseConfig, cfg);
+  createFile(cwd, "commitlint.config.ts", templates.commitlintConfig, cfg);
 }
 
-function setupLibrary(cwd: string, force: boolean) {
-  createFile(cwd, "astro.config.mjs", templates.astroConfig, force);
-  createFile(cwd, "src/content/docs/index.mdx", templates.starlightContentIndex, force);
+function setupLibrary(cwd: string, cfg: typeof config) {
+  createFile(cwd, "astro.config.mjs", templates.astroConfig, cfg);
+  createFile(cwd, "src/content/docs/index.mdx", templates.starlightContentIndex, cfg);
 }
 
-function setupDebian(cwd: string, force: boolean) {
-  createFile(cwd, "snodeb.config.cjs", templates.snodebConfig, force);
+function setupDebian(cwd: string, cfg: typeof config) {
+  createFile(cwd, "snodeb.config.cjs", templates.snodebConfig, cfg);
 }
 
 function setupWorkflows(cwd: string, cfg: typeof config) {
@@ -192,7 +213,7 @@ function setupWorkflows(cwd: string, cfg: typeof config) {
   }
 
   if (workflowContent && workflowName) {
-    createFile(cwd, workflowName, workflowContent, cfg.force);
+    createFile(cwd, workflowName, workflowContent, cfg);
   }
 }
 
@@ -266,29 +287,26 @@ function updatePackageJson(cwd: string, cfg: typeof config) {
       scripts["build:deb"] = "snodeb";
     }
 
-    packageJson.scripts = {
-      ...scripts,
-      ...packageJson.scripts, // Keep existing scripts if they exist? Or overwrite?
-      // Previous logic was overwriting but preserving `...packageJson.scripts` at the END
-      // which means existing scripts took precedence if they had the same key?
-      // Wait, `...recommendedScripts, ...packageJson.scripts` means existing scripts override recommended ones.
-      // Let's stick to that to be safe.
-    };
+    if (cfg.force) {
+      // Force mode: Overwrite existing scripts with our recommended ones
+      packageJson.scripts = {
+        ...packageJson.scripts,
+        ...scripts,
+      };
+    } else {
+      // Default mode: Keep existing user scripts if they conflict
+      packageJson.scripts = {
+        ...scripts,
+        ...packageJson.scripts,
+      };
+    }
 
-    // Ensure our recommended scripts override if they are crucial?
-    // Actually, usually you want to inject YOUR scripts.
-    // Let's use `...packageJson.scripts, ...scripts` to enforce our scripts,
-    // OR `...scripts, ...packageJson.scripts` to respect user overrides.
-    // The previous code was: `packageJson.scripts = { ...recommendedScripts, ...packageJson.scripts };`
-    // So user scripts (loaded from file) overrode the generated ones. I will keep that behavior.
-
-    packageJson.scripts = {
-      ...scripts,
-      ...packageJson.scripts,
-    };
-
-    console.log("✅ Updated scripts in package.json");
-    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+    if (cfg.dryRun) {
+      console.log("[DryRun] Would update package.json scripts");
+    } else {
+      console.log("✅ Updated scripts in package.json");
+      fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+    }
   } catch (error) {
     console.error("❌ Failed to update package.json:", error);
   }
