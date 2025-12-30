@@ -75,11 +75,4 @@ describe("JSON Configurations", () => {
     expect(Array.isArray(json.branches)).toBe(true);
     expect(Array.isArray(json.plugins)).toBe(true);
   });
-
-  it("should validate typedoc.json", () => {
-    const content = fs.readFileSync(path.join(rootDir, "typedoc.json"), "utf-8");
-    const json = JSON.parse(content);
-    expect(json).toHaveProperty("$schema");
-    expect(json).toHaveProperty("plugin");
-  });
 });

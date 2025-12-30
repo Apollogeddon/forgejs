@@ -6,20 +6,31 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 const CLI_SCRIPT = path.resolve(__dirname, "../src/index.ts");
 
 describe("CLI Init Command", () => {
-  const tempDir = path.join(__dirname, "temp-test-env");
+  let tempDir: string;
 
   beforeEach(() => {
-    // Create a temporary directory for testing
+    // Create a unique temporary directory for each test
+    tempDir = path.join(__dirname, `tmp-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
     if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true, force: true });
+      // Should not happen with unique names, but just in case
+      try {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      } catch (e) {
+        console.warn(e);
+      }
     }
     fs.mkdirSync(tempDir);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     // Clean up
     if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true, force: true });
+      try {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      } catch (error) {
+        // Ignore EBUSY errors on Windows which can happen if the process hasn't fully released locks
+        console.warn(`Warning: Failed to clean up temp dir: ${error}`);
+      }
     }
   });
 
@@ -38,7 +49,9 @@ describe("CLI Init Command", () => {
       "biome.json",
       "vitest.config.ts",
       ".releaserc.json",
-      "typedoc.json",
+      "astro.config.mjs",
+      "tsconfig.json",
+      "src/content/docs/index.mdx",
       "commitlint.config.ts",
       "tsup.config.ts",
       "lefthook.yml",
@@ -100,10 +113,12 @@ describe("CLI Init Command", () => {
     expect(updatedPackageJson.scripts).toEqual(
       expect.objectContaining({
         start: "node index.js", // Existing script should be preserved
+        watch: "tsx watch src/index.ts",
         lint: "biome check --fix",
         type: "tsc --noEmit",
         build: "tsup",
-        doc: "typedoc",
+        docs: "astro build",
+        "docs:dev": "astro dev",
         test: "vitest run",
         publint: "publint",
         prepare: "lefthook install",
@@ -123,10 +138,13 @@ describe("CLI Init Command", () => {
     expect(updatedPackageJson.type).toBe("module");
     expect(updatedPackageJson.scripts).toEqual(
       expect.objectContaining({
+        watch: "tsx watch src/index.ts",
+        start: "tsx src/index.ts",
         lint: "biome check --fix",
         type: "tsc --noEmit",
         build: "tsup",
-        doc: "typedoc",
+        docs: "astro build",
+        "docs:dev": "astro dev",
         test: "vitest run",
         publint: "publint",
         prepare: "lefthook install",
