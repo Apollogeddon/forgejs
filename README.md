@@ -58,3 +58,11 @@ Forge.js enforces a "Gold Standard" stack designed for performance and reliabili
 | **Commits** | [Commitlint](https://commitlint.js.org/) | Enforces Conventional Commits standards. |
 | **Releases** | [Semantic Release](https://github.com/semantic-release/semantic-release) | Fully automated version management and package publishing. |
 | **CI/CD** | [GitHub Actions](https://github.com/features/actions) | Reusable workflows for Testing, Quality, and Releases. |
+
+## 🔄 Tooling & Versioning Strategy
+
+Forge.js adopts an opinionated "batteries-included" approach.
+
+* **Managed Versions:** This package manages the versions of core tools (Biome, Vitest, Tsup) as dependencies.
+* **Simplified Upgrades:** To upgrade your linter or test runner, simply upgrade `@apollogeddon/forgejs`.
+* **Stability:** We ensure that all tools in the stack work harmoniously together before releasing a new version.
