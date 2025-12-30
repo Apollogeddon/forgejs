@@ -16,9 +16,7 @@ updates:
           - "patch"
     # Ensure commit messages follow your convention (e.g., 'chore(deps): ...')
     commit-message:
-      prefix: "chore(deps)"
-      prefix-development: "chore(deps)"
-      include: "scope"
+      prefix: "fix(deps)"
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -26,6 +24,5 @@ updates:
       interval: "daily"
     commit-message:
       prefix: "chore(ci)"
-      include: "scope"
     ignore:
       - dependency-name: "apollogeddon/forgejs"

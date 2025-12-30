@@ -1,0 +1,62 @@
+---
+title: Philosophy & Stack
+description: Technical reasoning behind the toolchain selection.
+sidebar:
+  order: 2
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+Forge.js implements an opinionated toolchain designed to prioritise execution speed and configuration simplicity.
+
+## High-Performance Tooling
+The project prioritises tools written in compiled languages (Rust, Go) over pure JavaScript implementations to minimise CI execution time and local feedback loops.
+
+*   **Biome:** Written in Rust, Biome combines linting, formatting, and import organisation into a single pass. This replaces the traditional ESLint/Prettier stack, reducing dependency overhead and execution time.
+*   **Tsup & Esbuild:** Tsup leverages `esbuild` (written in Go) for TypeScript transpilation, offering significantly faster build times compared to Rollup or Webpack-based solutions.
+*   **Lefthook:** Written in Go, Lefthook executes Git hooks in parallel. It introduces minimal latency to git operations compared to Node.js-based alternatives.
+
+## Standardisation as a Service
+Forge.js abstracts configuration to prevent "drift" across repositories. The goal is to ensure that improvements to the build system propagate to all consumers via a single dependency update.
+
+*   **Unified Toolchain:** By centralising 15+ configuration files, the library enforces consistent standards across an organization.
+*   **Vitest:** Selected for its native ESM support and integration with the Vite ecosystem, removing the need for complex transform configurations often required by Jest.
+*   **Semantic Release:** Automates the release lifecycle. Version numbers and changelogs are derived deterministically from commit history, removing manual intervention from the release process.
+*   **Centralised CI/CD:** Reusable GitHub Actions workflows ensure consistent security audits, quality gates, and deployment patterns across all projects.
+
+## The Toolchain
+
+<CardGrid>
+  <Card title="Biome" icon="biome">
+    **Why?** Execution speed and single-dependency architecture.
+    **Replaces:** ESLint, Prettier.
+  </Card>
+  <Card title="Tsup" icon="node">
+    **Why?** Zero-config bundling for TypeScript using esbuild.
+    **Replaces:** Webpack, Rollup, Babel, TSC (emit).
+  </Card>
+  <Card title="Vitest" icon="seti:vite">
+    **Why?** Native ESM support and shared configuration with Vite.
+    **Replaces:** Jest, Mocha.
+  </Card>
+  <Card title="Lefthook" icon="laptop">
+    **Why?** Parallel execution and low overhead (Go-based).
+    **Replaces:** Husky, lint-staged.
+  </Card>
+  <Card title="Semantic Release" icon="rocket">
+    **Why?** Deterministic versioning and changelog generation.
+    **Replaces:** Manual tagging, manual changelogs.
+  </Card>
+  <Card title="Commitlint" icon="seti:git">
+    **Why?** Enforces structured commit history for automation.
+    **Replaces:** Manual review of commit messages.
+  </Card>
+  <Card title="Publint" icon="magnifier">
+    **Why?** Validates package exports for compatibility.
+    **Replaces:** Manual verification of entry points.
+  </Card>
+  <Card title="Snodeb" icon="linux">
+    **Why?** Native Debian packaging for Node.js.
+    **Replaces:** pkg, nexe (for system distribution).
+  </Card>
+</CardGrid>

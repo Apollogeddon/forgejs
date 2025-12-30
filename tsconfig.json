@@ -1,8 +1,9 @@
 {
+  "extends": "astro/tsconfigs/strict",
   "compilerOptions": {
     "target": "esnext",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "baseUrl": ".",
     "rootDir": ".",
     "paths": {
@@ -16,5 +17,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "exclude": ["node_modules/", "dist"]
+  "include": [".astro/types.d.ts", "src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

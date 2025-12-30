@@ -28,11 +28,15 @@
       "types": "./tsup.config.d.ts",
       "import": "./tsup.config.cjs"
     },
-    "./typedoc.json": "./typedoc.json",
+    "./astro.config.mjs": {
+      "types": "./astro.config.d.ts",
+      "import": "./astro.config.mjs"
+    },
     "./vitest.config.cjs": {
       "types": "./vitest.config.d.ts",
       "import": "./vitest.config.cjs"
-    }
+    },
+    "./tsconfig.json": "./tsconfig.json"
   },
   "files": [
     "dist",
@@ -44,11 +48,13 @@
     "lefthook.yml",
     "tsup.config.cjs",
     "tsup.config.d.ts",
-    "typedoc.json",
+    "astro.config.mjs",
+    "astro.config.d.ts",
     "snodeb.config.cjs",
     "snodeb.config.d.ts",
     "vitest.config.cjs",
-    "vitest.config.d.ts"
+    "vitest.config.d.ts",
+    "tsconfig.json"
   ],
   "scripts": {
     "watch": "tsx watch src/index.ts",
@@ -57,11 +63,13 @@
     "type": "tsc --noEmit",
     "build": "tsup",
     "test": "vitest run",
-    "doc": "typedoc",
+    "docs": "astro build",
+    "docs:dev": "astro dev",
     "publint": "publint",
     "prepare": "lefthook install"
   },
   "dependencies": {
+    "@astrojs/starlight": "0.37.1",
     "@biomejs/biome": "2.3.10",
     "@commitlint/cli": "20.2.0",
     "@commitlint/config-conventional": "20.2.0",
@@ -72,11 +80,15 @@
     "@semantic-release/github": "12.0.2",
     "@types/node": "25.0.3",
     "@vitest/coverage-v8": "4.0.16",
+    "astro": "5.16.6",
+    "astro-mermaid": "1.1.0",
     "lefthook": "2.0.13",
     "publint": "0.3.16",
     "semantic-release": "25.0.2",
     "semantic-release-helm3": "2.10.0",
+    "sharp": "0.34.2",
     "snodeb": "1.1.4",
+    "starlight-typedoc": "0.21.5",
     "tsup": "8.5.1",
     "tsx": "4.21.0",
     "typedoc": "0.28.15",

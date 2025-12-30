@@ -1,0 +1,137 @@
+---
+title: Configuration
+description: Extendable configurations for common Node.js tools.
+sidebar:
+  order: 2
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+The project exports configurations for standard tooling. These can be extended to inherit best practices while allowing for project-specific overrides.
+
+## Quality & Testing
+
+<Tabs>
+  <TabItem label="Biome" icon="biome">
+    **Linting & Formatting**
+
+    Extend the shared Biome configuration in `biome.json`:
+
+    ```json
+    {
+      "$schema": "node_modules/@biomejs/biome/configuration_schema.json",
+      "extends": ["node_modules/@apollogeddon/forgejs/biome.json"]
+    }
+    ```
+  </TabItem>
+
+  <TabItem label="Vitest" icon="seti:vite">
+    **Testing**
+
+    Import and merge the base configuration in `vitest.config.ts`:
+
+    ```ts
+    import { mergeConfig } from 'vitest/config';
+    import baseConfig from '@apollogeddon/forgejs/vitest.config.cjs';
+
+    export default mergeConfig(baseConfig, {
+      test: {
+        // Project-specific overrides
+      }
+    });
+    ```
+  </TabItem>
+
+  <TabItem label="Commitlint" icon="seti:git">
+    **Commit Message Linting**
+
+    Extend the shared commitlint configuration in `commitlint.config.ts`:
+
+    ```js
+    import type { UserConfig } from '@commitlint/types';
+    import baseConfig from '@apollogeddon/forgejs/commitlint.config.cjs';
+
+    const Configuration: UserConfig = {
+      extends: [baseConfig.extends],
+      // Add project-specific rules here
+    };
+
+    export default Configuration;
+    ```
+  </TabItem>
+
+  <TabItem label="Lefthook" icon="laptop">
+    **Git Hooks**
+
+    To use the shared Lefthook configuration, copy it into the project root:
+
+    ```bash
+    cp node_modules/@apollogeddon/forgejs/lefthook.yml ./lefthook.yml
+    ```
+  </TabItem>
+</Tabs>
+
+## Build & Release
+
+<Tabs>
+  <TabItem label="Tsup" icon="node">
+    **TypeScript Bundler**
+
+    Import the base configuration and override properties in `tsup.config.ts`:
+
+    ```ts
+    import { defineConfig } from "tsup";
+    import baseConfig from "@apollogeddon/forgejs/tsup.config.cjs";
+
+    export default defineConfig({
+      ...baseConfig,
+      // Override or add project-specific properties here
+      entry: ["./src/index.ts"],
+    });
+    ```
+  </TabItem>
+
+  <TabItem label="Release" icon="rocket">
+    **Semantic Release**
+
+    Inherit the release rules in `.releaserc.json`:
+
+    ```json
+    {
+      "extends": "@apollogeddon/forgejs/.releaserc.json"
+    }
+    ```
+
+    *For Helm chart projects, use `"extends": "@apollogeddon/forgejs/.releaserc.helm.json"`.*
+  </TabItem>
+
+  <TabItem label="Snodeb" icon="linux">
+    **Debian Packaging**
+
+    Import the base configuration and override properties in `snodeb.config.ts`:
+
+    ```ts
+    import { defineSnodebConfig } from "snodeb";
+    import baseConfig from "@apollogeddon/forgejs/snodeb.config.cjs";
+
+    export default defineSnodebConfig({
+      ...baseConfig,
+      // Override or add project-specific properties here
+      files: {
+        ...baseConfig.files,
+        include: ["dist/index.js"], // Example override
+      },
+    });
+    ```
+  </TabItem>
+
+  <TabItem label="Starlight" icon="document">
+    **Documentation Site**
+
+    Starlight configuration is scaffolded by the `init` command into `astro.config.mjs`.
+
+    Unlike other tools, Astro configuration is not inherited. You can modify `astro.config.mjs` directly to customize your documentation site.
+
+    Requires: `astro`, `@astrojs/starlight`, `starlight-typedoc`, `sharp`.
+  </TabItem>
+</Tabs>
