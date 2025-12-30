@@ -1,13 +1,11 @@
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
-import mermaid from "astro-mermaid";
 import starlightTypeDoc from "starlight-typedoc";
 
 export default defineConfig({
   site: "https://apollogeddon.github.io/forgejs",
   outDir: "docs",
   integrations: [
-    mermaid(),
     starlight({
       title: "Forge.js",
       logo: {
