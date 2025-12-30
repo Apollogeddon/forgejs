@@ -6,27 +6,34 @@ on:
       - "**"
     paths:
       - ".github/**"
+      - "src/**"
+      - "tests/**"
       - '.releaserc.helm.json'
       - '.releaserc.json'
+      - 'astro.config.mjs'
       - 'biome.json'
-      - 'tsup.config.cjs'
-      - 'typedoc.json'
+      - 'commitlint.config.cjs'
+      - 'lefthook.yml'
       - 'snodeb.config.cjs'
+      - 'tsup.config.cjs'
       - 'vitest.config.cjs'
-      - 'vitest.config.d.ts'
       - 'package.json'
       - 'package-lock.json'
   pull_request:
     paths:
       - ".github/**"
+      - "src/**"
+      - "tests/**"
       - '.releaserc.helm.json'
       - '.releaserc.json'
+      - 'astro.config.mjs'
       - 'biome.json'
+      - 'commitlint.config.cjs'
+      - 'lefthook.yml'
+      - 'snodeb.config.cjs'
       - 'tsup.config.cjs'
       - 'typedoc.json'
-      - 'snodeb.config.cjs'
       - 'vitest.config.cjs'
-      - 'vitest.config.d.ts'
       - 'package.json'
       - 'package-lock.json'
 
