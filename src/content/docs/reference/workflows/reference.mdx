@@ -7,95 +7,95 @@ sidebar:
 
 import { Card, CardGrid, Steps, Badge, LinkCard } from '@astrojs/starlight/components';
 
-This reference details the execution flow and responsibility of every job in the Forge.js ecosystem.
+This reference details the execution flow and responsibility of each job within the workflow ecosystem.
 
 ## Pipeline Lifecycle
 
-Forge.js workflows are designed to be modular. Below is the logical progression from code change to production release.
+The workflows follow a modular design. The logical progression from code change to production release is as follows:
 
 <Steps>
 1.  **Quality Assurance**  
-    Checks are performed on every push using `quality.yml` and `testing.yml`.
+    The pipeline runs quality checks on every push using `quality.yml` and `testing.yml`.
 2.  **Build & Artifacts**  
-    Once quality passes, `build.yml` compiles the source code into a redistributable format.
+    Upon successful quality checks, `build.yml` compiles the source code into a redistributable format.
 3.  **Versioning**  
     `version.yml` calculates the next semantic version and prepares release notes.
 4.  **Delivery**  
-    Finally, `library.yml` (NPM) or `debian.yml` (Linux) publishes the artifacts to registries.
+    `library.yml` (NPM) or `debian.yml` (Linux) publishes the artifacts to registries.
 </Steps>
 
 ---
 
-## default.yml
+## Default.yml
 *The foundation. These jobs provide the environment used by all other pipelines.*
 
 <Steps >
-1.  <Card title="setup" icon="rocket">
+1.  <Card title="setup" icon="setting">
       **Environment Setup**  
       Prepares Node.js, caches dependencies, performs a clean install (`npm ci`), and runs a high-level security audit.
       <Badge text="Standalone" variant="note" />
     </Card>
-2.  <Card title="auto-merge" icon="git-merge">
+2.  <Card title="auto-merge" icon="seti:git">
       **Dependabot Automation**  
-      Automatically merges Dependabot pull requests for minor and patch updates to keep dependencies fresh.
+      Automatically merges Dependabot pull requests for minor and patch updates to maintain dependency freshness.
       <Badge text="Standalone" variant="note" />
     </Card>
 </Steps >
 
-## quality.yml
-*Ensures code standards are maintained before any further processing.*
+## Quality.yml
+*Ensures code standards are maintained before further processing.*
 
 <Steps>
 1.  **Prepare Environment**  
     <LinkCard title="Calls ➔ default.yml" href="#defaultyml" description="Triggers the setup job to prepare Node.js and dependencies." />
 2.  <Card title="check" icon="approve-check-circle">
       **Static Analysis**  
-      Executes Biome linting and TypeScript type checking in parallel.
+      Executes Biome linting and TypeScript type checking sequentially.
       <Badge text="Needs: setup" variant="tip" />
     </Card>
 </Steps>
 
-## testing.yml
-*The gatekeeper for logic correctness.*
+## Testing.yml
+*Validates logic correctness.*
 
 <Steps>
 1.  **Verify Quality**  
-    <LinkCard title="Calls ➔ quality.yml" href="#qualityyml" description="Ensures linting and types are perfect before starting tests." />
-2.  <Card title="test" icon="beaker">
+    <LinkCard title="Calls ➔ quality.yml" href="#qualityyml" description="Ensures linting and types are correct before starting tests." />
+2.  <Card title="test" icon="seti:vite">
       **Unit Tests**  
       Runs the full Vitest suite and uploads code coverage reports.
       <Badge text="Needs: quality" variant="tip" />
     </Card>
 </Steps>
 
-## build.yml
-*Compiles the source code into production-ready assets.*
+## Build.yml
+*Compiles source code into production-ready assets.*
 
 <Steps>
 1.  **Prepare Environment**  
     <LinkCard title="Calls ➔ default.yml" href="#defaultyml" description="Triggers the setup job." />
-2.  <Card title="build" icon="puzzle">
+2.  <Card title="build" icon="node">
       **Compilation**  
       Bundles the project using Tsup and uploads the resulting `dist` directory.
       <Badge text="Needs: setup" variant="tip" />
     </Card>
 </Steps>
 
-## version.yml
-*The brain of the release process.*
+## Version.yml
+*Manages the release process.*
 
 <Steps>
 1.  **Verify Build**  
     <LinkCard title="Calls ➔ build.yml" href="#buildyml" description="Ensures the project compiles before attempting a release." />
-2.  <Card title="version" icon="tag">
+2.  <Card title="version" icon="rocket">
       **Semantic Release**  
       Analyzes commits, determines versioning, and creates a GitHub Release.
       <Badge text="Needs: build" variant="tip" />
     </Card>
 </Steps>
 
-## library.yml
-*NPM publishing orchestration.*
+## Library.yml
+*Orchestrates NPM publishing.*
 
 <Steps>
 1.  **Prepare Release**  
@@ -105,15 +105,15 @@ Forge.js workflows are designed to be modular. Below is the logical progression 
       Generates API documentation via TypeDoc and deploys it to GitHub Pages.
       <Badge text="Needs: version" variant="tip" />
     </Card>
-3.  <Card title="publish" icon="upload">
+3.  <Card title="publish" icon="seti:npm">
       **Registry Publish**  
       Publishes the package to NPM or GitHub Packages with OIDC-based provenance.
       <Badge text="Needs: document" variant="tip" />
     </Card>
 </Steps>
 
-## debian.yml
-*Linux packaging orchestration.*
+## Debian.yml
+*Orchestrates Linux packaging.*
 
 <Steps>
 1.  **Prepare Release**  
