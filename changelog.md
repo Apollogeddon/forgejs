@@ -1,3 +1,16 @@
+# [1.2.0](https://github.com/apollogeddon/forgejs/compare/v1.1.1...v1.2.0) (2025-12-30)
+
+
+### Bug Fixes
+
+* **deps:** bump the dependencies group with 2 updates ([630218e](https://github.com/apollogeddon/forgejs/commit/630218eab123e0168e408d931f3c92c5f8bcf1e4))
+
+
+### Features
+
+* **docs:** add astro starlight for documentation ([15d8fc2](https://github.com/apollogeddon/forgejs/commit/15d8fc2d5395341c4a1fa9806ae7626340f0c868))
+* **init:** export init function ([b5efd1b](https://github.com/apollogeddon/forgejs/commit/b5efd1bf53f8e60cfe2d3897d8efc56342d740b3))
+
 ## [1.1.1](https://github.com/apollogeddon/forgejs/compare/v1.1.0...v1.1.1) (2025-12-15)
 
 
