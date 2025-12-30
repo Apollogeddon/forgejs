@@ -38,10 +38,14 @@ export default defineConfig({
         },
       ],
       plugins: [
-        starlightTypeDoc({
-          entryPoints: ["src/index.ts"],
-          tsconfig: "./tsconfig.json",
-        }),
+        ...(process.argv.includes("sync")
+          ? []
+          : [
+              starlightTypeDoc({
+                entryPoints: ["src/index.ts"],
+                tsconfig: "./tsconfig.json",
+              }),
+            ]),
       ],
     }),
   ],
