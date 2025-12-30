@@ -35,7 +35,8 @@
     "./vitest.config.cjs": {
       "types": "./vitest.config.d.ts",
       "import": "./vitest.config.cjs"
-    }
+    },
+    "./tsconfig.json": "./tsconfig.json"
   },
   "files": [
     "dist",
@@ -49,11 +50,11 @@
     "tsup.config.d.ts",
     "astro.config.mjs",
     "astro.config.d.ts",
-    "typedoc.json",
     "snodeb.config.cjs",
     "snodeb.config.d.ts",
     "vitest.config.cjs",
-    "vitest.config.d.ts"
+    "vitest.config.d.ts",
+    "tsconfig.json"
   ],
   "scripts": {
     "watch": "tsx watch src/index.ts",
@@ -63,7 +64,7 @@
     "build": "tsup",
     "test": "vitest run",
     "docs": "astro build",
-    "docs:watch": "astro dev",
+    "docs:dev": "astro dev",
     "publint": "publint",
     "prepare": "lefthook install"
   },
