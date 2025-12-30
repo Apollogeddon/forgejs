@@ -117,8 +117,9 @@ describe("CLI Init Command", () => {
         lint: "biome check --fix",
         type: "tsc --noEmit",
         build: "tsup",
-        docs: "astro build",
-        "docs:dev": "astro dev",
+        "docs:init": "astro sync",
+        "docs:build": "astro build",
+        "docs:watch": "astro dev",
         test: "vitest run",
         publint: "publint",
         prepare: "lefthook install",
@@ -143,12 +144,49 @@ describe("CLI Init Command", () => {
         lint: "biome check --fix",
         type: "tsc --noEmit",
         build: "tsup",
-        docs: "astro build",
-        "docs:dev": "astro dev",
+        "docs:init": "astro sync",
+        "docs:build": "astro build",
+        "docs:watch": "astro dev",
         test: "vitest run",
         publint: "publint",
         prepare: "lefthook install",
       }),
     );
+  });
+
+  it("should support --debian flag to setup snodeb", () => {
+    execSync(`npx tsx ${CLI_SCRIPT} init --debian`, { cwd: tempDir });
+
+    // Should create snodeb config
+    expect(fs.existsSync(path.join(tempDir, "snodeb.config.cjs"))).toBe(true);
+
+    // Should create tsup config (now default)
+    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
+
+    // Should NOT create library-specific files (astro/docs)
+    expect(fs.existsSync(path.join(tempDir, "astro.config.mjs"))).toBe(false);
+
+    // Should update package.json with debian script AND build script
+    const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
+    expect(packageJson.scripts["build:deb"]).toBe("snodeb");
+    expect(packageJson.scripts.build).toBe("tsup");
+  });
+
+  it("should support --library flag to setup library only", () => {
+    execSync(`npx tsx ${CLI_SCRIPT} init --library`, { cwd: tempDir });
+
+    // Should create library files
+    expect(fs.existsSync(path.join(tempDir, "astro.config.mjs"))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
+
+    // Should NOT create snodeb config
+    expect(fs.existsSync(path.join(tempDir, "snodeb.config.cjs"))).toBe(false);
+
+    // Should NOT create testing config if not requested
+    expect(fs.existsSync(path.join(tempDir, "vitest.config.ts"))).toBe(false);
+
+    // Should setup library workflow
+    const workflowContent = fs.readFileSync(path.join(tempDir, ".github/workflows/ci.yml"), "utf-8");
+    expect(workflowContent).toContain("library.yml");
   });
 });

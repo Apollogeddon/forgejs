@@ -122,3 +122,57 @@ export default defineConfig({
   ...baseConfig,
 });
 `;
+
+export const snodebConfig = `\
+const { defineSnodebConfig } = require("snodeb");
+
+module.exports = defineSnodebConfig({
+  architecture: "all",
+  depends: ["nodejs"],
+  files: {
+    include: ["dist/index.js", "node_modules/**/*"],
+    configInclude: [".env", "config/default.json"],
+    prune: true,
+    unPrune: false,
+  },
+  systemd: {
+    user: "root",
+    group: "node-service",
+    entryPoint: "dist/index.js",
+  },
+});
+`;
+
+export const libraryWorkflow = `\
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  library:
+    uses: apollogeddon/forgejs/.github/workflows/library.yml@main
+    with:
+      node_version: '22'
+    secrets: inherit
+`;
+
+export const debianWorkflow = `\
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  debian:
+    uses: apollogeddon/forgejs/.github/workflows/debian.yml@main
+    with:
+      node_version: '22'
+    secrets: inherit
+`;
