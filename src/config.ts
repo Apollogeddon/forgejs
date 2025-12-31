@@ -93,7 +93,8 @@ export const tsconfigConfig = JSON.stringify(
   {
     extends: "@apollogeddon/forgejs/tsconfig.json",
     compilerOptions: {
-      ignoreDeprecations: "5.0",
+      baseUrl: ".",
+      rootDir: ".",
     },
     include: ["src/**/*", ".astro/types.d.ts"],
     exclude: ["node_modules", "dist"],
