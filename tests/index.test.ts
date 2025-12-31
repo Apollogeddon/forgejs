@@ -186,7 +186,7 @@ describe("CLI Init Command", () => {
     expect(fs.existsSync(path.join(tempDir, "vitest.config.ts"))).toBe(false);
 
     // Should setup library workflow
-    const workflowContent = fs.readFileSync(path.join(tempDir, ".github/workflows/ci.yml"), "utf-8");
+    const workflowContent = fs.readFileSync(path.join(tempDir, ".github/workflows/.index.yml"), "utf-8");
     expect(workflowContent).toContain("library.yml");
   });
 

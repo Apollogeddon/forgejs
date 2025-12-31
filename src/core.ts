@@ -132,10 +132,10 @@ function setupWorkflows(cwd: string, cfg: InitConfig, fs: IFileSystem) {
 
   if (cfg.debian) {
     workflowContent = templates.debianWorkflow;
-    workflowName = ".github/workflows/ci.yml";
+    workflowName = ".github/workflows/.index.yml";
   } else if (cfg.library) {
     workflowContent = templates.libraryWorkflow;
-    workflowName = ".github/workflows/ci.yml";
+    workflowName = ".github/workflows/.index.yml";
   }
 
   if (workflowContent && workflowName) {
