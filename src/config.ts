@@ -8,13 +8,20 @@ export const biomeConfig = JSON.stringify(
 );
 
 export const vitestConfig = `\
-import baseConfig from '@apollogeddon/forgejs/vitest.config.cjs';
-import { mergeConfig } from 'vitest/config';
+import path from "node:path";
+import baseConfig from "@apollogeddon/forgejs/vitest.config.cjs";
+import { mergeConfig } from "vitest/config";
 
 export default mergeConfig(baseConfig, {
+  resolve: {
+    alias: {
+      // Manually map alias to avoid 'vite-tsconfig-paths' issues
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
   test: {
     // Project-specific overrides
-  }
+  },
 });
 `;
 
