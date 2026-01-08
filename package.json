@@ -80,7 +80,7 @@
     "@semantic-release/github": "12.0.2",
     "@types/node": "25.0.3",
     "@vitest/coverage-v8": "4.0.16",
-    "astro": "5.16.6",
+    "astro": "5.16.7",
     "lefthook": "2.0.13",
     "publint": "0.3.16",
     "semantic-release": "25.0.2",
