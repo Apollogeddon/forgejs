@@ -78,10 +78,10 @@
     "@semantic-release/exec": "7.1.0",
     "@semantic-release/git": "10.0.1",
     "@semantic-release/github": "12.0.2",
-    "@types/node": "25.0.3",
-    "@vitest/coverage-v8": "4.0.16",
-    "astro": "5.16.8",
-    "lefthook": "2.0.13",
+    "@types/node": "25.0.7",
+    "@vitest/coverage-v8": "4.0.17",
+    "astro": "5.16.9",
+    "lefthook": "2.0.14",
     "publint": "0.3.16",
     "semantic-release": "25.0.2",
     "semantic-release-helm3": "2.10.0",
@@ -90,10 +90,10 @@
     "starlight-typedoc": "0.21.5",
     "tsup": "8.5.1",
     "tsx": "4.21.0",
-    "typedoc": "0.28.15",
+    "typedoc": "0.28.16",
     "typescript": "5.9.3",
     "vite-tsconfig-paths": "6.0.4",
-    "vitest": "4.0.16"
+    "vitest": "4.0.17"
   },
   "devDependencies": {
     "@types/js-yaml": "4.0.9",
