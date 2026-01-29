@@ -247,4 +247,54 @@ describe("CLI Init Command", () => {
     expect(stdout).toContain("Usage: npx @apollogeddon/forgejs init");
     expect(stdout).toContain("--dry-run");
   });
+
+  it("should fail when using --library with --docker", () => {
+    expect(() => {
+      execSync(`npx tsx ${CLI_SCRIPT} init --library --docker`, { cwd: tempDir, stdio: "pipe" });
+    }).toThrow();
+  });
+
+  it("should fail when using --library with --debian", () => {
+    expect(() => {
+      execSync(`npx tsx ${CLI_SCRIPT} init --library --debian`, { cwd: tempDir, stdio: "pipe" });
+    }).toThrow();
+  });
+
+  it("should fail when using --website with --typedoc", () => {
+    expect(() => {
+      execSync(`npx tsx ${CLI_SCRIPT} init --website --typedoc`, { cwd: tempDir, stdio: "pipe" });
+    }).toThrow();
+  });
+
+  it("should generate Nginx Dockerfile for --website --docker", () => {
+    execSync(`npx tsx ${CLI_SCRIPT} init --website --docker`, { cwd: tempDir });
+    expect(fs.existsSync(path.join(tempDir, "Dockerfile"))).toBe(true);
+    const content = fs.readFileSync(path.join(tempDir, "Dockerfile"), "utf-8");
+    expect(content).toContain("nginx");
+  });
+
+  it("should generate Distroless Dockerfile for --backend --docker", () => {
+    execSync(`npx tsx ${CLI_SCRIPT} init --backend --docker`, { cwd: tempDir });
+    expect(fs.existsSync(path.join(tempDir, "Dockerfile"))).toBe(true);
+    const content = fs.readFileSync(path.join(tempDir, "Dockerfile"), "utf-8");
+    expect(content).toContain("gcr.io/distroless/nodejs");
+  });
+
+  it("should fail when using --website with --debian", () => {
+    expect(() => {
+      execSync(`npx tsx ${CLI_SCRIPT} init --website --debian`, { cwd: tempDir, stdio: "pipe" });
+    }).toThrow();
+  });
+
+  it("should set private: true for backend/website projects", () => {
+    execSync(`npx tsx ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
+    const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
+    expect(packageJson.private).toBe(true);
+  });
+
+  it("should NOT set private: true for library projects", () => {
+    execSync(`npx tsx ${CLI_SCRIPT} init --library`, { cwd: tempDir });
+    const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
+    expect(packageJson.private).toBeUndefined();
+  });
 }, 120000);

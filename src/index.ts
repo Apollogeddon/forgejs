@@ -63,6 +63,29 @@ const config = {
   typedoc: !!(values.typedoc ?? (isLibrary && values.all !== false)),
 };
 
+// Validate Config
+if (config.library) {
+  if (config.docker) {
+    console.error("❌ Error: Docker configuration is not available for Library mode.");
+    process.exit(1);
+  }
+  if (config.debian) {
+    console.error("❌ Error: Debian packaging is not available for Library mode.");
+    process.exit(1);
+  }
+}
+
+if (config.website) {
+  if (config.typedoc) {
+    console.error("❌ Error: TypeDoc is not available for Website mode.");
+    process.exit(1);
+  }
+  if (config.debian) {
+    console.error("❌ Error: Debian packaging is not available for Website mode.");
+    process.exit(1);
+  }
+}
+
 if (values.help) {
   showHelp();
   process.exit(0);

@@ -145,7 +145,8 @@ function setupDocs(cwd: string, cfg: InitConfig, fs: IFileSystem) {
 }
 
 function setupDocker(cwd: string, cfg: InitConfig, fs: IFileSystem) {
-  createFile(cwd, "Dockerfile", templates.dockerConfig, cfg, fs);
+  const content = cfg.website ? templates.dockerConfigWebsite : templates.dockerConfigBackend;
+  createFile(cwd, "Dockerfile", content, cfg, fs);
   createFile(cwd, ".dockerignore", templates.dockerIgnore, cfg, fs);
 }
 
@@ -215,6 +216,12 @@ function updatePackageJson(cwd: string, cfg: InitConfig, fs: IFileSystem) {
     if (packageJson.type !== "module") {
       packageJson.type = "module";
       console.log("✅ Set 'type': 'module' in package.json");
+    }
+
+    // Safety: Prevent accidental publishing of Backends/Websites
+    if (!cfg.library) {
+      packageJson.private = true;
+      console.log("✅ Set 'private': true in package.json (Application mode)");
     }
 
     const scripts: Record<string, string> = {};
