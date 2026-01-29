@@ -300,6 +300,20 @@ describe("CLI Init Command", () => {
     expect(packageJson.private).toBe(true);
   });
 
+  it("should cleanup obsolete files when changing modes", () => {
+    // 1. Init as Debian
+    execSync(`npx tsx ${CLI_SCRIPT} init --debian`, { cwd: tempDir });
+    expect(fs.existsSync(path.join(tempDir, "snodeb.config.cjs"))).toBe(true);
+
+    // 2. Re-init as Backend WITHOUT force (should keep snodeb)
+    execSync(`npx tsx ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
+    expect(fs.existsSync(path.join(tempDir, "snodeb.config.cjs"))).toBe(true);
+
+    // 3. Re-init as Backend WITH force (should remove snodeb)
+    execSync(`npx tsx ${CLI_SCRIPT} init --backend --force`, { cwd: tempDir });
+    expect(fs.existsSync(path.join(tempDir, "snodeb.config.cjs"))).toBe(false);
+  });
+
   it("should NOT set private: true for library projects", () => {
     execSync(`npx tsx ${CLI_SCRIPT} init --library`, { cwd: tempDir });
     const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));

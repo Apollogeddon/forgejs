@@ -11,6 +11,7 @@ export interface IFileSystem {
   mkdirSync(p: string, options?: fs.MakeDirectoryOptions): string | undefined;
   writeFileSync(p: string, content: string): void;
   readFileSync(p: string, encoding: BufferEncoding): string;
+  unlinkSync(p: string): void;
 }
 
 export class NodeFileSystem implements IFileSystem {
@@ -48,5 +49,9 @@ export class NodeFileSystem implements IFileSystem {
 
   readFileSync(p: string, encoding: BufferEncoding): string {
     return fs.readFileSync(p, encoding);
+  }
+
+  unlinkSync(p: string): void {
+    fs.unlinkSync(p);
   }
 }

@@ -1,5 +1,5 @@
-import * as templates from "@/config.js";
-import { type IFileSystem, NodeFileSystem } from "@/utils/filesystem.js";
+import * as templates from "./config.js";
+import { type IFileSystem, NodeFileSystem } from "./utils/filesystem.js";
 
 export interface InitConfig {
   force: boolean;
@@ -80,11 +80,88 @@ export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()) {
   // 10. Package.json Scripts
   updatePackageJson(cwd, cfg, fs);
 
+  // 11. Cleanup Obsolete Files
+  cleanup(cwd, cfg, fs);
+
   console.log("\nInitialization complete!");
   console.log("Next steps:");
   console.log('1. Run "npm install" to ensure dependencies are linked.');
   if (cfg.linting) {
     console.log('2. Run "npx lefthook install" to set up git hooks.');
+  }
+}
+
+function cleanup(cwd: string, cfg: InitConfig, fs: IFileSystem) {
+  const toRemove: string[] = [];
+
+  // Cleanup Library/TypeDoc files
+  if (!cfg.typedoc) {
+    toRemove.push("astro.config.mjs");
+    toRemove.push("src/content/docs/index.mdx");
+  }
+
+  // Cleanup Website files
+  if (!cfg.website) {
+    toRemove.push("vite.config.ts");
+  } else {
+    // Website uses Vite, so remove Tsup
+    toRemove.push("tsup.config.ts");
+  }
+
+  // Cleanup Backend/Library Build files (Tsup)
+  if (!cfg.library && !cfg.backend && !cfg.debian) {
+    // If it's a website, tsup is already marked for removal above.
+    // If it's none of the above (unlikely given default), cleanup tsup.
+    toRemove.push("tsup.config.ts");
+  }
+
+  // Cleanup Debian files
+  if (!cfg.debian) {
+    toRemove.push("snodeb.config.cjs");
+  }
+
+  // Cleanup Docker files
+  if (!cfg.docker) {
+    toRemove.push("Dockerfile");
+    toRemove.push(".dockerignore");
+  }
+
+  // Cleanup Testing files
+  if (!cfg.testing) {
+    toRemove.push("vitest.config.ts");
+  }
+
+  // Cleanup Versioning files
+  if (!cfg.version) {
+    toRemove.push(".releaserc.json");
+    toRemove.push("commitlint.config.ts");
+  }
+
+  // Cleanup Linting files
+  if (!cfg.linting) {
+    toRemove.push("biome.json");
+    toRemove.push("lefthook.yml");
+  }
+
+  for (const file of toRemove) {
+    const filePath = fs.join(cwd, file);
+    if (fs.existsSync(filePath)) {
+      if (!cfg.force) {
+        console.log(`⚠️  Skipping removal of obsolete file: ${file} (use --force to delete)`);
+        continue;
+      }
+
+      if (cfg.dryRun) {
+        console.log(`[DryRun] Would remove obsolete file: ${file}`);
+      } else {
+        try {
+          fs.unlinkSync(filePath);
+          console.log(`🗑️  Removed obsolete file: ${file}`);
+        } catch (e) {
+          console.warn(`⚠️  Failed to remove ${file}: ${e}`);
+        }
+      }
+    }
   }
 }
 

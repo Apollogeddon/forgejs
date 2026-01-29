@@ -53,6 +53,14 @@ class MockFileSystem implements IFileSystem {
   getFileContent(p: string): string | undefined {
     return this.files.get(p);
   }
+
+  unlinkSync(p: string): void {
+    if (this.files.has(p)) {
+      this.files.delete(p);
+    } else {
+      throw new Error(`File not found: ${p}`);
+    }
+  }
 }
 
 describe("CLI Init with MockFileSystem", () => {
