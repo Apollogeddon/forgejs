@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
-import { init } from "@/core.js";
+import { init } from "./core.js";
 
 // Define available options
 const options = {
