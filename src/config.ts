@@ -246,6 +246,23 @@ jobs:
     secrets: inherit
 `;
 
+export const applicationWorkflow = `\
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  application:
+    uses: apollogeddon/forgejs/.github/workflows/application.yml@main
+    with:
+      node_version: '22'
+    secrets: inherit
+`;
+
 export const debianWorkflow = `\
 name: CI
 
