@@ -242,7 +242,7 @@ function setupWorkflows(cwd: string, cfg: InitConfig, fs: IFileSystem) {
     workflowContent = templates.libraryWorkflow;
     workflowName = ".github/workflows/ci.yml";
   } else if (cfg.backend || cfg.website) {
-    workflowContent = templates.applicationWorkflow;
+    workflowContent = templates.serviceWorkflow;
     workflowName = ".github/workflows/ci.yml";
   }
 
@@ -301,7 +301,7 @@ function updatePackageJson(cwd: string, cfg: InitConfig, fs: IFileSystem) {
     // Safety: Prevent accidental publishing of Backends/Websites
     if (!cfg.library) {
       packageJson.private = true;
-      console.log("✅ Set 'private': true in package.json (Application mode)");
+      console.log("✅ Set 'private': true in package.json (service mode)");
     }
 
     const scripts: Record<string, string> = {};

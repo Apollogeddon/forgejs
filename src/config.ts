@@ -246,7 +246,7 @@ jobs:
     secrets: inherit
 `;
 
-export const applicationWorkflow = `\
+export const serviceWorkflow = `\
 name: CI
 
 on:
@@ -256,8 +256,8 @@ on:
     branches: ["main"]
 
 jobs:
-  application:
-    uses: apollogeddon/forgejs/.github/workflows/application.yml@main
+  service:
+    uses: apollogeddon/forgejs/.github/workflows/service.yml@main
     with:
       node_version: '22'
     secrets: inherit

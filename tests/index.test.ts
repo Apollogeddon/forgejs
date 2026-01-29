@@ -186,12 +186,12 @@ describe("CLI Init Command", () => {
     expect(workflowContent).toContain("library.yml");
   });
 
-  it("should setup application workflow for backend", () => {
+  it("should setup service workflow for backend", () => {
     execSync(`npx tsx ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
     const workflowPath = path.join(tempDir, ".github/workflows/ci.yml");
     expect(fs.existsSync(workflowPath)).toBe(true);
     const workflowContent = fs.readFileSync(workflowPath, "utf-8");
-    expect(workflowContent).toContain("application.yml");
+    expect(workflowContent).toContain("service.yml");
   });
 
   it("should support --debian flag to setup snodeb", () => {
