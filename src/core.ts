@@ -4,16 +4,21 @@ import { type IFileSystem, NodeFileSystem } from "@/utils/filesystem.js";
 export interface InitConfig {
   force: boolean;
   dryRun: boolean;
-  debian: boolean;
+  backend: boolean;
   library: boolean;
+  website: boolean;
+  debian: boolean;
+  docker: boolean;
   testing: boolean;
   version: boolean;
+  linting: boolean;
+  typedoc: boolean;
 }
 
 export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()) {
   const cwd = fs.cwd();
 
-  console.log(`Initializing CI templates in ${cwd}...`);
+  console.log(`Initializing Forge.js in ${cwd}...`);
   if (cfg.dryRun) {
     console.log("⚠️  DRY RUN MODE: No files will be created or modified.");
   }
@@ -29,14 +34,20 @@ export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()) {
     console.log("⚠️  Force mode enabled. Existing files will be overwritten.");
   }
 
-  // 1. Base Setup (Always run)
+  // 1. Base Setup
   setupBase(cwd, cfg, fs);
 
-  // 2. Linting (Always run as part of base standard)
-  setupLinting(cwd, cfg, fs);
+  // 2. Linting
+  if (cfg.linting) {
+    setupLinting(cwd, cfg, fs);
+  }
 
-  // 3. Build (Always run)
-  setupBuild(cwd, cfg, fs);
+  // 3. Build (Different for website)
+  if (cfg.website) {
+    setupWebsite(cwd, cfg, fs);
+  } else {
+    setupBuild(cwd, cfg, fs);
+  }
 
   // 4. Testing
   if (cfg.testing) {
@@ -48,26 +59,33 @@ export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()) {
     setupVersioning(cwd, cfg, fs);
   }
 
-  // 6. Library
-  if (cfg.library) {
-    setupLibrary(cwd, cfg, fs);
+  // 6. Docs / TypeDoc
+  if (cfg.typedoc) {
+    setupDocs(cwd, cfg, fs);
   }
 
-  // 7. Debian
+  // 7. Docker
+  if (cfg.docker) {
+    setupDocker(cwd, cfg, fs);
+  }
+
+  // 8. Debian
   if (cfg.debian) {
     setupDebian(cwd, cfg, fs);
   }
 
-  // 8. Workflows
+  // 9. Workflows
   setupWorkflows(cwd, cfg, fs);
 
-  // 9. Package.json Scripts
+  // 10. Package.json Scripts
   updatePackageJson(cwd, cfg, fs);
 
   console.log("\nInitialization complete!");
   console.log("Next steps:");
   console.log('1. Run "npm install" to ensure dependencies are linked.');
-  console.log('2. Run "npx lefthook install" to set up git hooks.');
+  if (cfg.linting) {
+    console.log('2. Run "npx lefthook install" to set up git hooks.');
+  }
 }
 
 function createFile(cwd: string, fileName: string, content: string, cfg: InitConfig, fs: IFileSystem) {
@@ -108,6 +126,10 @@ function setupBuild(cwd: string, cfg: InitConfig, fs: IFileSystem) {
   createFile(cwd, "tsup.config.ts", templates.tsupConfig, cfg, fs);
 }
 
+function setupWebsite(cwd: string, cfg: InitConfig, fs: IFileSystem) {
+  createFile(cwd, "vite.config.ts", templates.viteConfig, cfg, fs);
+}
+
 function setupTesting(cwd: string, cfg: InitConfig, fs: IFileSystem) {
   createFile(cwd, "vitest.config.ts", templates.vitestConfig, cfg, fs);
 }
@@ -117,9 +139,14 @@ function setupVersioning(cwd: string, cfg: InitConfig, fs: IFileSystem) {
   createFile(cwd, "commitlint.config.ts", templates.commitlintConfig, cfg, fs);
 }
 
-function setupLibrary(cwd: string, cfg: InitConfig, fs: IFileSystem) {
+function setupDocs(cwd: string, cfg: InitConfig, fs: IFileSystem) {
   createFile(cwd, "astro.config.mjs", templates.astroConfig, cfg, fs);
   createFile(cwd, "src/content/docs/index.mdx", templates.starlightContentIndex, cfg, fs);
+}
+
+function setupDocker(cwd: string, cfg: InitConfig, fs: IFileSystem) {
+  createFile(cwd, "Dockerfile", templates.dockerConfig, cfg, fs);
+  createFile(cwd, ".dockerignore", templates.dockerIgnore, cfg, fs);
 }
 
 function setupDebian(cwd: string, cfg: InitConfig, fs: IFileSystem) {
@@ -132,10 +159,10 @@ function setupWorkflows(cwd: string, cfg: InitConfig, fs: IFileSystem) {
 
   if (cfg.debian) {
     workflowContent = templates.debianWorkflow;
-    workflowName = ".github/workflows/.index.yml";
-  } else if (cfg.library) {
+    workflowName = ".github/workflows/debian.yml";
+  } else if (cfg.library || cfg.backend || cfg.website) {
     workflowContent = templates.libraryWorkflow;
-    workflowName = ".github/workflows/.index.yml";
+    workflowName = ".github/workflows/ci.yml";
   }
 
   if (workflowContent && workflowName) {
@@ -190,19 +217,31 @@ function updatePackageJson(cwd: string, cfg: InitConfig, fs: IFileSystem) {
       console.log("✅ Set 'type': 'module' in package.json");
     }
 
-    const scripts: Record<string, string> = {
-      watch: "tsx watch src/index.ts",
-      start: "tsx src/index.ts",
-      lint: "biome check --fix",
-      type: "tsc --noEmit",
-      build: "tsup",
-      prepare: "lefthook install",
-    };
+    const scripts: Record<string, string> = {};
 
-    if (cfg.library) {
+    if (cfg.linting) {
+      scripts.lint = "biome check --fix";
+      scripts.prepare = "lefthook install";
+    }
+
+    if (cfg.website) {
+      scripts.dev = "vite";
+      scripts.build = "vite build";
+      scripts.preview = "vite preview";
+    } else {
+      scripts.watch = "tsx watch src/index.ts";
+      scripts.start = "node dist/index.js";
+      scripts.build = "tsup";
+      scripts.type = "tsc --noEmit";
+    }
+
+    if (cfg.typedoc) {
       scripts["docs:init"] = "astro sync";
       scripts["docs:build"] = "astro build";
       scripts["docs:watch"] = "astro dev";
+    }
+
+    if (cfg.library) {
       scripts.publint = "publint";
     }
 
@@ -212,6 +251,11 @@ function updatePackageJson(cwd: string, cfg: InitConfig, fs: IFileSystem) {
 
     if (cfg.debian) {
       scripts["build:deb"] = "snodeb";
+    }
+
+    if (cfg.docker) {
+      scripts["docker:build"] = `docker build -t ${packageJson.name} .`;
+      scripts["docker:run"] = `docker run -p 3000:3000 ${packageJson.name}`;
     }
 
     if (cfg.force) {

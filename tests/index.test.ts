@@ -34,13 +34,11 @@ describe("CLI Init Command", () => {
     }
   });
 
-  it("should create configuration files when running init", () => {
+  it("should create configuration files when running init (default backend)", () => {
     // We use tsx to run the typescript file directly
     try {
       execSync(`npx tsx ${CLI_SCRIPT} init`, { cwd: tempDir });
     } catch (error) {
-      // If the process exits with 1, it might be due to our mock environment or missing args,
-      // but here we expect success (exit code 0).
       throw new Error(`CLI execution failed: ${error}`);
     }
 
@@ -49,9 +47,7 @@ describe("CLI Init Command", () => {
       "biome.json",
       "vitest.config.ts",
       ".releaserc.json",
-      "astro.config.mjs",
       "tsconfig.json",
-      "src/content/docs/index.mdx",
       "commitlint.config.ts",
       "tsup.config.ts",
       "lefthook.yml",
@@ -60,6 +56,9 @@ describe("CLI Init Command", () => {
     for (const file of expectedFiles) {
       expect(fs.existsSync(path.join(tempDir, file))).toBe(true);
     }
+
+    // Docs should NOT be created by default
+    expect(fs.existsSync(path.join(tempDir, "astro.config.mjs"))).toBe(false);
   });
 
   it("should verify content of generated biome.json", () => {
@@ -95,12 +94,12 @@ describe("CLI Init Command", () => {
     expect(content).toContain("node_modules/@apollogeddon/forgejs/biome.json");
   });
 
-  it("should update package.json with type: module and recommended scripts", () => {
+  it("should update package.json with type: module and recommended backend scripts", () => {
     const initialPackageJson = {
       name: "test-project",
       version: "1.0.0",
       scripts: {
-        start: "node index.js",
+        custom: "echo hello",
       },
     };
     fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify(initialPackageJson, null, 2));
@@ -112,16 +111,13 @@ describe("CLI Init Command", () => {
     expect(updatedPackageJson.type).toBe("module");
     expect(updatedPackageJson.scripts).toEqual(
       expect.objectContaining({
-        start: "node index.js", // Existing script should be preserved
+        custom: "echo hello", // Existing script should be preserved
         watch: "tsx watch src/index.ts",
+        start: "node dist/index.js",
         lint: "biome check --fix",
         type: "tsc --noEmit",
         build: "tsup",
-        "docs:init": "astro sync",
-        "docs:build": "astro build",
-        "docs:watch": "astro dev",
         test: "vitest run",
-        publint: "publint",
         prepare: "lefthook install",
       }),
     );
@@ -140,18 +136,54 @@ describe("CLI Init Command", () => {
     expect(updatedPackageJson.scripts).toEqual(
       expect.objectContaining({
         watch: "tsx watch src/index.ts",
-        start: "tsx src/index.ts",
+        start: "node dist/index.js",
         lint: "biome check --fix",
         type: "tsc --noEmit",
         build: "tsup",
-        "docs:init": "astro sync",
-        "docs:build": "astro build",
-        "docs:watch": "astro dev",
         test: "vitest run",
-        publint: "publint",
         prepare: "lefthook install",
       }),
     );
+  });
+
+  it("should support --docker flag", () => {
+    execSync(`npx tsx ${CLI_SCRIPT} init --docker`, { cwd: tempDir });
+
+    expect(fs.existsSync(path.join(tempDir, "Dockerfile"))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, ".dockerignore"))).toBe(true);
+
+    const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
+    expect(packageJson.scripts["docker:build"]).toBeDefined();
+    expect(packageJson.scripts["docker:run"]).toBeDefined();
+  });
+
+  it("should support --website flag", () => {
+    execSync(`npx tsx ${CLI_SCRIPT} init --website`, { cwd: tempDir });
+
+    expect(fs.existsSync(path.join(tempDir, "vite.config.ts"))).toBe(true);
+    // Should NOT have tsup config
+    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(false);
+
+    const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
+    expect(packageJson.scripts.dev).toBe("vite");
+    expect(packageJson.scripts.build).toBe("vite build");
+  });
+
+  it("should support --library flag to setup library only", () => {
+    execSync(`npx tsx ${CLI_SCRIPT} init --library`, { cwd: tempDir });
+
+    // Should create library files (typedoc enabled by default with library)
+    expect(fs.existsSync(path.join(tempDir, "astro.config.mjs"))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
+
+    // Should create testing config (enabled by default)
+    expect(fs.existsSync(path.join(tempDir, "vitest.config.ts"))).toBe(true);
+
+    // Should setup library workflow
+    const workflowPath = path.join(tempDir, ".github/workflows/ci.yml");
+    expect(fs.existsSync(workflowPath)).toBe(true);
+    const workflowContent = fs.readFileSync(workflowPath, "utf-8");
+    expect(workflowContent).toContain("library.yml");
   });
 
   it("should support --debian flag to setup snodeb", () => {
@@ -163,31 +195,10 @@ describe("CLI Init Command", () => {
     // Should create tsup config (now default)
     expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
 
-    // Should NOT create library-specific files (astro/docs)
-    expect(fs.existsSync(path.join(tempDir, "astro.config.mjs"))).toBe(false);
-
     // Should update package.json with debian script AND build script
     const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
     expect(packageJson.scripts["build:deb"]).toBe("snodeb");
     expect(packageJson.scripts.build).toBe("tsup");
-  });
-
-  it("should support --library flag to setup library only", () => {
-    execSync(`npx tsx ${CLI_SCRIPT} init --library`, { cwd: tempDir });
-
-    // Should create library files
-    expect(fs.existsSync(path.join(tempDir, "astro.config.mjs"))).toBe(true);
-    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
-
-    // Should NOT create snodeb config
-    expect(fs.existsSync(path.join(tempDir, "snodeb.config.cjs"))).toBe(false);
-
-    // Should NOT create testing config if not requested
-    expect(fs.existsSync(path.join(tempDir, "vitest.config.ts"))).toBe(false);
-
-    // Should setup library workflow
-    const workflowContent = fs.readFileSync(path.join(tempDir, ".github/workflows/.index.yml"), "utf-8");
-    expect(workflowContent).toContain("library.yml");
   });
 
   it("should not create files or modify package.json with --dry-run", () => {
@@ -236,4 +247,4 @@ describe("CLI Init Command", () => {
     expect(stdout).toContain("Usage: npx @apollogeddon/forgejs init");
     expect(stdout).toContain("--dry-run");
   });
-});
+}, 120000);

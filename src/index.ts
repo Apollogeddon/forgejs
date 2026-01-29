@@ -4,10 +4,20 @@ import { init } from "@/core.js";
 
 // Define available options
 const options = {
-  debian: { type: "boolean" },
+  // Modes
+  backend: { type: "boolean" },
   library: { type: "boolean" },
+  website: { type: "boolean" },
+
+  // Features
+  debian: { type: "boolean" },
+  docker: { type: "boolean" },
   version: { type: "boolean" },
   testing: { type: "boolean" },
+  linting: { type: "boolean" },
+  typedoc: { type: "boolean" },
+
+  // Meta
   force: { type: "boolean" },
   all: { type: "boolean" },
   "dry-run": { type: "boolean" },
@@ -24,18 +34,33 @@ const { values, positionals } = parseArgs({
 const command = positionals[0];
 
 // Determine active features
-// If no specific feature flags are set, and 'all' is not explicitly false, default to standard stack (library + testing + version)
-const specificFlags = ["debian", "library", "version", "testing"];
-const hasSpecificFlag = specificFlags.some((flag) => values[flag as keyof typeof values]);
-const isDefault = !hasSpecificFlag && values.all !== false;
+const modes = ["backend", "library", "website"];
+const hasModeFlag = modes.some((mode) => values[mode as keyof typeof values]);
+
+// If no mode flag is provided, backend is the default
+const isBackend = !!(values.backend || (!hasModeFlag && values.all !== false));
+const isLibrary = !!values.library;
+const isWebsite = !!values.website;
 
 const config = {
   force: !!values.force,
   dryRun: !!values["dry-run"],
+
+  // Modes
+  backend: isBackend,
+  library: isLibrary,
+  website: isWebsite,
+
+  // Features: Enabled if explicitly set, or if 'all' is set, or enabled by default for standard setups
+  // We default Testing, Versioning, and Linting to true unless explicitly disabled or 'all' is false
+  testing: !!(values.testing ?? values.all !== false),
+  version: !!(values.version ?? values.all !== false),
+  linting: !!(values.linting ?? values.all !== false),
+
+  // Optional Opt-in features
   debian: !!values.debian,
-  library: !!(values.library ?? (isDefault || values.all)),
-  testing: !!(values.testing ?? (isDefault || values.all)),
-  version: !!(values.version ?? (isDefault || values.all)),
+  docker: !!values.docker,
+  typedoc: !!(values.typedoc ?? (isLibrary && values.all !== false)),
 };
 
 if (values.help) {
@@ -54,12 +79,23 @@ function showHelp() {
   console.log(`
 Usage: npx @apollogeddon/forgejs init [options]
 
-Options:
+Modes (Default is --backend):
+  --backend   Setup for Node.js backend/service [Default]
+  --library   Setup for TypeScript library
+  --website   Setup for Frontend website (Vite/Astro)
+
+Standard Features (Enabled by default):
+  --testing   Setup Testing (vitest)
+  --version   Setup Versioning (semantic-release, commitlint)
+  --linting   Setup Linting & Formatting (biome, lefthook)
+
+Optional Features:
+  --docker    Setup Docker configuration
   --debian    Setup Debian packaging (snodeb)
-  --library   Setup Library tooling (tsup, astro, docs) [Default]
-  --version   Setup Versioning (semantic-release, commitlint) [Default]
-  --testing   Setup Testing (vitest) [Default]
-  --all       Enable all standard features (Library, Version, Testing)
+  --typedoc   Setup API Documentation (included by default with --library)
+
+Options:
+  --all       Enable all standard features [Default]
   --force     Overwrite existing files (and enforce script standards)
   --dry-run   Simulate the process without making changes
   --help      Show this help message
