@@ -59,10 +59,15 @@ describe("CLI Init with MockFileSystem", () => {
   const defaultConfig = {
     force: false,
     dryRun: false,
-    debian: false,
+    backend: false,
     library: true,
+    website: false,
+    debian: false,
+    docker: false,
     testing: true,
     version: true,
+    linting: true,
+    typedoc: true,
   };
 
   it("should create expected files in mock filesystem", () => {
