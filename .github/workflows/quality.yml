@@ -37,6 +37,9 @@ jobs:
       - name: Biome Lint
         run: npx @biomejs/biome check .
       - name: Astro Sync
-        run: npx astro sync
+        run: |
+          if [ -f astro.config.mjs ]; then
+            npx astro sync
+          fi
       - name: Type Check
         run: npx tsc --noEmit

@@ -1,0 +1,37 @@
+name: NodeJS Application
+
+on:
+  workflow_call:
+    inputs:
+      artifact_name:
+        required: false
+        type: string
+        default: 'dist'
+      enable_secrets:
+        required: false
+        type: boolean
+        default: true
+      node_version:
+        required: false
+        type: string
+        default: '22'
+      working_directory:
+        required: false
+        type: string
+        default: '.'
+
+jobs:
+  testing:
+    uses: ./.github/workflows/testing.yml
+    with:
+      working_directory: ${{ inputs.working_directory }}
+      node_version: ${{ inputs.node_version }}
+
+  version:
+    uses: ./.github/workflows/version.yml
+    needs: [testing]
+    with:
+      enable_secrets: ${{ inputs.enable_secrets }}
+      node_version: ${{ inputs.node_version }}
+      working_directory: ${{ inputs.working_directory }}
+      artifact_name: ${{ inputs.artifact_name }}
