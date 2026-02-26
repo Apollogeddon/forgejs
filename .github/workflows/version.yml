@@ -71,7 +71,7 @@ jobs:
             echo "new_release_published=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Upload updated package.json
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: updated-package-json
           path: |
