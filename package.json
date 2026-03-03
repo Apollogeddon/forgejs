@@ -72,8 +72,8 @@
   "dependencies": {
     "@astrojs/starlight": "0.37.6",
     "@biomejs/biome": "2.4.5",
-    "@commitlint/cli": "20.4.2",
-    "@commitlint/config-conventional": "20.4.2",
+    "@commitlint/cli": "20.4.3",
+    "@commitlint/config-conventional": "20.4.3",
     "@semantic-release/changelog": "6.0.3",
     "@semantic-release/exec": "7.1.0",
     "@semantic-release/git": "10.0.1",
