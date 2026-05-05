@@ -70,7 +70,7 @@
     "prepare": "lefthook install"
   },
   "dependencies": {
-    "@astrojs/starlight": "0.38.4",
+    "@astrojs/starlight": "0.38.5",
     "@biomejs/biome": "2.4.14",
     "@commitlint/cli": "20.5.3",
     "@commitlint/config-conventional": "20.5.3",
@@ -82,7 +82,7 @@
     "@vitest/coverage-v8": "4.1.5",
     "astro": "5.18.0",
     "lefthook": "2.1.6",
-    "publint": "0.3.18",
+    "publint": "0.3.19",
     "semantic-release": "25.0.3",
     "semantic-release-helm3": "2.10.0",
     "sharp": "0.34.5",
