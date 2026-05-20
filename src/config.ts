@@ -1,15 +1,10 @@
 export const dockerConfigBackend = `\
-FROM node:22-slim AS base
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
-
-FROM base AS build
+FROM node:22-slim AS build
 COPY . /usr/src/app
 WORKDIR /usr/src/app
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-RUN pnpm run build
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile
+RUN npm ci --ignore-scripts
+RUN npm run build
+RUN npm ci --omit=dev --ignore-scripts
 
 FROM gcr.io/distroless/nodejs22-debian12
 COPY --from=build /usr/src/app/dist /usr/src/app/dist
@@ -20,16 +15,11 @@ CMD ["dist/index.js"]
 `;
 
 export const dockerConfigWebsite = `\
-FROM node:22-slim AS base
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
-
-FROM base AS build
+FROM node:22-slim AS build
 COPY . /usr/src/app
 WORKDIR /usr/src/app
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-RUN pnpm run build
+RUN npm ci --ignore-scripts
+RUN npm run build
 
 FROM nginx:stable-alpine
 COPY --from=build /usr/src/app/dist /usr/share/nginx/html
