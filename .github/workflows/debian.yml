@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [version]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && needs.version.outputs.new_release_published == 'true'
     defaults:
       run:
         working-directory: ${{ inputs.working_directory }}
