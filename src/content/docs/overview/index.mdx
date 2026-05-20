@@ -23,30 +23,41 @@ Forge.js provides **tooling configurations** and **GitHub Actions workflows** fo
 
 2.  **Initialisation**
 
-    Use the included CLI to bootstrap the project. You can choose a full setup or pick specific features.
+    Use the included CLI to bootstrap the project. You can choose a project mode and toggle specific features.
 
-    **Standard Setup (Recommended)**
-    Sets up Library tooling, Versioning, and Testing.
+    **Quick Start**
     ```bash
+    # Initialize a Backend/Service (Default)
     npx @apollogeddon/forgejs init
+
+    # Initialize a Library (includes TypeDoc)
+    npx @apollogeddon/forgejs init --library
+
+    # Initialize a Website (Vite/Astro)
+    npx @apollogeddon/forgejs init --website
     ```
 
-    **Modular Setup**
+    **CLI Options**
     Customise the features you need using flags:
 
     | Flag | Description | Included Features |
     | :--- | :--- | :--- |
-    | `--debian` | Debian packaging setup | `snodeb.config.cjs`, `build` script (tsup) |
-    | `--library` | Library tooling (Default) | `astro` configs, `tsup`, `src/content/docs`, CI workflows |
-    | `--version` | Semantic Versioning (Default) | `.releaserc.json`, `commitlint.config.ts` |
+    | `--backend` | Setup for Backend/Service (Default) | `tsup`, `distroless` docker support, `application.yml` |
+    | `--library` | Setup for TypeScript Library | `tsup`, `typedoc`, `library.yml` |
+    | `--website` | Setup for Frontend Website | `vite`, `nginx` docker support, `application.yml` |
+    | `--debian` | Enable Debian packaging | `snodeb.config.cjs`, `debian.yml` |
+    | `--docker` | Enable Dockerfile generation | `Dockerfile`, `.dockerignore` |
+    | `--version` | Semantic Versioning (Default) | `commitlint.config.ts` |
     | `--testing` | Testing framework (Default) | `vitest.config.ts`, `tests/` |
-    | `--all` | Enable all standard features | Library, Version, Testing |
+    | `--linting` | Linting & Formatting (Default) | `biome.json`, `lefthook.yml` |
+    | `--typedoc` | API Documentation (Default for Library) | `astro` configs, `src/content/docs` |
     | `--dry-run` | Simulate execution | Logs changes without writing files |
+    | `--force` | Overwrite existing files | Enforces standard configs |
     | `--help` | Show help | Displays usage information |
 
-    **Example: Debian Only**
+    **Example: Backend with Docker & Debian**
     ```bash
-    npx @apollogeddon/forgejs init --debian
+    npx @apollogeddon/forgejs init --backend --docker --debian
     ```
 
     The command performs the following actions:
@@ -54,21 +65,24 @@ Forge.js provides **tooling configurations** and **GitHub Actions workflows** fo
     *   Sets `type: "module"` in `package.json`.
     *   Injects relevant scripts into `package.json`.
 
-    The following scripts are added (depending on features):
+    **Generated Scripts**
+    The following scripts are added depending on the active features:
 
     | Script | Command | Description |
     | :--- | :--- | :--- |
-    | `watch` | `tsx watch src/index.ts` | Watches the project entry point for changes. |
-    | `start` | `tsx src/index.ts` | Runs the project entry point. |
+    | `watch` | `tsx watch src/index.ts` | Watches the project entry point (Backend). |
+    | `start` | `node dist/index.js` | Runs the built artifact (Backend). |
+    | `dev` | `vite` | Starts dev server (Website). |
     | `lint` | `biome check --fix` | Runs Biome to lint and format code. |
     | `type` | `tsc --noEmit` | Runs TypeScript type checking. |
-    | `build` | `tsup` | Builds the project using Tsup. |
-    | `test` | `vitest run` | Runs unit tests (if testing enabled). |
-    | `docs:init` | `astro sync` | Initialises Astro types (if library enabled). |
-    | `docs:build` | `astro build` | Builds documentation site (if library enabled). |
-    | `docs:watch` | `astro dev` | Starts documentation dev server (if library enabled). |
-    | `build:deb` | `snodeb` | Builds Debian package (if debian enabled). |
-    | `publint` | `publint` | Checks package compatibility. |
+    | `build` | `tsup` / `vite build` | Builds the project. |
+    | `test` | `vitest run` | Runs unit tests. |
+    | `docs:init` | `astro sync` | Initialises Astro types (Library/TypeDoc). |
+    | `docs:build` | `astro build` | Builds documentation site (Library/TypeDoc). |
+    | `docs:watch` | `astro dev` | Starts documentation dev server (Library/TypeDoc). |
+    | `build:deb` | `snodeb` | Builds Debian package (Debian). |
+    | `docker:build`| `docker build ...` | Builds Docker image (Docker). |
+    | `publint` | `publint` | Checks package compatibility (Library). |
     | `prepare` | `lefthook install` | Installs Git hooks. |
 
 3.  **Advanced: Overwriting Files**
@@ -89,7 +103,7 @@ A standard project utilising this library adheres to the following structure:
 <FileTree>
   - .github/
     - workflows/
-      - index.yml
+      - ci.yml
   - src/
     - content/
       - docs/
@@ -98,7 +112,6 @@ A standard project utilising this library adheres to the following structure:
   - tests/
     - index.test.ts
   - .editorconfig
-  - .releaserc.json
   - astro.config.mjs
   - biome.json
   - commitlint.config.ts

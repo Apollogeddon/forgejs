@@ -92,17 +92,11 @@ The project exports configurations for standard tooling. These can be extended t
   </TabItem>
 
   <TabItem label="Release" icon="rocket">
-    **Semantic Release**
+    **Release Please**
 
-    Inherit the release rules in `.releaserc.json`:
+    Forge.js uses **Release Please** for automated versioning and changelogs. Unlike Semantic Release, it does not require a local `.releaserc.json` file.
 
-    ```json
-    {
-      "extends": "@apollogeddon/forgejs/.releaserc.json"
-    }
-    ```
-
-    *For Helm chart projects, use `"extends": "@apollogeddon/forgejs/.releaserc.helm.json"`.*
+    Configuration is handled automatically via the Forge.js reusable workflows.
   </TabItem>
 
   <TabItem label="Snodeb" icon="linux">

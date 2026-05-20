@@ -61,18 +61,4 @@ describe("JSON Configurations", () => {
     expect(json.formatter).toBeDefined();
     expect(json.vcs).toBeDefined();
   });
-
-  it("should validate .releaserc.json", () => {
-    const content = fs.readFileSync(path.join(rootDir, ".releaserc.json"), "utf-8");
-    const json = JSON.parse(content);
-    expect(Array.isArray(json.branches)).toBe(true);
-    expect(Array.isArray(json.plugins)).toBe(true);
-  });
-
-  it("should validate .releaserc.helm.json", () => {
-    const content = fs.readFileSync(path.join(rootDir, ".releaserc.helm.json"), "utf-8");
-    const json = JSON.parse(content);
-    expect(Array.isArray(json.branches)).toBe(true);
-    expect(Array.isArray(json.plugins)).toBe(true);
-  });
 });
