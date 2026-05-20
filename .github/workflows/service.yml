@@ -31,6 +31,7 @@ jobs:
       working_directory: ${{ inputs.working_directory }}
       node_version: ${{ inputs.node_version }}
       auto_patch: ${{ inputs.auto_patch }}
+      enable_secrets: ${{ inputs.enable_secrets }}
 
   version:
     uses: ./.github/workflows/version.yml
