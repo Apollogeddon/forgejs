@@ -280,6 +280,8 @@ describe("CLI Init Command", () => {
     expect(fs.existsSync(path.join(tempDir, "Dockerfile"))).toBe(true);
     const content = fs.readFileSync(path.join(tempDir, "Dockerfile"), "utf-8");
     expect(content).toContain("nginx");
+    expect(content).toContain("npm ci");
+    expect(content).not.toContain("pnpm");
   });
 
   it("should generate Distroless Dockerfile for --backend --docker", () => {
@@ -287,6 +289,8 @@ describe("CLI Init Command", () => {
     expect(fs.existsSync(path.join(tempDir, "Dockerfile"))).toBe(true);
     const content = fs.readFileSync(path.join(tempDir, "Dockerfile"), "utf-8");
     expect(content).toContain("gcr.io/distroless/nodejs");
+    expect(content).toContain("npm ci");
+    expect(content).not.toContain("pnpm");
   });
 
   it("should fail when using --website with --debian", () => {
@@ -319,5 +323,17 @@ describe("CLI Init Command", () => {
     execSync(`npx tsx ${CLI_SCRIPT} init --library`, { cwd: tempDir });
     const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
     expect(packageJson.private).toBeUndefined();
+  });
+
+  it("should fail when using --backend with --website", () => {
+    expect(() => {
+      execSync(`npx tsx ${CLI_SCRIPT} init --backend --website`, { cwd: tempDir, stdio: "pipe" });
+    }).toThrow();
+  });
+
+  it("should fail when using --backend with --library", () => {
+    expect(() => {
+      execSync(`npx tsx ${CLI_SCRIPT} init --backend --library`, { cwd: tempDir, stdio: "pipe" });
+    }).toThrow();
   });
 }, 120000);
