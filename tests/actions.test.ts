@@ -26,3 +26,37 @@ describe("GitHub Actions Workflows YAML Syntax", () => {
     });
   });
 });
+
+describe("GitHub Actions Job Conditions", () => {
+  const getWorkflow = (filename: string) => {
+    const content = fs.readFileSync(path.join(workflowsDir, filename), "utf-8");
+    return yaml.load(content) as any;
+  };
+
+  it("should ensure version.yml only builds on release_created == 'true'", () => {
+    const wf = getWorkflow("version.yml");
+    expect(wf.jobs.build.if).toBe("needs.release-please.outputs.release_created == 'true'");
+  });
+
+  it("should ensure debian.yml only builds on new_release_published == 'true'", () => {
+    const wf = getWorkflow("debian.yml");
+    expect(wf.jobs.build.if).toContain("needs.version.outputs.new_release_published == 'true'");
+  });
+
+  it("should ensure library.yml jobs only run on new_release_published == 'true'", () => {
+    const wf = getWorkflow("library.yml");
+    expect(wf.jobs.document.if).toContain("needs.version.outputs.new_release_published == 'true'");
+    expect(wf.jobs.publish.if).toContain("needs.version.outputs.new_release_published == 'true'");
+    expect(wf.jobs.deploy.if).toContain("needs.version.outputs.new_release_published == 'true'");
+  });
+
+  it("should ensure default.yml auto-merges major GitHub actions", () => {
+    const wf = getWorkflow("default.yml");
+    const autoMergeStep = wf.jobs["auto-merge"].steps.find(
+      (s: any) => s.name === "Enable auto-merge for Dependabot PRs",
+    );
+    expect(autoMergeStep).toBeDefined();
+    expect(autoMergeStep.if).toContain("steps.metadata.outputs.package-ecosystem == 'github_actions'");
+    expect(autoMergeStep.if).toContain("steps.metadata.outputs.update-type == 'version-update:semver-major'");
+  });
+});

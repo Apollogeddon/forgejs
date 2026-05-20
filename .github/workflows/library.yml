@@ -81,10 +81,6 @@ jobs:
         with:
           name: ${{ inputs.artifact_name }}
           path: ${{ inputs.working_directory }}/dist
-      - uses: actions/download-artifact@v7
-        with:
-          name: updated-package-json
-          path: ${{ inputs.working_directory }}
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ inputs.node_version }}
