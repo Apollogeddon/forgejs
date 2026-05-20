@@ -19,6 +19,10 @@ on:
         required: false
         type: string
         default: '.'
+      auto_patch:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   version:
