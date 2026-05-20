@@ -46,7 +46,6 @@ describe("CLI Init Command", () => {
     const expectedFiles = [
       "biome.json",
       "vitest.config.ts",
-      ".releaserc.json",
       "tsconfig.json",
       "commitlint.config.ts",
       "tsup.config.ts",
@@ -115,6 +114,7 @@ describe("CLI Init Command", () => {
         watch: "tsx watch src/index.ts",
         start: "node dist/index.js",
         lint: "biome check --fix",
+        security: "osv-scanner scan -r .",
         type: "tsc --noEmit",
         build: "tsup",
         test: "vitest run",
@@ -138,6 +138,7 @@ describe("CLI Init Command", () => {
         watch: "tsx watch src/index.ts",
         start: "node dist/index.js",
         lint: "biome check --fix",
+        security: "osv-scanner scan -r .",
         type: "tsc --noEmit",
         build: "tsup",
         test: "vitest run",

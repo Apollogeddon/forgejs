@@ -32,17 +32,23 @@ npm install --save-dev @apollogeddon/forgejs
 
 ## 🏁 Getting Started
 
-To quickly set up your project with the recommended configurations, scripts, and CI workflows, use the `init` command:
+To quickly set up your project with the recommended configurations, scripts, and CI workflows, use the `init` command.
 
 ```bash
-npx @apollogeddon/forgejs init
+npx @apollogeddon/forgejs init [options]
 ```
+
+By default, this sets up a **Node.js Backend/Service**. You can specify other modes:
+
+*   `--backend` (Default) for Node.js services.
+*   `--library` for TypeScript libraries (includes documentation site).
+*   `--website` for Frontend applications (Vite/Astro).
 
 This command will:
 
-* **Scaffold Configs:** Create `biome.json`, `vitest.config.ts`, `tsconfig.json`, `tsup.config.ts`, and `lefthook.yml`.
-* **Inject Scripts:** Add `watch`, `start`, `lint`, `test`, `build`, and `docs` to your `package.json`.
-* **Standardise:** Ensure `type: "module"` is set and development standards are enforced.
+*   **Scaffold Configs:** Create `biome.json`, `vitest.config.ts`, `tsconfig.json`, and others depending on the mode (e.g., `tsup.config.ts` or `vite.config.ts`).
+*   **Inject Scripts:** Add `watch`, `start`, `lint`, `test`, and `build` to your `package.json`.
+*   **Standardise:** Ensure `type: "module"` is set and development standards are enforced.
 
 ## ⚙️ Standardised Stack
 
@@ -51,18 +57,20 @@ Forge.js enforces a "Gold Standard" stack designed for performance and reliabili
 | Category | Tool | Description |
 | :--- | :--- | :--- |
 | **Linting & Formatting** | [Biome](https://biomejs.dev/) | High-performance replacement for ESLint & Prettier. |
+| **Security Scanning** | [OSV-Scanner](https://osv.dev/) | Google's vulnerability scanner for open source dependencies. |
 | **Testing** | [Vitest](https://vitest.dev/) | Vite-native testing framework with instant HMR. |
 | **Bundling** | [Tsup](https://tsup.egoist.dev/) | Zero-config TypeScript bundler powered by esbuild. |
 | **Documentation** | [Starlight](https://starlight.astro.build/) | Documentation site built with Astro & TypeDoc. |
 | **Git Hooks** | [Lefthook](https://github.com/evilmartians/lefthook) | Fast and flexible Git hooks manager. |
 | **Commits** | [Commitlint](https://commitlint.js.org/) | Enforces Conventional Commits standards. |
-| **Releases** | [Semantic Release](https://github.com/semantic-release/semantic-release) | Fully automated version management and package publishing. |
+| **Releases** | [Release Please](https://github.com/googleapis/release-please) | Automated versioning and changelogs via GitHub Actions. |
 | **CI/CD** | [GitHub Actions](https://github.com/features/actions) | Reusable workflows for Testing, Quality, and Releases. |
 
 ## 🔄 Tooling & Versioning Strategy
 
 Forge.js adopts an opinionated "batteries-included" approach.
 
-* **Managed Versions:** This package manages the versions of core tools (Biome, Vitest, Tsup) as dependencies.
+* **Managed Versions:** This package manages the versions of core tools (Biome, Vitest, Tsup, OSV-Scanner) as dependencies.
 * **Simplified Upgrades:** To upgrade your linter or test runner, simply upgrade `@apollogeddon/forgejs`.
+* **Security First:** We integrate security scanning into the standard workflow to catch vulnerabilities early.
 * **Stability:** We ensure that all tools in the stack work harmoniously together before releasing a new version.

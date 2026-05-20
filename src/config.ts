@@ -84,14 +84,6 @@ export default mergeConfig(baseConfig, {
 });
 `;
 
-export const releaseConfig = JSON.stringify(
-  {
-    extends: "@apollogeddon/forgejs/.releaserc.json",
-  },
-  null,
-  2,
-);
-
 export const astroConfig = `\
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
@@ -102,9 +94,13 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "My Project",
-      social: {
-        github: "https://github.com/example/repo",
-      },
+      social: [
+        {
+          label: "GitHub",
+          url: "https://github.com/example/repo",
+          icon: "github",
+        },
+      ],
       sidebar: [
         {
           label: "Guides",
@@ -243,6 +239,7 @@ jobs:
     uses: apollogeddon/forgejs/.github/workflows/library.yml@main
     with:
       node_version: '22'
+      auto_patch: true
     secrets: inherit
 `;
 
@@ -260,6 +257,7 @@ jobs:
     uses: apollogeddon/forgejs/.github/workflows/service.yml@main
     with:
       node_version: '22'
+      auto_patch: true
     secrets: inherit
 `;
 
@@ -277,5 +275,6 @@ jobs:
     uses: apollogeddon/forgejs/.github/workflows/debian.yml@main
     with:
       node_version: '22'
+      auto_patch: true
     secrets: inherit
 `;

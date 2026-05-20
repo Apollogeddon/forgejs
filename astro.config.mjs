@@ -1,52 +1,47 @@
 import starlight from "@astrojs/starlight";
+import tailwind from "@astrojs/tailwind";
 import { defineConfig } from "astro/config";
 import starlightTypeDoc from "starlight-typedoc";
 
 export default defineConfig({
-  site: "https://apollogeddon.github.io/forgejs",
-  outDir: "docs",
+  site: "https://example.com",
   integrations: [
     starlight({
-      title: "Forge.js",
-      logo: {
-        src: "./public/forgejs.png",
-      },
-      social: [{ label: "GitHub", href: "https://github.com/apollogeddon/forgejs", icon: "github" }],
+      title: "My Project",
+      social: [
+        {
+          label: "GitHub",
+          url: "https://github.com/example/repo",
+          icon: "github",
+        },
+      ],
       sidebar: [
         {
-          label: "Overview",
+          label: "Guides",
           items: [
-            { label: "Getting Started", link: "/overview/" },
-            { label: "Philosophy & Stack", link: "/overview/philosophy/" },
-            { label: "Configuration", link: "/overview/configuration/" },
-            { label: "Migration Guide", link: "/overview/migration/" },
-            { label: "Contributing", link: "/overview/contributing/" },
+            // { label: 'Example Guide', link: '/guides/example/' },
           ],
         },
         {
           label: "Reference",
           items: [
             {
-              label: "Workflows",
-              items: [
-                { label: "Overview", link: "/reference/workflows/" },
-                { label: "Job Reference", link: "/reference/workflows/reference/" },
-              ],
+              label: "API",
+              autogenerate: { directory: "api" },
             },
-            { label: "Examples", link: "/reference/examples/" },
           ],
         },
       ],
       plugins: [
-        ...(process.argv.includes("sync")
-          ? []
-          : [
-              starlightTypeDoc({
-                entryPoints: ["src/index.ts"],
-                tsconfig: "./tsconfig.json",
-              }),
-            ]),
+        starlightTypeDoc({
+          entryPoints: ["src/index.ts"],
+          tsconfig: "./tsconfig.json",
+          sidebar: {
+            label: "API",
+          },
+        }),
       ],
     }),
+    tailwind({ applyBaseStyles: false }),
   ],
 });

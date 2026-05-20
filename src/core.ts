@@ -133,7 +133,6 @@ function cleanup(cwd: string, cfg: InitConfig, fs: IFileSystem) {
 
   // Cleanup Versioning files
   if (!cfg.version) {
-    toRemove.push(".releaserc.json");
     toRemove.push("commitlint.config.ts");
   }
 
@@ -212,7 +211,6 @@ function setupTesting(cwd: string, cfg: InitConfig, fs: IFileSystem) {
 }
 
 function setupVersioning(cwd: string, cfg: InitConfig, fs: IFileSystem) {
-  createFile(cwd, ".releaserc.json", templates.releaseConfig, cfg, fs);
   createFile(cwd, "commitlint.config.ts", templates.commitlintConfig, cfg, fs);
 }
 
@@ -308,6 +306,7 @@ function updatePackageJson(cwd: string, cfg: InitConfig, fs: IFileSystem) {
 
     if (cfg.linting) {
       scripts.lint = "biome check --fix";
+      scripts.security = "osv-scanner scan -r .";
       scripts.prepare = "lefthook install";
     }
 

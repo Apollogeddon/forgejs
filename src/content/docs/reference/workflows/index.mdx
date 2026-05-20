@@ -27,7 +27,7 @@ To integrate these workflows, reference them using the `uses` keyword in the pro
     ```
   </TabItem>
   <TabItem label="Full Versioning" icon="rocket">
-    For services requiring versioning and release management.
+    For applications requiring versioning and release management.
 
     ```yaml
     jobs:
@@ -35,6 +35,18 @@ To integrate these workflows, reference them using the `uses` keyword in the pro
         uses: apollogeddon/forgejs/.github/workflows/version.yml@main
         secrets:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    ```
+  </TabItem>
+  <TabItem label="Application CI" icon="laptop">
+    For Backends or Websites requiring Testing and Versioning.
+
+    ```yaml
+    jobs:
+      ci:
+        uses: apollogeddon/forgejs/.github/workflows/application.yml@main
+        with:
+          node_version: '22'
+        secrets: inherit
     ```
   </TabItem>
   <TabItem label="NPM Publishing" icon="seti:npm">
@@ -56,23 +68,20 @@ To integrate these workflows, reference them using the `uses` keyword in the pro
 
 - **`working_directory`** (string, default: `'.'`): Path to the directory containing `package.json`.
 - **`node_version`** (string, default: `'22'`): The version of Node.js to use.
+- **`auto_patch`** (boolean, default: `false`): If enabled, automatically remediates vulnerabilities found by OSV-Scanner and commits them back to the repository.
 - **`artifact_name`** (string, default: `'dist'`): The name of the artifact to upload/download between build and publish/package steps. _(Available in `build`, `library`, and `debian` workflows)_
 - **`enable_secrets`** (boolean, default: `true`): Controls whether secrets scanning (Gitleaks) is enabled in workflows that include it.
 
 ### Common Secrets
 
 - **`NPM_TOKEN`**: Required for publishing to private npm registries via `library.yml`.
-- **`GITHUB_TOKEN`**: Automatically provided. For security scanning workflows (Gitleaks, Trivy) to upload results to GitHub Code Scanning, the `GITHUB_TOKEN` requires `security-events: write` and `actions: read` permissions. It is also used for `semantic-release`, GitHub Packages, and Dependabot automation.
+- **`GITHUB_TOKEN`**: Automatically provided. For security scanning workflows (OSV-Scanner) to upload results to GitHub Code Scanning, the `GITHUB_TOKEN` requires `security-events: write` and `actions: read` permissions. It is also used for `release-please`, GitHub Packages, and Dependabot automation.
 
+...
 
-### Required Permissions
-
-The caller workflow must possess necessary permissions. The `version` and `library` workflows require write access to create releases and push packages.
-
-```yaml
 permissions:
-  contents: write # Required for semantic-release (tagging, changelog)
+  contents: write # Required for release-please (tagging, changelog)
   packages: write # Required for publishing to GitHub Packages
   id-token: write # Required for provenance generation
-  security-events: write # Required for uploading Sarif reports (Trivy/Gitleaks)
+  security-events: write # Required for uploading Sarif reports (OSV-Scanner)
 ```

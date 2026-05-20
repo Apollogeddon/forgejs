@@ -27,7 +27,7 @@ Adopting Forge.js reduces configuration overhead but requires the removal of con
     
     *   **Remove ESLint & Prettier:** `rm .eslintrc* .prettierrc* .eslintignore .prettierignore`
     *   **Remove Jest:** `rm jest.config.*`
-    *   **Remove Semantic Release (local):** `rm .releaserc` (if replacing with the extended JSON)
+    *   **Remove Semantic Release (local):** `rm .releaserc*`
 
 3.  **Update Dependencies**
     
@@ -69,10 +69,10 @@ Vitest is largely API-compatible with Jest, with specific differences:
 
 2.  **Environment:** For tests involving DOM interactions, ensure a compatible environment (e.g., `happy-dom` or `jsdom`) is configured.
 
-### Semantic Release
+### Release Please
 
-For projects with existing `.releaserc` files, verify if overrides are necessary.
+For projects with existing `.releaserc` files, they can be safely removed as Forge.js now uses **Release Please**.
 The default configuration assumes:
 *   Releases occur from the `main` branch.
 *   A changelog (`CHANGELOG.md`) is generated.
-*   Packages are published to NPM (or GitHub Packages).
+*   Packages are published to GitHub Packages.
