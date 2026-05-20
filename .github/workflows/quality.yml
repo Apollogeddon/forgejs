@@ -11,6 +11,10 @@ on:
         required: false
         type: string
         default: '22'
+      auto_patch:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   setup:
@@ -34,8 +38,30 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
+      - name: OSV Scanner Fix
+        if: inputs.auto_patch && github.ref == 'refs/heads/main'
+        run: |
+          curl -L https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o osv-scanner
+          chmod +x osv-scanner
+          ./osv-scanner fix --non-interactive --strategy=in-place -L package-lock.json
+          rm osv-scanner
+          npm install
+      - name: Commit Security Patches
+        if: inputs.auto_patch && github.ref == 'refs/heads/main'
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "fix(deps): patch vulnerabilities via osv-scanner"
+          file_pattern: 'package.json package-lock.json'
       - name: Biome Lint
         run: npx @biomejs/biome check .
+      - name: OSV Scanner
+        uses: google/osv-scanner-action/scan@v1
+        with:
+          results-file: results.sarif
+      - name: Upload OSV Scan Results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
       - name: Astro Sync
         run: |
           if [ -f astro.config.mjs ]; then
