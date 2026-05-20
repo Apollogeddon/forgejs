@@ -42,6 +42,13 @@ const isBackend = !!(values.backend || (!hasModeFlag && values.all !== false));
 const isLibrary = !!values.library;
 const isWebsite = !!values.website;
 
+// Validate: only one mode can be active at a time
+const activeModes = [isBackend, isLibrary, isWebsite].filter(Boolean);
+if (activeModes.length > 1) {
+  console.error("❌ Error: Only one mode (--backend, --library, --website) can be active at a time.");
+  process.exit(1);
+}
+
 const config = {
   force: !!values.force,
   dryRun: !!values["dry-run"],
