@@ -27,10 +27,26 @@ describe("GitHub Actions Workflows YAML Syntax", () => {
   });
 });
 
+interface Workflow {
+  jobs: Record<
+    string,
+    {
+      if?: string;
+      uses?: string;
+      secrets?: string;
+      steps?: Array<{
+        name?: string;
+        if?: string;
+        uses?: string;
+      }>;
+    }
+  >;
+}
+
 describe("GitHub Actions Job Conditions", () => {
   const getWorkflow = (filename: string) => {
     const content = fs.readFileSync(path.join(workflowsDir, filename), "utf-8");
-    return yaml.load(content) as any;
+    return yaml.load(content) as unknown as Workflow;
   };
 
   it("should ensure version.yml only builds on release_created == 'true'", () => {
@@ -52,11 +68,9 @@ describe("GitHub Actions Job Conditions", () => {
 
   it("should ensure default.yml auto-merges major GitHub actions", () => {
     const wf = getWorkflow("default.yml");
-    const autoMergeStep = wf.jobs["auto-merge"].steps.find(
-      (s: any) => s.name === "Enable auto-merge for Dependabot PRs",
-    );
+    const autoMergeStep = wf.jobs["auto-merge"].steps?.find((s) => s.name === "Enable auto-merge for Dependabot PRs");
     expect(autoMergeStep).toBeDefined();
-    expect(autoMergeStep.if).toContain("steps.metadata.outputs.package-ecosystem == 'github_actions'");
-    expect(autoMergeStep.if).toContain("steps.metadata.outputs.update-type == 'version-update:semver-major'");
+    expect(autoMergeStep?.if).toContain("steps.metadata.outputs.package-ecosystem == 'github_actions'");
+    expect(autoMergeStep?.if).toContain("steps.metadata.outputs.update-type == 'version-update:semver-major'");
   });
 });
