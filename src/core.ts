@@ -215,6 +215,12 @@ function setupVersioning(cwd: string, cfg: InitConfig, fs: IFileSystem) {
 }
 
 function setupDocs(cwd: string, cfg: InitConfig, fs: IFileSystem) {
+  try {
+    import.meta.resolve("astro");
+  } catch {
+    console.warn("⚠️  Documentation dependencies (astro, starlight, typedoc) not installed.");
+    console.warn("   Run 'npm install' without --omit=optional to install them.");
+  }
   createFile(cwd, "astro.config.mjs", templates.astroConfig, cfg, fs);
   createFile(cwd, "src/content/docs/index.mdx", templates.starlightContentIndex, cfg, fs);
 }
