@@ -336,4 +336,43 @@ describe("CLI Init Command", () => {
       execSync(`npx tsx ${CLI_SCRIPT} init --backend --library`, { cwd: tempDir, stdio: "pipe" });
     }).toThrow();
   });
+
+  it("should behave as default backend when --all is passed with no mode flag", () => {
+    execSync(`npx tsx ${CLI_SCRIPT} init --all`, { cwd: tempDir });
+    for (const file of [
+      "biome.json",
+      "vitest.config.ts",
+      "tsconfig.json",
+      "commitlint.config.ts",
+      "tsup.config.ts",
+      "lefthook.yml",
+    ]) {
+      expect(fs.existsSync(path.join(tempDir, file))).toBe(true);
+    }
+    expect(fs.existsSync(path.join(tempDir, "astro.config.mjs"))).toBe(false);
+  });
+
+  it("should auto-enable typedoc for --library mode", () => {
+    execSync(`npx tsx ${CLI_SCRIPT} init --library`, { cwd: tempDir });
+    expect(fs.existsSync(path.join(tempDir, "astro.config.mjs"))).toBe(true);
+  });
+
+  it("should exit non-zero for an unknown command", () => {
+    expect(() => {
+      execSync(`npx tsx ${CLI_SCRIPT} frobnicate`, { cwd: tempDir, stdio: "pipe" });
+    }).toThrow();
+  });
+
+  it("should exit non-zero when no command is given", () => {
+    expect(() => {
+      execSync(`npx tsx ${CLI_SCRIPT}`, { cwd: tempDir, stdio: "pipe" });
+    }).toThrow();
+  });
+
+  it("should exit non-zero when package.json is malformed", () => {
+    fs.writeFileSync(path.join(tempDir, "package.json"), "{ this is : not valid json ");
+    expect(() => {
+      execSync(`npx tsx ${CLI_SCRIPT} init`, { cwd: tempDir, stdio: "pipe" });
+    }).toThrow();
+  });
 }, 120000);
