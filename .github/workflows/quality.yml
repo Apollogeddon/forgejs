@@ -73,6 +73,10 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: results.sarif
+      - name: OSV Severity Gate
+        uses: google/osv-scanner-action/scan@v1
+        with:
+          fail-on-vuln: true
       - name: Astro Sync
         run: |
           if [ -f astro.config.mjs ]; then

@@ -35,8 +35,6 @@ jobs:
         run: npm ci
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Audit
-        run: npm audit fix --audit-level=high
 
   auto-merge:
     runs-on: ubuntu-latest

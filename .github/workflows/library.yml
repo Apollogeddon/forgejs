@@ -72,6 +72,9 @@ jobs:
     timeout-minutes: 10
     needs: [version, document]
     if: github.ref == 'refs/heads/main' && needs.version.outputs.new_release_published == 'true'
+    permissions:
+      contents: read
+      id-token: write
     defaults:
       run:
         working-directory: ${{ inputs.working_directory }}
