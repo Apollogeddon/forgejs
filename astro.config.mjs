@@ -1,5 +1,4 @@
 import starlight from "@astrojs/starlight";
-import tailwind from "@astrojs/tailwind";
 import { defineConfig } from "astro/config";
 import starlightTypeDoc from "starlight-typedoc";
 
@@ -42,6 +41,5 @@ export default defineConfig({
         }),
       ],
     }),
-    tailwind({ applyBaseStyles: false }),
   ],
 });
