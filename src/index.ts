@@ -99,7 +99,7 @@ if (values.help) {
 }
 
 if (command === "init") {
-  init(config);
+  process.exit(init(config));
 } else {
   showHelp();
   process.exit(1);

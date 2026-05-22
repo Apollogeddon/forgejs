@@ -15,8 +15,9 @@ export interface InitConfig {
   typedoc: boolean;
 }
 
-export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()) {
+export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()): number {
   const cwd = fs.cwd();
+  let hasError = false;
 
   console.log(`Initializing Forge.js in ${cwd}...`);
   if (cfg.dryRun) {
@@ -35,53 +36,58 @@ export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()) {
   }
 
   // 1. Base Setup
-  setupBase(cwd, cfg, fs);
+  if (!setupBase(cwd, cfg, fs)) hasError = true;
 
   // 2. Linting
   if (cfg.linting) {
-    setupLinting(cwd, cfg, fs);
+    if (!setupLinting(cwd, cfg, fs)) hasError = true;
   }
 
   // 3. Build (Different for website)
   if (cfg.website) {
-    setupWebsite(cwd, cfg, fs);
+    if (!setupWebsite(cwd, cfg, fs)) hasError = true;
   } else {
-    setupBuild(cwd, cfg, fs);
+    if (!setupBuild(cwd, cfg, fs)) hasError = true;
   }
 
   // 4. Testing
   if (cfg.testing) {
-    setupTesting(cwd, cfg, fs);
+    if (!setupTesting(cwd, cfg, fs)) hasError = true;
   }
 
   // 5. Versioning
   if (cfg.version) {
-    setupVersioning(cwd, cfg, fs);
+    if (!setupVersioning(cwd, cfg, fs)) hasError = true;
   }
 
   // 6. Docs / TypeDoc
   if (cfg.typedoc) {
-    setupDocs(cwd, cfg, fs);
+    if (!setupDocs(cwd, cfg, fs)) hasError = true;
   }
 
   // 7. Docker
   if (cfg.docker) {
-    setupDocker(cwd, cfg, fs);
+    if (!setupDocker(cwd, cfg, fs)) hasError = true;
   }
 
   // 8. Debian
   if (cfg.debian) {
-    setupDebian(cwd, cfg, fs);
+    if (!setupDebian(cwd, cfg, fs)) hasError = true;
   }
 
   // 9. Workflows
-  setupWorkflows(cwd, cfg, fs);
+  if (!setupWorkflows(cwd, cfg, fs)) hasError = true;
 
   // 10. Package.json Scripts
-  updatePackageJson(cwd, cfg, fs);
+  if (!updatePackageJson(cwd, cfg, fs)) hasError = true;
 
   // 11. Cleanup Obsolete Files
   cleanup(cwd, cfg, fs);
+
+  if (hasError) {
+    console.error("\n❌ Initialization completed with errors.");
+    return 1;
+  }
 
   console.log("\nInitialization complete!");
   console.log("Next steps:");
@@ -89,6 +95,7 @@ export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()) {
   if (cfg.linting) {
     console.log('2. Run "npx lefthook install" to set up git hooks.');
   }
+  return 0;
 }
 
 function cleanup(cwd: string, cfg: InitConfig, fs: IFileSystem) {
@@ -164,7 +171,7 @@ function cleanup(cwd: string, cfg: InitConfig, fs: IFileSystem) {
   }
 }
 
-function createFile(cwd: string, fileName: string, content: string, cfg: InitConfig, fs: IFileSystem) {
+function createFile(cwd: string, fileName: string, content: string, cfg: InitConfig, fs: IFileSystem): boolean {
   try {
     const filePath = fs.join(cwd, fileName);
     const dirPath = fs.dirname(filePath);
@@ -184,58 +191,62 @@ function createFile(cwd: string, fileName: string, content: string, cfg: InitCon
         console.log(`✅ ${exists ? "Overwrote" : "Created"} ${fileName}`);
       }
     }
+    return true;
   } catch (error) {
     console.error(`❌ Failed to create/write ${fileName}:`, error instanceof Error ? error.message : String(error));
+    return false;
   }
 }
 
-function setupBase(cwd: string, cfg: InitConfig, fs: IFileSystem) {
-  createFile(cwd, "tsconfig.json", templates.tsconfigConfig, cfg, fs);
+function setupBase(cwd: string, cfg: InitConfig, fs: IFileSystem): boolean {
+  return createFile(cwd, "tsconfig.json", templates.tsconfigConfig, cfg, fs);
 }
 
-function setupLinting(cwd: string, cfg: InitConfig, fs: IFileSystem) {
-  createFile(cwd, "biome.json", templates.biomeConfig, cfg, fs);
-  createFile(cwd, "lefthook.yml", templates.lefthookConfig, cfg, fs);
+function setupLinting(cwd: string, cfg: InitConfig, fs: IFileSystem): boolean {
+  const a = createFile(cwd, "biome.json", templates.biomeConfig, cfg, fs);
+  const b = createFile(cwd, "lefthook.yml", templates.lefthookConfig, cfg, fs);
+  return a && b;
 }
 
-function setupBuild(cwd: string, cfg: InitConfig, fs: IFileSystem) {
-  createFile(cwd, "tsup.config.ts", templates.tsupConfig, cfg, fs);
+function setupBuild(cwd: string, cfg: InitConfig, fs: IFileSystem): boolean {
+  return createFile(cwd, "tsup.config.ts", templates.tsupConfig, cfg, fs);
 }
 
-function setupWebsite(cwd: string, cfg: InitConfig, fs: IFileSystem) {
-  createFile(cwd, "vite.config.ts", templates.viteConfig, cfg, fs);
+function setupWebsite(cwd: string, cfg: InitConfig, fs: IFileSystem): boolean {
+  return createFile(cwd, "vite.config.ts", templates.viteConfig, cfg, fs);
 }
 
-function setupTesting(cwd: string, cfg: InitConfig, fs: IFileSystem) {
-  createFile(cwd, "vitest.config.ts", templates.vitestConfig, cfg, fs);
+function setupTesting(cwd: string, cfg: InitConfig, fs: IFileSystem): boolean {
+  return createFile(cwd, "vitest.config.ts", templates.vitestConfig, cfg, fs);
 }
 
-function setupVersioning(cwd: string, cfg: InitConfig, fs: IFileSystem) {
-  createFile(cwd, "commitlint.config.ts", templates.commitlintConfig, cfg, fs);
+function setupVersioning(cwd: string, cfg: InitConfig, fs: IFileSystem): boolean {
+  return createFile(cwd, "commitlint.config.ts", templates.commitlintConfig, cfg, fs);
 }
 
-function setupDocs(cwd: string, cfg: InitConfig, fs: IFileSystem) {
-  try {
-    import.meta.resolve("astro");
-  } catch {
+function setupDocs(cwd: string, cfg: InitConfig, fs: IFileSystem): boolean {
+  const astroInstalled = fs.existsSync(fs.join(cwd, "node_modules", "astro"));
+  if (!astroInstalled) {
     console.warn("⚠️  Documentation dependencies (astro, starlight, typedoc) not installed.");
     console.warn("   Run 'npm install' without --omit=optional to install them.");
   }
-  createFile(cwd, "astro.config.mjs", templates.astroConfig, cfg, fs);
-  createFile(cwd, "src/content/docs/index.mdx", templates.starlightContentIndex, cfg, fs);
+  const a = createFile(cwd, "astro.config.mjs", templates.astroConfig, cfg, fs);
+  const b = createFile(cwd, "src/content/docs/index.mdx", templates.starlightContentIndex, cfg, fs);
+  return a && b;
 }
 
-function setupDocker(cwd: string, cfg: InitConfig, fs: IFileSystem) {
+function setupDocker(cwd: string, cfg: InitConfig, fs: IFileSystem): boolean {
   const content = cfg.website ? templates.dockerConfigWebsite : templates.dockerConfigBackend;
-  createFile(cwd, "Dockerfile", content, cfg, fs);
-  createFile(cwd, ".dockerignore", templates.dockerIgnore, cfg, fs);
+  const a = createFile(cwd, "Dockerfile", content, cfg, fs);
+  const b = createFile(cwd, ".dockerignore", templates.dockerIgnore, cfg, fs);
+  return a && b;
 }
 
-function setupDebian(cwd: string, cfg: InitConfig, fs: IFileSystem) {
-  createFile(cwd, "snodeb.config.cjs", templates.snodebConfig, cfg, fs);
+function setupDebian(cwd: string, cfg: InitConfig, fs: IFileSystem): boolean {
+  return createFile(cwd, "snodeb.config.cjs", templates.snodebConfig, cfg, fs);
 }
 
-function setupWorkflows(cwd: string, cfg: InitConfig, fs: IFileSystem) {
+function setupWorkflows(cwd: string, cfg: InitConfig, fs: IFileSystem): boolean {
   let workflowContent = "";
   let workflowName = "";
 
@@ -251,8 +262,9 @@ function setupWorkflows(cwd: string, cfg: InitConfig, fs: IFileSystem) {
   }
 
   if (workflowContent && workflowName) {
-    createFile(cwd, workflowName, workflowContent, cfg, fs);
+    return createFile(cwd, workflowName, workflowContent, cfg, fs);
   }
+  return true;
 }
 
 interface PackageJson {
@@ -268,7 +280,7 @@ interface PackageJson {
   [key: string]: unknown;
 }
 
-function updatePackageJson(cwd: string, cfg: InitConfig, fs: IFileSystem) {
+function updatePackageJson(cwd: string, cfg: InitConfig, fs: IFileSystem): boolean {
   const packageJsonPath = fs.join(cwd, "package.json");
   let packageJson: PackageJson;
 
@@ -293,7 +305,7 @@ function updatePackageJson(cwd: string, cfg: InitConfig, fs: IFileSystem) {
       "❌ Failed to parse or read existing package.json:",
       error instanceof Error ? error.message : String(error),
     );
-    return;
+    return false;
   }
 
   try {
@@ -368,7 +380,9 @@ function updatePackageJson(cwd: string, cfg: InitConfig, fs: IFileSystem) {
       console.log("✅ Updated scripts in package.json");
       fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
     }
+    return true;
   } catch (error) {
     console.error("❌ Failed to update package.json:", error instanceof Error ? error.message : String(error));
+    return false;
   }
 }
