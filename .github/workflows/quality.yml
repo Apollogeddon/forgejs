@@ -65,18 +65,6 @@ jobs:
           file_pattern: 'package.json package-lock.json'
       - name: Biome Lint
         run: npx @biomejs/biome check .
-      - name: OSV Scanner
-        uses: google/osv-scanner-action/scan@v1
-        with:
-          results-file: results.sarif
-      - name: Upload OSV Scan Results
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: results.sarif
-      - name: OSV Severity Gate
-        uses: google/osv-scanner-action/scan@v1
-        with:
-          fail-on-vuln: true
       - name: Astro Sync
         run: |
           if [ -f astro.config.mjs ]; then
@@ -84,3 +72,14 @@ jobs:
           fi
       - name: Type Check
         run: npx tsc --noEmit
+
+  osv-scan:
+    needs: [setup]
+    permissions:
+      actions: read
+      security-events: write
+      contents: read
+    uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.3.8"
+    with:
+      fail-on-vuln: true
+      upload-sarif: true
