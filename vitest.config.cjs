@@ -1,7 +1,9 @@
-const tsconfigPaths = require("vite-tsconfig-paths").default;
 const { defineConfig } = require("vitest/config");
 
 module.exports = defineConfig({
+  resolve: {
+    tsconfigPaths: true,
+  },
   test: {
     reporters: ["default", "junit"],
     outputFile: {
@@ -17,5 +19,4 @@ module.exports = defineConfig({
     },
     testTimeout: 30000,
   },
-  plugins: [tsconfigPaths()],
 });
