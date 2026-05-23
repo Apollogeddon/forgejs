@@ -28,6 +28,9 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      pull-requests: write
     defaults:
       run:
         working-directory: ${{ inputs.working_directory }}
