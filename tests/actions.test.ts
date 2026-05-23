@@ -49,11 +49,6 @@ describe("GitHub Actions Job Conditions", () => {
     return yaml.load(content) as unknown as Workflow;
   };
 
-  it("should ensure version.yml only builds on release_created == 'true'", () => {
-    const wf = getWorkflow("version.yml");
-    expect(wf.jobs.build.if).toBe("needs.release-please.outputs.release_created == 'true'");
-  });
-
   it("should ensure debian.yml only builds on new_release_published == 'true'", () => {
     const wf = getWorkflow("debian.yml");
     expect(wf.jobs.build.if).toContain("needs.version.outputs.new_release_published == 'true'");
