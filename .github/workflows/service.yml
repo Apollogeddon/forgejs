@@ -22,7 +22,7 @@ on:
       auto_patch:
         required: false
         type: boolean
-        default: false
+        default: true
 
 jobs:
   testing:
