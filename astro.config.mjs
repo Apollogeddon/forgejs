@@ -10,7 +10,7 @@ export default defineConfig({
       social: [
         {
           label: "GitHub",
-          url: "https://github.com/example/repo",
+          href: "https://github.com/example/repo",
           icon: "github",
         },
       ],
@@ -26,7 +26,7 @@ export default defineConfig({
           items: [
             {
               label: "API",
-              autogenerate: { directory: "api" },
+              items: [{ autogenerate: { directory: "api" } }],
             },
           ],
         },
