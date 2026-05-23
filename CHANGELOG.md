@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/Apollogeddon/forgejs/compare/v2.0.3...v2.1.0) (2026-05-23)
+
+
+### Features
+
+* added workflow call to publish to github pages ([1234c70](https://github.com/Apollogeddon/forgejs/commit/1234c7077da9ebc946477563c13438de904901c1))
+
 ## [2.0.3](https://github.com/Apollogeddon/forgejs/compare/v2.0.2...v2.0.3) (2026-05-23)
 
 
