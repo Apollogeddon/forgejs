@@ -49,14 +49,22 @@ describe("GitHub Actions Job Conditions", () => {
     return yaml.load(content) as unknown as Workflow;
   };
 
-  it("should ensure debian.yml only builds on new_release_published == 'true'", () => {
+  it("should ensure debian.yml only builds on new_release_published", () => {
     const wf = getWorkflow("debian.yml");
     expect(wf.jobs.build.if).toContain("needs.version.outputs.new_release_published == 'true'");
+    expect(wf.jobs.build.if).toContain("needs.version.outputs.new_release_published == true");
   });
 
-  it("should ensure library.yml jobs only run on new_release_published == 'true'", () => {
+  it("should ensure library.yml jobs only run on new_release_published", () => {
     const wf = getWorkflow("library.yml");
     expect(wf.jobs.publish.if).toContain("needs.version.outputs.new_release_published == 'true'");
+    expect(wf.jobs.publish.if).toContain("needs.version.outputs.new_release_published == true");
+  });
+
+  it("should ensure website.yml jobs only run on new_release_published", () => {
+    const wf = getWorkflow("website.yml");
+    expect(wf.jobs.deploy.if).toContain("needs.version.outputs.new_release_published == 'true'");
+    expect(wf.jobs.deploy.if).toContain("needs.version.outputs.new_release_published == true");
   });
 
   it("should ensure default.yml auto-merges major GitHub actions", () => {
