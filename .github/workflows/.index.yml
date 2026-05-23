@@ -16,7 +16,6 @@ jobs:
     with:
       node_version: '22'
       working_directory: '.'
-    secrets: inherit
     permissions:
       contents: read
       pull-requests: write
@@ -29,7 +28,6 @@ jobs:
       enable_secrets: false
       node_version: '22'
       working_directory: '.'
-    secrets: inherit
     permissions:
       contents: write
       id-token: write
