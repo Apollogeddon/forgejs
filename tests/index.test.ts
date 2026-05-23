@@ -55,9 +55,6 @@ describe("CLI Init Command", () => {
     for (const file of expectedFiles) {
       expect(fs.existsSync(path.join(tempDir, file))).toBe(true);
     }
-
-    // Docs should NOT be created by default
-    expect(fs.existsSync(path.join(tempDir, "astro.config.mjs"))).toBe(false);
   });
 
   it("should verify content of generated biome.json", () => {
@@ -173,8 +170,6 @@ describe("CLI Init Command", () => {
   it("should support --library flag to setup library only", () => {
     execSync(`npx tsx ${CLI_SCRIPT} init --library`, { cwd: tempDir });
 
-    // Should create library files (typedoc enabled by default with library)
-    expect(fs.existsSync(path.join(tempDir, "astro.config.mjs"))).toBe(true);
     expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
 
     // Should create testing config (enabled by default)
@@ -269,12 +264,6 @@ describe("CLI Init Command", () => {
     }).toThrow();
   });
 
-  it("should fail when using --website with --typedoc", () => {
-    expect(() => {
-      execSync(`npx tsx ${CLI_SCRIPT} init --website --typedoc`, { cwd: tempDir, stdio: "pipe" });
-    }).toThrow();
-  });
-
   it("should generate Nginx Dockerfile for --website --docker", () => {
     execSync(`npx tsx ${CLI_SCRIPT} init --website --docker`, { cwd: tempDir });
     expect(fs.existsSync(path.join(tempDir, "Dockerfile"))).toBe(true);
@@ -349,12 +338,6 @@ describe("CLI Init Command", () => {
     ]) {
       expect(fs.existsSync(path.join(tempDir, file))).toBe(true);
     }
-    expect(fs.existsSync(path.join(tempDir, "astro.config.mjs"))).toBe(false);
-  });
-
-  it("should auto-enable typedoc for --library mode", () => {
-    execSync(`npx tsx ${CLI_SCRIPT} init --library`, { cwd: tempDir });
-    expect(fs.existsSync(path.join(tempDir, "astro.config.mjs"))).toBe(true);
   });
 
   it("should exit non-zero for an unknown command", () => {

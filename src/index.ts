@@ -15,8 +15,6 @@ const options = {
   version: { type: "boolean" },
   testing: { type: "boolean" },
   linting: { type: "boolean" },
-  typedoc: { type: "boolean" },
-
   // Meta
   force: { type: "boolean" },
   all: { type: "boolean" },
@@ -67,7 +65,6 @@ const config = {
   // Optional Opt-in features
   debian: !!values.debian,
   docker: !!values.docker,
-  typedoc: !!(values.typedoc ?? (isLibrary && values.all !== false)),
 };
 
 // Validate Config
@@ -83,10 +80,6 @@ if (config.library) {
 }
 
 if (config.website) {
-  if (config.typedoc) {
-    console.error("❌ Error: TypeDoc is not available for Website mode.");
-    process.exit(1);
-  }
   if (config.debian) {
     console.error("❌ Error: Debian packaging is not available for Website mode.");
     process.exit(1);
@@ -122,7 +115,6 @@ Standard Features (Enabled by default):
 Optional Features:
   --docker    Setup Docker configuration
   --debian    Setup Debian packaging (snodeb)
-  --typedoc   Setup API Documentation (included by default with --library)
 
 Options:
   --all       Enable all standard features [Default]

@@ -72,10 +72,5 @@ jobs:
           chmod +x osv-scanner
           ./osv-scanner scan source -r . || true
           rm osv-scanner
-      - name: Astro Sync
-        run: |
-          if [ -f astro.config.mjs ]; then
-            npx astro sync
-          fi
       - name: Type Check
         run: npx tsc --noEmit

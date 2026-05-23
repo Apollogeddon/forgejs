@@ -26,10 +26,6 @@
       "types": "./tsup.config.d.ts",
       "import": "./tsup.config.cjs"
     },
-    "./astro.config.mjs": {
-      "types": "./astro.config.d.ts",
-      "import": "./astro.config.mjs"
-    },
     "./vitest.config.cjs": {
       "types": "./vitest.config.d.ts",
       "import": "./vitest.config.cjs"
@@ -44,8 +40,6 @@
     "lefthook.yml",
     "tsup.config.cjs",
     "tsup.config.d.ts",
-    "astro.config.mjs",
-    "astro.config.d.ts",
     "snodeb.config.cjs",
     "snodeb.config.d.ts",
     "vitest.config.cjs",
@@ -59,9 +53,6 @@
     "type": "tsc --noEmit",
     "build": "tsup",
     "test": "vitest run",
-    "docs:init": "astro sync",
-    "docs:build": "astro build",
-    "docs:watch": "astro dev",
     "publint": "publint",
     "prepare": "lefthook install"
   },
@@ -79,15 +70,6 @@
     "typescript": "6.0.3",
     "vite-tsconfig-paths": "6.1.1",
     "vitest": "4.1.7"
-  },
-  "optionalDependencies": {
-    "@astrojs/starlight": "0.39.2",
-    "@astrojs/starlight-tailwind": "5.0.0",
-    "astro": "6.3.7",
-    "sharp": "0.34.5",
-    "starlight-typedoc": "0.23.0",
-    "tailwindcss": "4.3.0",
-    "typedoc": "0.28.19"
   },
   "devDependencies": {
     "@types/js-yaml": "4.0.9",
