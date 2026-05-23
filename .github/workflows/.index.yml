@@ -42,8 +42,7 @@ jobs:
       working_directory: '.'
     secrets: inherit
     permissions:
-      contents: write
-      issues: write
+      contents: read
       pull-requests: write
 
   library:
@@ -58,7 +57,5 @@ jobs:
     permissions:
       contents: write
       id-token: write
-      issues: write
       packages: write
-      pages: write
       pull-requests: write
