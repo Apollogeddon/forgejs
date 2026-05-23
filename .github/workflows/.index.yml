@@ -4,31 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - ".github/**"
-      - "src/**"
-      - "tests/**"
-      - 'biome.json'
-      - 'commitlint.config.cjs'
-      - 'lefthook.yml'
-      - 'snodeb.config.cjs'
-      - 'tsup.config.cjs'
-      - 'vitest.config.cjs'
-      - 'package.json'
-      - 'package-lock.json'
-  pull_request:
-    paths:
-      - ".github/**"
-      - "src/**"
-      - "tests/**"
-      - 'biome.json'
-      - 'commitlint.config.cjs'
-      - 'lefthook.yml'
-      - 'snodeb.config.cjs'
-      - 'tsup.config.cjs'
-      - 'vitest.config.cjs'
-      - 'package.json'
-      - 'package-lock.json'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
