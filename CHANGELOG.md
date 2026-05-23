@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/Apollogeddon/forgejs/compare/v2.0.0...v2.0.1) (2026-05-23)
+
+
+### Bug Fixes
+
+* added write permission for package release ([c7e1123](https://github.com/Apollogeddon/forgejs/commit/c7e11237304c277959a78476168147100163c085))
+
 ## [2.0.0](https://github.com/Apollogeddon/forgejs/compare/v1.3.0...v2.0.0) (2026-05-23)
 
 
