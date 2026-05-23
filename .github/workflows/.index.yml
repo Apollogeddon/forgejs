@@ -1,9 +1,9 @@
-name: NodeJS Version
+name: ForgeJS CI/CD
 
 on:
   push:
     branches:
-      - "**"
+      - main
     paths:
       - ".github/**"
       - "src/**"
@@ -30,6 +30,10 @@ on:
       - 'package.json'
       - 'package-lock.json'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   testing:
     uses: ./.github/workflows/testing.yml
@@ -43,6 +47,7 @@ jobs:
       pull-requests: write
 
   library:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     uses: ./.github/workflows/library.yml
     needs: [testing]
     with:
