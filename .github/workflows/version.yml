@@ -41,13 +41,3 @@ jobs:
         id: release
         with:
           release-type: node
-
-  build:
-    needs: [release-please]
-    if: needs.release-please.outputs.release_created == 'true'
-    uses: ./.github/workflows/build.yml
-    with:
-      artifact_name: ${{ inputs.artifact_name }}
-      enable_secrets: ${{ inputs.enable_secrets }}
-      node_version: ${{ inputs.node_version }}
-      working_directory: ${{ inputs.working_directory }}

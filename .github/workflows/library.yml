@@ -19,10 +19,6 @@ on:
         required: false
         type: string
         default: '.'
-      auto_patch:
-        required: false
-        type: boolean
-        default: false
     secrets:
       NPM_TOKEN:
         required: false
