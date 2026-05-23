@@ -187,7 +187,8 @@ function createFile(cwd: string, fileName: string, content: string, cfg: InitCon
 }
 
 function setupBase(cwd: string, cfg: InitConfig, fs: IFileSystem): boolean {
-  return createFile(cwd, "tsconfig.json", templates.tsconfigConfig, cfg, fs);
+  const tsconfig = cfg.website ? templates.websiteTsconfigConfig : templates.tsconfigConfig;
+  return createFile(cwd, "tsconfig.json", tsconfig, cfg, fs);
 }
 
 function setupLinting(cwd: string, cfg: InitConfig, fs: IFileSystem): boolean {
@@ -309,6 +310,7 @@ function updatePackageJson(cwd: string, cfg: InitConfig, fs: IFileSystem): boole
       scripts.dev = "vite";
       scripts.build = "vite build";
       scripts.preview = "vite preview";
+      scripts.type = "tsc --noEmit";
     } else {
       scripts.watch = "tsx watch src/index.ts";
       scripts.start = "node dist/index.js";

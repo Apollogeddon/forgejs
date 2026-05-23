@@ -37,10 +37,11 @@ dist
 
 export const viteConfig = `\
 import { defineConfig } from "vite";
-import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
-  plugins: [tsconfigPaths()],
+  resolve: {
+    tsconfigPaths: true,
+  },
   build: {
     outDir: "dist",
   },
@@ -57,17 +58,10 @@ export const biomeConfig = JSON.stringify(
 );
 
 export const vitestConfig = `\
-import path from "node:path";
 import baseConfig from "@apollogeddon/forgejs/vitest.config.cjs";
 import { mergeConfig } from "vitest/config";
 
 export default mergeConfig(baseConfig, {
-  resolve: {
-    alias: {
-      // Manually map alias to avoid 'vite-tsconfig-paths' issues
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
   test: {
     // Project-specific overrides
   },
@@ -78,8 +72,22 @@ export const tsconfigConfig = JSON.stringify(
   {
     extends: "@apollogeddon/forgejs/tsconfig.json",
     compilerOptions: {
-      baseUrl: ".",
       rootDir: ".",
+    },
+    include: ["src/**/*"],
+    exclude: ["node_modules", "dist"],
+  },
+  null,
+  2,
+);
+
+export const websiteTsconfigConfig = JSON.stringify(
+  {
+    extends: "@apollogeddon/forgejs/tsconfig.json",
+    compilerOptions: {
+      rootDir: ".",
+      noEmit: true,
+      lib: ["DOM", "DOM.Iterable", "ESNext"],
     },
     include: ["src/**/*"],
     exclude: ["node_modules", "dist"],
