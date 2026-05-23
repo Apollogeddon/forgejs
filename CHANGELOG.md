@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.2](https://github.com/Apollogeddon/forgejs/compare/v2.0.1...v2.0.2) (2026-05-23)
+
+
+### Bug Fixes
+
+* optimise workflows and remove redundant content ([abdd0b3](https://github.com/Apollogeddon/forgejs/commit/abdd0b3cce4581bcb9c3f7535ce4d204c731804f))
+* removed check for release/build job ([e992507](https://github.com/Apollogeddon/forgejs/commit/e9925079d92fc6351b0e7491f1b9f5cd90ec2659))
+
 ## [2.0.1](https://github.com/Apollogeddon/forgejs/compare/v2.0.0...v2.0.1) (2026-05-23)
 
 
