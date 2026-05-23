@@ -9,14 +9,14 @@
   <p align="center">
     DevOps Support and Quality Control for modern Node.js projects
     <br />
-    <a href="https://apollogeddon.github.io/forgejs"><strong>Explore the docs »</strong></a>
+    <a href="docs/index.md"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://apollogeddon.github.io/forgejs/overview/">Getting Started</a>
+    <a href="docs/overview/getting-started.md">Getting Started</a>
     &middot;
-    <a href="https://apollogeddon.github.io/forgejs/overview/configuration/">Configuration</a>
+    <a href="docs/overview/configuration.md">Configuration</a>
     &middot;
-    <a href="https://apollogeddon.github.io/forgejs/reference/workflows/">Workflows</a>
+    <a href="docs/reference/workflows/index.md">Workflows</a>
   </p>
 </div>
 
@@ -41,7 +41,7 @@ npx @apollogeddon/forgejs init [options]
 By default, this sets up a **Node.js Backend/Service**. You can specify other modes:
 
 *   `--backend` (Default) for Node.js services.
-*   `--library` for TypeScript libraries (includes documentation site).
+*   `--library` for TypeScript libraries.
 *   `--website` for Frontend applications (Vite/Astro).
 
 This command will:
@@ -60,7 +60,6 @@ Forge.js enforces a "Gold Standard" stack designed for performance and reliabili
 | **Security Scanning** | [OSV-Scanner](https://osv.dev/) | Google's vulnerability scanner for open source dependencies. |
 | **Testing** | [Vitest](https://vitest.dev/) | Vite-native testing framework with instant HMR. |
 | **Bundling** | [Tsup](https://tsup.egoist.dev/) | Zero-config TypeScript bundler powered by esbuild. |
-| **Documentation** | [Starlight](https://starlight.astro.build/) | Documentation site built with Astro & TypeDoc. |
 | **Git Hooks** | [Lefthook](https://github.com/evilmartians/lefthook) | Fast and flexible Git hooks manager. |
 | **Commits** | [Commitlint](https://commitlint.js.org/) | Enforces Conventional Commits standards. |
 | **Releases** | [Release Please](https://github.com/googleapis/release-please) | Automated versioning and changelogs via GitHub Actions. |

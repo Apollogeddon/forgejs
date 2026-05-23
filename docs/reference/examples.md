@@ -1,19 +1,12 @@
----
-title: Examples
-description: Solutions for common requirements and configuration patterns.
-sidebar:
-  order: 5
----
+# Examples
 
-import { FileTree } from '@astrojs/starlight/components';
-
-This section provides configuration patterns for common scenarios and advanced use cases.
+Solutions for common requirements and configuration patterns.
 
 ## Configuration Patterns
 
 ### Ignoring Files in Biome
 
-To maintain inheritance from the shared configuration while ignoring specific paths (such as generated code or artifacts), use the `files.ignore` array in `biome.json`. This supplements the default ignore rules.
+To maintain inheritance from the shared configuration while ignoring specific paths (such as generated code or artifacts), use the `files.ignore` array in `biome.json`.
 
 ```json
 {
@@ -48,7 +41,7 @@ export default mergeConfig(baseConfig, {
 
 ### Multiple Entry Points (Tsup)
 
-For libraries that export multiple sub-modules (e.g., `import { util } from 'my-lib/util'`), configure Tsup to generate multiple entry points. This creates separate output files for each entry.
+For libraries that export multiple sub-modules (e.g., `import { util } from 'my-lib/util'`), configure Tsup to generate multiple entry points.
 
 ```ts
 import { defineConfig } from "tsup";
@@ -61,13 +54,13 @@ export default defineConfig({
     "src/utils.ts",
     "src/components/index.ts"
   ],
-  splitting: true // Enable code splitting for shared chunks
+  splitting: true
 });
 ```
 
 ### Lefthook: Linting Staged Files
 
-To improve commit speed, configure Lefthook to run linting only on files that have changed (staged files). This prevents re-linting the entire codebase on every commit.
+To improve commit speed, configure Lefthook to run linting only on changed (staged) files.
 
 ```yml
 pre-commit:
@@ -82,7 +75,7 @@ pre-commit:
 
 ### Monorepo Execution
 
-The workflows support monorepo structures via the `working_directory` input. This allows pipelines to be triggered for specific packages within a workspace.
+The workflows support monorepo structures via the `working_directory` input.
 
 ```yaml
 jobs:
@@ -94,7 +87,7 @@ jobs:
 
 ### Testing Across Node Versions
 
-To validate compatibility across multiple Node.js versions, use a build matrix strategy in the caller workflow. This instantiates parallel jobs for each defined version.
+Use a build matrix strategy to validate compatibility across multiple Node.js versions.
 
 ```yaml
 jobs:

@@ -74,73 +74,6 @@ export default mergeConfig(baseConfig, {
 });
 `;
 
-export const astroConfig = `\
-import starlight from "@astrojs/starlight";
-import { defineConfig } from "astro/config";
-import starlightTypeDoc from "starlight-typedoc";
-
-export default defineConfig({
-  site: "https://example.com",
-  integrations: [
-    starlight({
-      title: "My Project",
-      social: [
-        {
-          label: "GitHub",
-          href: "https://github.com/example/repo",
-          icon: "github",
-        },
-      ],
-      sidebar: [
-        {
-          label: "Guides",
-          items: [
-            // { label: 'Example Guide', link: '/guides/example/' },
-          ],
-        },
-        {
-          label: "Reference",
-          items: [
-            {
-              label: "API",
-              items: [{ autogenerate: { directory: "api" } }],
-            },
-          ],
-        },
-      ],
-      plugins: [
-        starlightTypeDoc({
-          entryPoints: ["src/index.ts"],
-          tsconfig: "./tsconfig.json",
-          sidebar: {
-            label: "API",
-          },
-        }),
-      ],
-    }),
-  ],
-});
-`;
-
-export const starlightContentIndex = `\
----
-title: Welcome to My Project
-description: Get started with My Project.
-template: splash
-hero:
-  tagline: A great TypeScript library.
-  actions:
-    - text: View API Docs
-      link: /api/
-      icon: right-arrow
-      variant: primary
----
-
-## Next Steps
-
-[Read the docs](/api/)
-`;
-
 export const tsconfigConfig = JSON.stringify(
   {
     extends: "@apollogeddon/forgejs/tsconfig.json",
@@ -148,7 +81,7 @@ export const tsconfigConfig = JSON.stringify(
       baseUrl: ".",
       rootDir: ".",
     },
-    include: ["src/**/*", ".astro/types.d.ts"],
+    include: ["src/**/*"],
     exclude: ["node_modules", "dist"],
   },
   null,

@@ -12,7 +12,6 @@ export interface InitConfig {
   testing: boolean;
   version: boolean;
   linting: boolean;
-  typedoc: boolean;
 }
 
 export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()): number {
@@ -60,12 +59,7 @@ export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()): n
     if (!setupVersioning(cwd, cfg, fs)) hasError = true;
   }
 
-  // 6. Docs / TypeDoc
-  if (cfg.typedoc) {
-    if (!setupDocs(cwd, cfg, fs)) hasError = true;
-  }
-
-  // 7. Docker
+  // 6. Docker
   if (cfg.docker) {
     if (!setupDocker(cwd, cfg, fs)) hasError = true;
   }
@@ -100,12 +94,6 @@ export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()): n
 
 function cleanup(cwd: string, cfg: InitConfig, fs: IFileSystem) {
   const toRemove: string[] = [];
-
-  // Cleanup Library/TypeDoc files
-  if (!cfg.typedoc) {
-    toRemove.push("astro.config.mjs");
-    toRemove.push("src/content/docs/index.mdx");
-  }
 
   // Cleanup Website files
   if (!cfg.website) {
@@ -224,17 +212,6 @@ function setupVersioning(cwd: string, cfg: InitConfig, fs: IFileSystem): boolean
   return createFile(cwd, "commitlint.config.ts", templates.commitlintConfig, cfg, fs);
 }
 
-function setupDocs(cwd: string, cfg: InitConfig, fs: IFileSystem): boolean {
-  const astroInstalled = fs.existsSync(fs.join(cwd, "node_modules", "astro"));
-  if (!astroInstalled) {
-    console.warn("⚠️  Documentation dependencies (astro, starlight, typedoc) not installed.");
-    console.warn("   Run 'npm install' without --omit=optional to install them.");
-  }
-  const a = createFile(cwd, "astro.config.mjs", templates.astroConfig, cfg, fs);
-  const b = createFile(cwd, "src/content/docs/index.mdx", templates.starlightContentIndex, cfg, fs);
-  return a && b;
-}
-
 function setupDocker(cwd: string, cfg: InitConfig, fs: IFileSystem): boolean {
   const content = cfg.website ? templates.dockerConfigWebsite : templates.dockerConfigBackend;
   const a = createFile(cwd, "Dockerfile", content, cfg, fs);
@@ -337,12 +314,6 @@ function updatePackageJson(cwd: string, cfg: InitConfig, fs: IFileSystem): boole
       scripts.start = "node dist/index.js";
       scripts.build = "tsup";
       scripts.type = "tsc --noEmit";
-    }
-
-    if (cfg.typedoc) {
-      scripts["docs:init"] = "astro sync";
-      scripts["docs:build"] = "astro build";
-      scripts["docs:watch"] = "astro dev";
     }
 
     if (cfg.library) {

@@ -61,9 +61,7 @@ describe("GitHub Actions Job Conditions", () => {
 
   it("should ensure library.yml jobs only run on new_release_published == 'true'", () => {
     const wf = getWorkflow("library.yml");
-    expect(wf.jobs.document.if).toContain("needs.version.outputs.new_release_published == 'true'");
     expect(wf.jobs.publish.if).toContain("needs.version.outputs.new_release_published == 'true'");
-    expect(wf.jobs.deploy.if).toContain("needs.version.outputs.new_release_published == 'true'");
   });
 
   it("should ensure default.yml auto-merges major GitHub actions", () => {

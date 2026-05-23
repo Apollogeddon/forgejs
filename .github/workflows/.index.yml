@@ -8,7 +8,6 @@ on:
       - ".github/**"
       - "src/**"
       - "tests/**"
-      - 'astro.config.mjs'
       - 'biome.json'
       - 'commitlint.config.cjs'
       - 'lefthook.yml'
@@ -22,7 +21,6 @@ on:
       - ".github/**"
       - "src/**"
       - "tests/**"
-      - 'astro.config.mjs'
       - 'biome.json'
       - 'commitlint.config.cjs'
       - 'lefthook.yml'

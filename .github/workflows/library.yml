@@ -23,10 +23,6 @@ on:
         required: false
         type: boolean
         default: false
-      environment_name:
-        required: false
-        type: string
-        default: 'github-pages'
     secrets:
       NPM_TOKEN:
         required: false
@@ -39,38 +35,10 @@ jobs:
       node_version: ${{ inputs.node_version }}
       working_directory: ${{ inputs.working_directory }}
 
-  document:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [version]
-    if: github.ref == 'refs/heads/main' && needs.version.outputs.new_release_published == 'true'
-    defaults:
-      run:
-        working-directory: ${{ inputs.working_directory }}
-
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: ${{ inputs.node_version }}
-          cache: 'npm'
-      - name: Install Dependencies
-        run: npm ci
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Astro Sync
-        run: npx astro sync
-      - name: Generate Documentation
-        run: npx astro build
-      - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: ${{ inputs.working_directory }}/docs
-
   publish:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [version, document]
+    needs: [version]
     if: github.ref == 'refs/heads/main' && needs.version.outputs.new_release_published == 'true'
     permissions:
       contents: read
@@ -99,17 +67,3 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: [version, document]
-    if: github.ref == 'refs/heads/main' && needs.version.outputs.new_release_published == 'true'
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: ${{ inputs.environment_name }}
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4

@@ -75,7 +75,6 @@ describe("CLI Init with MockFileSystem", () => {
     testing: true,
     version: true,
     linting: true,
-    typedoc: true,
   };
 
   it("should create expected files in mock filesystem", () => {
@@ -95,7 +94,6 @@ describe("CLI Init with MockFileSystem", () => {
 
     // Check library files
     expect(mockFs.existsSync(mockFs.join(cwd, "tsup.config.ts"))).toBe(true);
-    expect(mockFs.existsSync(mockFs.join(cwd, "astro.config.mjs"))).toBe(true);
 
     // Check testing files
     expect(mockFs.existsSync(mockFs.join(cwd, "vitest.config.ts"))).toBe(true);
