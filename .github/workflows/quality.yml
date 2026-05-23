@@ -21,16 +21,9 @@ on:
         default: true
 
 jobs:
-  setup:
-    uses: ./.github/workflows/default.yml
-    with:
-      node_version: ${{ inputs.node_version }}
-      working_directory: ${{ inputs.working_directory }}
-
-  check:
+  secure:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [setup]
     defaults:
       run:
         working-directory: ${{ inputs.working_directory }}
@@ -43,14 +36,45 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: OSV Scan
+        run: |
+          curl -sL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o osv-scanner
+          chmod +x osv-scanner
+          ./osv-scanner scan source -r . || true
+          rm osv-scanner
+
+  linting:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ inputs.node_version }}
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
+      - name: Biome Lint
+        run: npx @biomejs/biome check .
+      - name: Type Check
+        run: npx tsc --noEmit
+
+  # Adding OSV Fix back to maintain the auto_patch functionality on main
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: inputs.auto_patch && github.ref == 'refs/heads/main'
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - name: OSV Scanner Fix
-        if: inputs.auto_patch && github.ref == 'refs/heads/main'
         run: |
           curl -L https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o osv-scanner
           chmod +x osv-scanner
@@ -58,19 +82,8 @@ jobs:
           rm osv-scanner
           npm install
       - name: Commit Security Patches
-        if: inputs.auto_patch && github.ref == 'refs/heads/main'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "fix(deps): patch vulnerabilities via osv-scanner"
           file_pattern: 'package.json package-lock.json'
           commit_options: '--no-verify'
-      - name: Biome Lint
-        run: npx @biomejs/biome check .
-      - name: OSV Scan
-        run: |
-          curl -sL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o osv-scanner
-          chmod +x osv-scanner
-          ./osv-scanner scan source -r . || true
-          rm osv-scanner
-      - name: Type Check
-        run: npx tsc --noEmit

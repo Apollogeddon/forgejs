@@ -21,18 +21,50 @@ on:
         default: true
 
 jobs:
-  quality:
-    uses: ./.github/workflows/quality.yml
-    with:
-      working_directory: ${{ inputs.working_directory }}
-      node_version: ${{ inputs.node_version }}
-      auto_patch: ${{ inputs.auto_patch }}
-      enable_secrets: ${{ inputs.enable_secrets }}
-
-  test:
+  linting:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [quality]
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Biome Lint
+        run: npx @biomejs/biome check .
+      - name: Type Check
+        run: npx tsc --noEmit
+
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Gitleaks Scan
+        if: inputs.enable_secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: OSV Scan
+        run: |
+          curl -sL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o osv-scanner
+          chmod +x osv-scanner
+          ./osv-scanner scan source -r . || true
+          rm osv-scanner
+
+  testing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: ${{ inputs.working_directory }}
@@ -57,3 +89,26 @@ jobs:
           name: coverage
           path: ${{ inputs.working_directory }}/coverage
           if-no-files-found: ignore
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [linting, security, testing]
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: dist
+          path: ${{ inputs.working_directory }}/dist
