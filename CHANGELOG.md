@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1](https://github.com/Apollogeddon/forgejs/compare/v2.1.0...v2.1.1) (2026-05-23)
+
+
+### Bug Fixes
+
+* had a issue with pages getting skipped after releasing ([4c742bf](https://github.com/Apollogeddon/forgejs/commit/4c742bf81e255ac3740e28e37034ec31719ad671))
+
 ## [2.1.0](https://github.com/Apollogeddon/forgejs/compare/v2.0.3...v2.1.0) (2026-05-23)
 
 
