@@ -90,4 +90,3 @@ jobs:
         with:
           commit_message: "fix(deps): patch vulnerabilities via osv-scanner"
           file_pattern: 'package.json package-lock.json'
-          commit_options: '--no-verify'
