@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.3](https://github.com/Apollogeddon/forgejs/compare/v2.0.2...v2.0.3) (2026-05-23)
+
+
+### Bug Fixes
+
+* add github packages auth to all npm ci steps ([a546295](https://github.com/Apollogeddon/forgejs/commit/a5462956aae7df06cbb47acc7fe1c98e1dc0443d))
+
 ## [2.0.2](https://github.com/Apollogeddon/forgejs/compare/v2.0.1...v2.0.2) (2026-05-23)
 
 
