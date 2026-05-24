@@ -67,7 +67,7 @@ const off = "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100";
                   {item.children.map((child) => (
                     <li>
                       <a
-                        href={`/docs/${child.slug}`}
+                        href={`${import.meta.env.BASE_URL}docs/${child.slug}`}
                         aria-current={active(child.slug) ? "page" : undefined}
                         class:list={[base, active(child.slug) ? on : off]}
                       >
@@ -80,7 +80,7 @@ const off = "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100";
             ) : (
               <li>
                 <a
-                  href={`/docs/${item.slug}`}
+                  href={`${import.meta.env.BASE_URL}docs/${item.slug}`}
                   aria-current={active(item.slug) ? "page" : undefined}
                   class:list={[base, active(item.slug) ? on : off]}
                 >
