@@ -1,0 +1,96 @@
+---
+interface NavItem {
+  label: string;
+  slug: string;
+  children?: NavItem[];
+}
+
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+interface Props {
+  currentSlug: string;
+}
+
+const { currentSlug } = Astro.props;
+
+const groups: NavGroup[] = [
+  {
+    label: "Overview",
+    items: [
+      { label: "Getting Started", slug: "getting-started" },
+      { label: "Configuration", slug: "configuration" },
+      { label: "Philosophy & Stack", slug: "philosophy" },
+      { label: "Contributing", slug: "contributing" },
+      { label: "Migration", slug: "migration" },
+    ],
+  },
+  {
+    label: "Reference",
+    items: [
+      { label: "Examples", slug: "examples" },
+      {
+        label: "Workflows",
+        slug: "workflows/overview",
+        children: [
+          { label: "Overview", slug: "workflows/overview" },
+          { label: "Job Reference", slug: "workflows/reference" },
+        ],
+      },
+    ],
+  },
+];
+
+const active = (slug: string) => slug === currentSlug;
+const base = "block rounded-md px-3 py-1.5 text-sm transition-colors";
+const on = "bg-amber-500/10 font-semibold text-amber-400";
+const off = "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100";
+---
+
+<nav aria-label="Documentation" class="space-y-8">
+  {
+    groups.map((group) => (
+      <div>
+        <p class="mb-2 px-3 text-xs font-semibold uppercase tracking-widest text-zinc-500">
+          {group.label}
+        </p>
+        <ul class="space-y-0.5">
+          {group.items.map((item) =>
+            item.children ? (
+              <li>
+                <span class="block px-3 py-1.5 text-sm font-medium text-zinc-300">
+                  {item.label}
+                </span>
+                <ul class="ml-3 mt-0.5 space-y-0.5 border-l border-zinc-800 pl-2">
+                  {item.children.map((child) => (
+                    <li>
+                      <a
+                        href={`/docs/${child.slug}`}
+                        aria-current={active(child.slug) ? "page" : undefined}
+                        class:list={[base, active(child.slug) ? on : off]}
+                      >
+                        {child.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ) : (
+              <li>
+                <a
+                  href={`/docs/${item.slug}`}
+                  aria-current={active(item.slug) ? "page" : undefined}
+                  class:list={[base, active(item.slug) ? on : off]}
+                >
+                  {item.label}
+                </a>
+              </li>
+            )
+          )}
+        </ul>
+      </div>
+    ))
+  }
+</nav>
