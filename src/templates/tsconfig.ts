@@ -1,6 +1,6 @@
 export const tsconfigConfig = JSON.stringify(
   {
-    extends: "@apollogeddon/forgejs/tsconfig.json",
+    extends: "@apollogeddon/forgejs/configs/tsconfig.json",
     compilerOptions: {
       rootDir: ".",
     },
@@ -13,7 +13,7 @@ export const tsconfigConfig = JSON.stringify(
 
 export const websiteTsconfigConfig = JSON.stringify(
   {
-    extends: "@apollogeddon/forgejs/tsconfig.json",
+    extends: "@apollogeddon/forgejs/configs/tsconfig.json",
     compilerOptions: {
       rootDir: ".",
       noEmit: true,

@@ -72,7 +72,7 @@ describe("CLI Init Command", () => {
     execSync(`npx tsx ${CLI_SCRIPT} init`, { cwd: tempDir });
 
     const biomeConfig = JSON.parse(fs.readFileSync(path.join(tempDir, "biome.json"), "utf-8"));
-    expect(biomeConfig.extends).toContain("node_modules/@apollogeddon/forgejs/biome.json");
+    expect(biomeConfig.extends).toContain("node_modules/@apollogeddon/forgejs/configs/biome.json");
   });
 
   it("should not overwrite existing files without --force", () => {
@@ -98,7 +98,7 @@ describe("CLI Init Command", () => {
     const content = fs.readFileSync(path.join(tempDir, "biome.json"), "utf-8");
     // Expect content to be the default biome config now
     expect(content).not.toBe(dummyContent);
-    expect(content).toContain("node_modules/@apollogeddon/forgejs/biome.json");
+    expect(content).toContain("node_modules/@apollogeddon/forgejs/configs/biome.json");
   });
 
   it("should update package.json with type: module and recommended backend scripts", () => {
