@@ -1,6 +1,7 @@
 ---
 import Header from "../components/Header.astro";
 import Base from "../layouts/Base.astro";
+import pkg from "../../../package.json";
 
 const githubUrl = "https://github.com/apollogeddon/forgejs";
 const year = new Date().getFullYear();
@@ -33,13 +34,13 @@ const steps = [
     n: "01",
     title: "Install",
     body: "Add Forge.js as a development dependency.",
-    code: "npm install --save-dev @apollogeddon/forgejs",
+    code: `npm install --save-dev ${pkg.name}`,
   },
   {
     n: "02",
     title: "Initialise",
     body: "Run the CLI to scaffold configs and inject standard scripts.",
-    code: "npx @apollogeddon/forgejs init",
+    code: `npx ${pkg.name} init`,
   },
   {
     n: "03",
@@ -47,7 +48,7 @@ const steps = [
     body: "Inherit best practices by extending the shared Biome config.",
     code: `// biome.json
 {
-  "extends": ["node_modules/@apollogeddon/forgejs/biome.json"]
+  "extends": ["node_modules/${pkg.name}/biome.json"]
 }`,
   },
 ];
@@ -92,7 +93,7 @@ const langChip: Record<string, string> = {
       >
         <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-violet-400"
         ></span>
-        v2.1.1 · @apollogeddon/forgejs
+        v{pkg.version} · {pkg.name}
       </span>
 
       <h1
@@ -163,8 +164,8 @@ const langChip: Record<string, string> = {
           <span class="ml-2 text-xs text-zinc-500">bash</span>
         </div>
         <pre
-          class="overflow-x-auto px-5 py-5 font-mono text-sm leading-7"><code><span class="text-zinc-500 select-none">$ </span><span class="text-zinc-100">npm install --save-dev @apollogeddon/forgejs</span>
-<span class="text-zinc-500 select-none">$ </span><span class="text-zinc-100">npx @apollogeddon/forgejs init</span>
+          class="overflow-x-auto px-5 py-5 font-mono text-sm leading-7"><code><span class="text-zinc-500 select-none">$ </span><span class="text-zinc-100">npm install --save-dev {pkg.name}</span>
+<span class="text-zinc-500 select-none">$ </span><span class="text-zinc-100">npx {pkg.name} init</span>
 <span class="text-green-400">✓ Configuration files created</span>
 <span class="text-green-400">✓ Package scripts injected</span>
 <span class="text-amber-400">  Forge.js ready.</span></code></pre>
