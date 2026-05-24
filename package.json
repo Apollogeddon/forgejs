@@ -19,7 +19,7 @@
     "node": ">=22"
   },
   "exports": {
-    "./biome.json": "./biome.json",
+    "./configs/biome.json": "./configs/biome.json",
     "./commitlint.config.cjs": {
       "types": "./configs/commitlint.config.d.ts",
       "import": "./configs/commitlint.config.cjs"
@@ -36,12 +36,11 @@
       "types": "./configs/vitest.config.d.ts",
       "import": "./configs/vitest.config.cjs"
     },
-    "./tsconfig.json": "./configs/tsconfig.json"
+    "./configs/tsconfig.json": "./configs/tsconfig.json"
   },
   "files": [
     "dist",
     "configs",
-    "biome.json",
     "lefthook.yml"
   ],
   "scripts": {
