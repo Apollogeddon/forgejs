@@ -60,6 +60,7 @@ Vitest is largely API-compatible with Jest, with specific differences:
 
 For projects with existing `.releaserc` files, verify if overrides are necessary.
 The default configuration assumes:
+
 - Releases occur from the `main` branch.
 - A changelog (`CHANGELOG.md`) is generated.
 - Packages are published to NPM (or GitHub Packages).

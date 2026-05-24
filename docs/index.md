@@ -9,9 +9,11 @@ Forge.js centralises configuration management for Node.js projects. It consolida
 - **Standardised Tooling** — Provides default configurations for Biome, Vitest, and Tsup to enforce consistency across multiple projects.
 - **Reusable Workflows** — Exports modular GitHub Actions workflows for testing, building, and releasing packages, eliminating manual YAML authoring.
 - **Project Scaffolding** — Includes a CLI tool to bootstrap new repositories with the `init` command. Supports modular setup for libraries, Debian packages, and more.
+
   ```bash
   npx @apollogeddon/forgejs init [options]
   ```
+
 - **Automated Releases** — Implements Semantic Release pipelines for automated versioning, changelog generation, and package publishing.
 
 ## Tech Stack
