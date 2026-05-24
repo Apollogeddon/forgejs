@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.2.1](https://github.com/Apollogeddon/forgejs/compare/v2.2.0...v2.2.1) (2026-05-24)
+
+
+### Bug Fixes
+
+* corrected the biome and the junit path ([8d0bbb5](https://github.com/Apollogeddon/forgejs/commit/8d0bbb5ebdbe5590e8403e2343b97170bf08b3d5))
+* updated the quality workflow to use the run type call ([ca311e1](https://github.com/Apollogeddon/forgejs/commit/ca311e1e41d8e751407e09156bed4b1a50292680))
+* updated to include an unversioned push for docs ([1122c5c](https://github.com/Apollogeddon/forgejs/commit/1122c5cb9a4ad0b36cc2aa924b1584a26bc74168))
+
 ## [2.2.0](https://github.com/Apollogeddon/forgejs/compare/v2.1.1...v2.2.0) (2026-05-24)
 
 
