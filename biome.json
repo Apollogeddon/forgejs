@@ -1,12 +1,6 @@
 {
-  "$schema": "node_modules/@biomejs/biome/configuration_schema.json",
-  "formatter": {
-    "indentStyle": "space",
-    "lineWidth": 120
-  },
-  "vcs": {
-    "enabled": true,
-    "clientKind": "git",
-    "useIgnoreFile": true
+  "extends": ["./configs/biome.json"],
+  "files": {
+    "includes": ["**", "!**/configs/biome.json"]
   }
 }
