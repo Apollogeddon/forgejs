@@ -2,7 +2,8 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 
 export default defineConfig({
-  site: "https://forgejs.apollogeddon.com",
+  site: "https://apollogeddon.github.io",
+  base: "/forgejs",
   vite: {
     plugins: [tailwindcss()],
   },
