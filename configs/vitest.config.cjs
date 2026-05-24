@@ -11,7 +11,7 @@ module.exports = defineConfig({
     environment: "node",
     reporters: ["default", "junit"],
     outputFile: {
-      junit: path.join(__dirname, "../junit-report.xml"),
+      junit: "./junit-report.xml",
     },
     includeSource: ["src/**/*.?(c|m)[jt]s?(x)"],
     passWithNoTests: true,
