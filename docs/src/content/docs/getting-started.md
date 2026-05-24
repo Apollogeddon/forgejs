@@ -11,7 +11,7 @@ Forge.js provides **tooling configurations** and **GitHub Actions workflows** fo
 
 ## Setup Guide
 
-**1. Installation**
+### 1. Installation
 
 Install the package as a dev dependency:
 
@@ -19,7 +19,7 @@ Install the package as a dev dependency:
 npm install --save-dev @apollogeddon/forgejs
 ```
 
-**2. Initialisation**
+### 2. Initialisation
 
 Use the included CLI to bootstrap the project with recommended configurations.
 
@@ -33,7 +33,7 @@ The command performs the following actions:
 - Sets `type: "module"` in `package.json`.
 - Injects standard scripts into `package.json`.
 
-**3. Advanced: Overwriting Files**
+### 3. Advanced: Overwriting Files
 
 To overwrite existing configuration files with the library defaults, use the `--force` flag:
 
@@ -80,7 +80,7 @@ Scripts vary by mode. The following are injected for **backend** and **library**
 
 ## CLI Options
 
-```
+```text
 Usage: npx @apollogeddon/forgejs init [options]
 
 Modes (Default is --backend):
@@ -114,7 +114,7 @@ Options:
 
 A standard backend project adheres to the following structure:
 
-```
+```text
 .github/
   workflows/
     ci.yml

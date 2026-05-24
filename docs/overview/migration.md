@@ -4,7 +4,7 @@ Adopting Forge.js reduces configuration overhead but requires the removal of con
 
 ## Migration Checklist
 
-**1. Run Initialization**
+### 1. Run Initialization
 
 Execute the init command to generate the new standard configurations.
 
@@ -12,7 +12,7 @@ Execute the init command to generate the new standard configurations.
 npx @apollogeddon/forgejs init
 ```
 
-**2. Remove Old Configs**
+### 2. Remove Old Configs
 
 Remove configuration files for tools replaced by this library to prevent conflicts.
 
@@ -20,7 +20,7 @@ Remove configuration files for tools replaced by this library to prevent conflic
 - **Remove Jest:** `rm jest.config.*`
 - **Remove Semantic Release (local):** `rm .releaserc` (if replacing with the extended JSON)
 
-**3. Update Dependencies**
+### 3. Update Dependencies
 
 Uninstall the tools that are now managed by Forge.js.
 
@@ -28,7 +28,7 @@ Uninstall the tools that are now managed by Forge.js.
 npm uninstall eslint prettier jest ts-jest semantic-release @semantic-release/git @semantic-release/github
 ```
 
-**4. Fix Linting Errors**
+### 4. Fix Linting Errors
 
 Biome enforces stricter rules than some ESLint configurations. Run the fix command to resolve most issues automatically.
 
