@@ -1,37 +1,48 @@
 import { execSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 const CLI_SCRIPT = path.resolve(__dirname, "../src/index.ts");
 
+// Helper for robust cleanup on Windows
+function robustRemoveDir(dir: string, maxRetries = 5, delay = 500) {
+  if (!fs.existsSync(dir)) return;
+
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      if (i === maxRetries - 1) {
+        console.warn(`Warning: Final attempt to clean up temp dir failed: ${error}`);
+      } else {
+        // Wait and retry
+        const syncWait = (ms: number) => {
+          const end = Date.now() + ms;
+          while (Date.now() < end) {}
+        };
+        syncWait(delay);
+      }
+    }
+  }
+}
+
 describe("CLI Init Command", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    // Create a unique temporary directory for each test
-    tempDir = path.join(__dirname, `tmp-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
+    // Create a unique temporary directory for each test in the system temp folder
+    tempDir = path.join(os.tmpdir(), `forgejs-test-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
     if (fs.existsSync(tempDir)) {
-      // Should not happen with unique names, but just in case
-      try {
-        fs.rmSync(tempDir, { recursive: true, force: true });
-      } catch (e) {
-        console.warn(e);
-      }
+      robustRemoveDir(tempDir);
     }
-    fs.mkdirSync(tempDir);
+    fs.mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(async () => {
-    // Clean up
-    if (fs.existsSync(tempDir)) {
-      try {
-        fs.rmSync(tempDir, { recursive: true, force: true });
-      } catch (error) {
-        // Ignore EBUSY errors on Windows which can happen if the process hasn't fully released locks
-        console.warn(`Warning: Failed to clean up temp dir: ${error}`);
-      }
-    }
+    robustRemoveDir(tempDir);
   });
 
   it("should create configuration files when running init (default backend)", () => {
