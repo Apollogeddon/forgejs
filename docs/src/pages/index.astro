@@ -109,7 +109,7 @@ const langChip: Record<string, string> = {
 
       <div class="mt-9 flex flex-wrap items-center justify-center gap-3">
         <a
-          href="/docs/getting-started"
+          href={`${import.meta.env.BASE_URL}docs/getting-started`}
           class="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-400"
         >
           Get Started
@@ -257,7 +257,7 @@ const langChip: Record<string, string> = {
 
       <div class="mt-10 text-center">
         <a
-          href="/docs/getting-started"
+          href={`${import.meta.env.BASE_URL}docs/getting-started`}
           class="inline-flex items-center gap-2 text-sm font-medium text-amber-400 transition-colors hover:text-amber-300"
         >
           Full documentation
@@ -323,9 +323,9 @@ const langChip: Record<string, string> = {
     <div
       class="mx-auto flex max-w-5xl flex-col items-center gap-4 px-4 py-12 text-center sm:px-6"
     >
-      <a href="/" class="flex items-center gap-2.5">
+      <a href={import.meta.env.BASE_URL} class="flex items-center gap-2.5">
         <img
-          src="/forgejs.png"
+          src={`${import.meta.env.BASE_URL}forgejs.svg`}
           alt="Forge.js"
           width="28"
           height="28"

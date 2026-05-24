@@ -1,7 +1,7 @@
 <br />
 <div align="center">
   <a href="https://apollogeddon.github.io/forgejs">
-    <img src="public/forgejs.png" alt="Logo" width="100" height="100">
+    <img src="docs/public/forgejs.svg" alt="Logo" width="100" height="100">
   </a>
 
   <h3 align="center">Forge.js</h3>
@@ -40,15 +40,15 @@ npx @apollogeddon/forgejs init [options]
 
 By default, this sets up a **Node.js Backend/Service**. You can specify other modes:
 
-*   `--backend` (Default) for Node.js services.
-*   `--library` for TypeScript libraries.
-*   `--website` for Frontend applications (Vite/Astro).
+* `--backend` (Default) for Node.js services.
+* `--library` for TypeScript libraries.
+* `--website` for Frontend applications (Vite/Astro).
 
 This command will:
 
-*   **Scaffold Configs:** Create `biome.json`, `vitest.config.ts`, `tsconfig.json`, and others depending on the mode (e.g., `tsup.config.ts` or `vite.config.ts`).
-*   **Inject Scripts:** Add `watch`, `start`, `lint`, `test`, and `build` to your `package.json`.
-*   **Standardise:** Ensure `type: "module"` is set and development standards are enforced.
+* **Scaffold Configs:** Create `biome.json`, `vitest.config.ts`, `tsconfig.json`, and others depending on the mode (e.g., `tsup.config.ts` or `vite.config.ts`).
+* **Inject Scripts:** Add `watch`, `start`, `lint`, `test`, and `build` to your `package.json`.
+* **Standardise:** Ensure `type: "module"` is set and development standards are enforced.
 
 ## ⚙️ Standardised Stack
 
