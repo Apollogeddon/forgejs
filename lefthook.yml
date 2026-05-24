@@ -7,11 +7,16 @@ pre-commit:
     biome-check:
       glob: "*.{js,ts,cjs,mjs,d.cts,d.mts,json,jsonc}"
       run: npx biome check --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+
+pre-push:
+  parallel: false
+  commands:
+    type-check:
+      run: npx tsc --noEmit
     publint:
       run: npx publint
 
 commit-msg:
-  parallel: true
   commands:
     commitlint:
       run: npx commitlint --edit {1}

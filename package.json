@@ -11,7 +11,13 @@
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
-  "bin": "./dist/index.js",
+  "bin": {
+    "forgejs": "./dist/index.js"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
   "exports": {
     "./biome.json": "./configs/biome.json",
     "./commitlint.config.cjs": {
@@ -45,7 +51,8 @@
     "build": "tsup --config configs/tsup.config.cjs",
     "test": "vitest run --config configs/vitest.config.cjs",
     "publint": "publint",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install",
+    "prepublishOnly": "npm run build && npm run type && npm run test && npm run publint"
   },
   "dependencies": {
     "@biomejs/biome": "2.4.15",
