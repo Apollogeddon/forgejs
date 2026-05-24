@@ -79,7 +79,7 @@ const langChip: Record<string, string> = {
   <!-- ── Hero ────────────────────────────────────────────────────────────── -->
   <section class="relative overflow-hidden">
     <div
-      class="pointer-events-none absolute -top-32 left-1/2 h-[560px] w-[560px] -translate-x-1/2 rounded-full bg-amber-500/20 opacity-30 blur-[130px]"
+      class="pointer-events-none absolute -top-32 left-1/2 h-[560px] w-[560px] -translate-x-1/2 rounded-full bg-violet-500/20 opacity-30 blur-[130px]"
       aria-hidden="true"
     >
     </div>
@@ -90,7 +90,7 @@ const langChip: Record<string, string> = {
       <span
         class="inline-flex items-center gap-2 rounded-full border border-zinc-700/60 bg-zinc-900/70 px-3 py-1 text-xs font-medium text-zinc-300"
       >
-        <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400"
+        <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-violet-400"
         ></span>
         v2.1.1 · @apollogeddon/forgejs
       </span>
@@ -110,7 +110,7 @@ const langChip: Record<string, string> = {
       <div class="mt-9 flex flex-wrap items-center justify-center gap-3">
         <a
           href={`${import.meta.env.BASE_URL}docs/getting-started`}
-          class="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-400"
+          class="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-500"
         >
           Get Started
           <svg
@@ -188,7 +188,7 @@ const langChip: Record<string, string> = {
         {
           features.map((f) => (
             <div class="rounded-xl border border-zinc-800 bg-zinc-900 p-6 transition-colors hover:border-zinc-700">
-              <div class="flex h-11 w-11 items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-400">
+              <div class="flex h-11 w-11 items-center justify-center rounded-lg border border-violet-500/20 bg-violet-500/10 text-violet-400">
                 {f.icon === "settings" && (
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="3" />
@@ -242,7 +242,7 @@ const langChip: Record<string, string> = {
         {
           steps.map((s) => (
             <div class="flex flex-col gap-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 sm:flex-row sm:items-start">
-              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/10 font-mono text-xs font-bold text-amber-400">
+              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-violet-500/30 bg-violet-500/10 font-mono text-xs font-bold text-violet-400">
                 {s.n}
               </div>
               <div class="min-w-0 flex-1">
@@ -258,7 +258,7 @@ const langChip: Record<string, string> = {
       <div class="mt-10 text-center">
         <a
           href={`${import.meta.env.BASE_URL}docs/getting-started`}
-          class="inline-flex items-center gap-2 text-sm font-medium text-amber-400 transition-colors hover:text-amber-300"
+          class="inline-flex items-center gap-2 text-sm font-medium text-violet-400 transition-colors hover:text-violet-300"
         >
           Full documentation
           <svg
