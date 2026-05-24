@@ -19,10 +19,10 @@
   },
   "devDependencies": {
     "@apollogeddon/forgejs": "file:..",
-    "@tailwindcss/typography": "0.5.16",
-    "@tailwindcss/vite": "4.0.0",
+    "@tailwindcss/typography": "0.5.19",
+    "@tailwindcss/vite": "4.3.0",
     "markdownlint-cli2": "0.22.1",
-    "tailwindcss": "4.0.0",
+    "tailwindcss": "4.3.0",
     "typescript": "6.0.3"
   }
 }
