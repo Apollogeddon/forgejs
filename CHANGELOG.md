@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.2.0](https://github.com/Apollogeddon/forgejs/compare/v2.1.1...v2.2.0) (2026-05-24)
+
+
+### Features
+
+* strengthen QC config with stricter rules for downstream ([f6df34e](https://github.com/Apollogeddon/forgejs/commit/f6df34e99f3f75fa7a4eda56c1ceae6c5186d596))
+
+
+### Bug Fixes
+
+* tightening the security rules for my workflows ([ce5998b](https://github.com/Apollogeddon/forgejs/commit/ce5998b17069dd75999b3017291919a59d23fd05))
+
 ## [2.1.1](https://github.com/Apollogeddon/forgejs/compare/v2.1.0...v2.1.1) (2026-05-23)
 
 
