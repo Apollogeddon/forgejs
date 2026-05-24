@@ -1,4 +1,4 @@
-name: NodeJS Tests
+name: NodeJS Build
 
 on:
   workflow_call:
@@ -11,25 +11,15 @@ on:
         required: false
         type: string
         default: '22'
-      enable_secrets:
+      artifact_name:
         required: false
-        type: boolean
-        default: true
+        type: string
+        default: 'dist'
 
 jobs:
-  quality:
-    uses: ./.github/workflows/quality.yml
-    with:
-      working_directory: ${{ inputs.working_directory }}
-      node_version: ${{ inputs.node_version }}
-      enable_secrets: ${{ inputs.enable_secrets }}
-      auto_patch: false
-      artifact_name: ''
-
-  testing:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [quality]
     defaults:
       run:
         working-directory: ${{ inputs.working_directory }}
@@ -45,20 +35,10 @@ jobs:
         run: npm ci --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Tests
-        run: npm test
-      - name: Upload Coverage
-        if: always()
+      - name: Build
+        run: npm run build
+      - name: Upload Build Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: coverage
-          path: ${{ inputs.working_directory }}/coverage
-          if-no-files-found: ignore
-
-  build:
-    needs: [quality, testing]
-    uses: ./.github/workflows/building.yml
-    with:
-      working_directory: ${{ inputs.working_directory }}
-      node_version: ${{ inputs.node_version }}
-      artifact_name: 'dist'
+          name: ${{ inputs.artifact_name }}
+          path: ${{ inputs.working_directory }}/dist
