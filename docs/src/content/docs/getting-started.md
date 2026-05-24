@@ -28,6 +28,7 @@ npx @apollogeddon/forgejs init
 ```
 
 The command performs the following actions:
+
 - Creates configuration files (`biome.json`, `vitest.config.ts`, `lefthook.yml`, `tsconfig.json`, etc.) if absent.
 - Sets `type: "module"` in `package.json`.
 - Injects standard scripts into `package.json`.
@@ -104,6 +105,7 @@ Options:
 ```
 
 **Validation rules:**
+
 - Only one mode may be active at a time.
 - `--docker` and `--debian` are not available in `--library` mode.
 - `--debian` is not available in `--website` mode.

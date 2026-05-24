@@ -21,6 +21,7 @@ npx @apollogeddon/forgejs init
 ```
 
 The command performs the following actions:
+
 - Creates configuration files (e.g., `biome.json`, `vitest.config.ts`, `lefthook.yml`) if absent.
 - Sets `type: "module"` in `package.json`.
 - Injects standard scripts (`lint`, `test`, `build`, etc.) into `package.json`.
