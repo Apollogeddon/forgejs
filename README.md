@@ -9,14 +9,14 @@
   <p align="center">
     DevOps Support and Quality Control for modern Node.js projects
     <br />
-    <a href="docs/index.md"><strong>Explore the docs »</strong></a>
+    <a href="https://forgejs.apollogeddon.com"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="docs/overview/getting-started.md">Getting Started</a>
+    <a href="https://forgejs.apollogeddon.com/docs/getting-started">Getting Started</a>
     &middot;
-    <a href="docs/overview/configuration.md">Configuration</a>
+    <a href="https://forgejs.apollogeddon.com/docs/configuration">Configuration</a>
     &middot;
-    <a href="docs/reference/workflows/index.md">Workflows</a>
+    <a href="https://forgejs.apollogeddon.com/docs/workflows/overview">Workflows</a>
   </p>
 </div>
 
