@@ -68,7 +68,7 @@ jobs:
       - name: Biome Lint
         run: npx @biomejs/biome check .
       - name: Type Check
-        run: npx tsc --noEmit
+        run: npm run type
 
   # Adding OSV Fix back to maintain the auto_patch functionality on main
   patch:
