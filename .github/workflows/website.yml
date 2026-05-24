@@ -19,9 +19,14 @@ on:
         required: false
         type: string
         default: '.'
+      enable_versioning:
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   version:
+    if: inputs.enable_versioning
     uses: ./.github/workflows/version.yml
     with:
       enable_secrets: ${{ inputs.enable_secrets }}
@@ -31,7 +36,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: [version]
-    if: github.ref == 'refs/heads/main' && (needs.version.outputs.new_release_published == 'true' || needs.version.outputs.new_release_published == true)
+    if: github.ref == 'refs/heads/main' && (!inputs.enable_versioning || needs.version.outputs.new_release_published == 'true' || needs.version.outputs.new_release_published == true)
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

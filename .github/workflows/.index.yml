@@ -33,3 +33,15 @@ jobs:
       id-token: write
       packages: write
       pull-requests: write
+
+  document:
+    uses: ./.github/workflows/document.yml
+    with:
+      node_version: '22'
+      working_directory: 'docs'
+      enable_secrets: false
+    permissions:
+      contents: write
+      id-token: write
+      pages: write
+
