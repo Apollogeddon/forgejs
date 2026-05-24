@@ -1,0 +1,362 @@
+---
+import Header from "../components/Header.astro";
+import Base from "../layouts/Base.astro";
+
+const githubUrl = "https://github.com/apollogeddon/forgejs";
+const year = new Date().getFullYear();
+
+const features = [
+  {
+    title: "Standardised Tooling",
+    body: "Default configurations for Biome, Vitest, and Tsup enforce consistency across every project from day one.",
+    icon: "settings",
+  },
+  {
+    title: "Reusable Workflows",
+    body: "Modular GitHub Actions workflows for testing, building, and releasing — no manual YAML authoring required.",
+    icon: "workflow",
+  },
+  {
+    title: "Project Scaffolding",
+    body: "Bootstrap a complete repository instantly with a single npx command. No boilerplate to copy-paste.",
+    icon: "rocket",
+  },
+  {
+    title: "Automated Releases",
+    body: "Semantic Release pipelines handle versioning, changelogs, and publishing deterministically from commit history.",
+    icon: "tag",
+  },
+];
+
+const steps = [
+  {
+    n: "01",
+    title: "Install",
+    body: "Add Forge.js as a development dependency.",
+    code: "npm install --save-dev @apollogeddon/forgejs",
+  },
+  {
+    n: "02",
+    title: "Initialise",
+    body: "Run the CLI to scaffold configs and inject standard scripts.",
+    code: "npx @apollogeddon/forgejs init",
+  },
+  {
+    n: "03",
+    title: "Extend",
+    body: "Inherit best practices by extending the shared Biome config.",
+    code: `// biome.json
+{
+  "extends": ["node_modules/@apollogeddon/forgejs/biome.json"]
+}`,
+  },
+];
+
+const tools = [
+  { name: "Biome", lang: "Rust", replaces: "ESLint, Prettier" },
+  { name: "Tsup", lang: "Go", replaces: "Webpack, Rollup, Babel" },
+  { name: "Vitest", lang: "JS", replaces: "Jest, Mocha" },
+  { name: "Lefthook", lang: "Go", replaces: "Husky, lint-staged" },
+  { name: "Semantic Release", lang: "JS", replaces: "Manual tagging" },
+  { name: "Commitlint", lang: "JS", replaces: "Manual commit review" },
+  { name: "Publint", lang: "JS", replaces: "Manual export checks" },
+  { name: "Snodeb", lang: "JS", replaces: "pkg, nexe" },
+];
+
+const langChip: Record<string, string> = {
+  Rust: "bg-orange-500/10 text-orange-300 border-orange-500/20",
+  Go: "bg-sky-500/10 text-sky-300 border-sky-500/20",
+  JS: "bg-amber-500/10 text-amber-300 border-amber-500/20",
+};
+---
+
+<Base
+  title="Forge.js · Quality tooling, zero configuration drift"
+  description="DevOps support and quality control for modern Node.js projects."
+>
+  <Header />
+
+  <!-- ── Hero ────────────────────────────────────────────────────────────── -->
+  <section class="relative overflow-hidden">
+    <div
+      class="pointer-events-none absolute -top-32 left-1/2 h-[560px] w-[560px] -translate-x-1/2 rounded-full bg-amber-500/20 opacity-30 blur-[130px]"
+      aria-hidden="true"
+    >
+    </div>
+
+    <div
+      class="relative z-10 mx-auto max-w-5xl px-4 pb-24 pt-20 text-center sm:px-6 sm:pt-32"
+    >
+      <span
+        class="inline-flex items-center gap-2 rounded-full border border-zinc-700/60 bg-zinc-900/70 px-3 py-1 text-xs font-medium text-zinc-300"
+      >
+        <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400"
+        ></span>
+        v2.1.1 · @apollogeddon/forgejs
+      </span>
+
+      <h1
+        class="mx-auto mt-7 max-w-3xl bg-gradient-to-b from-zinc-50 via-zinc-200 to-zinc-400 bg-clip-text text-4xl font-extrabold leading-[1.1] tracking-tight text-transparent sm:text-6xl"
+      >
+        Quality tooling,<br />zero configuration drift.
+      </h1>
+
+      <p class="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-zinc-400">
+        Reusable GitHub Actions workflows and tooling configurations for
+        TypeScript and Node.js. Centralise 15+ configs and scaffold projects
+        with a single command.
+      </p>
+
+      <div class="mt-9 flex flex-wrap items-center justify-center gap-3">
+        <a
+          href="/docs/getting-started"
+          class="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-400"
+        >
+          Get Started
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+        <a
+          href={githubUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-2 rounded-lg border border-zinc-700 px-5 py-2.5 text-sm font-semibold text-zinc-200 transition-colors hover:border-zinc-600 hover:bg-zinc-900"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.27-.01-1.16-.02-2.1-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.23-1.28-5.23-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 2.9-.39c.98 0 1.97.13 2.9.39 2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.14 0 1.55-.01 2.8-.01 3.18 0 .31.21.68.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5Z"
+            ></path>
+          </svg>
+          GitHub
+        </a>
+      </div>
+
+      <!-- Terminal block -->
+      <div
+        class="mx-auto mt-14 max-w-xl overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/80 text-left shadow-2xl shadow-black/50"
+      >
+        <div
+          class="flex items-center gap-1.5 border-b border-zinc-800 bg-zinc-900 px-4 py-3"
+        >
+          <span class="h-3 w-3 rounded-full bg-zinc-700"></span>
+          <span class="h-3 w-3 rounded-full bg-zinc-700"></span>
+          <span class="h-3 w-3 rounded-full bg-zinc-700"></span>
+          <span class="ml-2 text-xs text-zinc-500">bash</span>
+        </div>
+        <pre
+          class="overflow-x-auto px-5 py-5 font-mono text-sm leading-7"><code><span class="text-zinc-500 select-none">$ </span><span class="text-zinc-100">npm install --save-dev @apollogeddon/forgejs</span>
+<span class="text-zinc-500 select-none">$ </span><span class="text-zinc-100">npx @apollogeddon/forgejs init</span>
+<span class="text-green-400">✓ Configuration files created</span>
+<span class="text-green-400">✓ Package scripts injected</span>
+<span class="text-amber-400">  Forge.js ready.</span></code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Features ─────────────────────────────────────────────────────────── -->
+  <section class="border-t border-zinc-800/60 bg-zinc-900/20">
+    <div class="mx-auto max-w-5xl px-4 py-20 sm:px-6">
+      <h2
+        class="text-center text-3xl font-bold tracking-tight text-zinc-50"
+      >
+        Why Forge.js
+      </h2>
+      <p class="mx-auto mt-3 max-w-xl text-center text-zinc-400">
+        Everything a modern Node.js project needs to ship with confidence.
+      </p>
+
+      <div class="mt-12 grid gap-5 sm:grid-cols-2">
+        {
+          features.map((f) => (
+            <div class="rounded-xl border border-zinc-800 bg-zinc-900 p-6 transition-colors hover:border-zinc-700">
+              <div class="flex h-11 w-11 items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-400">
+                {f.icon === "settings" && (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                  </svg>
+                )}
+                {f.icon === "workflow" && (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="6" height="6" rx="1" />
+                    <rect x="15" y="15" width="6" height="6" rx="1" />
+                    <path d="M9 6h6a3 3 0 0 1 3 3v6" />
+                  </svg>
+                )}
+                {f.icon === "rocket" && (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
+                    <path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
+                    <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
+                    <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
+                  </svg>
+                )}
+                {f.icon === "tag" && (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                    <line x1="7" y1="7" x2="7.01" y2="7" />
+                  </svg>
+                )}
+              </div>
+              <h3 class="mt-5 text-base font-semibold text-zinc-50">{f.title}</h3>
+              <p class="mt-2 text-sm leading-relaxed text-zinc-400">{f.body}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Quick Start ──────────────────────────────────────────────────────── -->
+  <section class="border-t border-zinc-800/60">
+    <div class="mx-auto max-w-5xl px-4 py-20 sm:px-6">
+      <h2
+        class="text-center text-3xl font-bold tracking-tight text-zinc-50"
+      >
+        Quick Start
+      </h2>
+      <p class="mx-auto mt-3 max-w-xl text-center text-zinc-400">
+        From empty repo to a standardised toolchain in three steps.
+      </p>
+
+      <div class="mt-12 space-y-5">
+        {
+          steps.map((s) => (
+            <div class="flex flex-col gap-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 sm:flex-row sm:items-start">
+              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/10 font-mono text-xs font-bold text-amber-400">
+                {s.n}
+              </div>
+              <div class="min-w-0 flex-1">
+                <h3 class="text-base font-semibold text-zinc-50">{s.title}</h3>
+                <p class="mt-1 text-sm text-zinc-400">{s.body}</p>
+                <pre class="mt-4 overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 font-mono text-xs leading-relaxed text-zinc-200"><code>{s.code}</code></pre>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+
+      <div class="mt-10 text-center">
+        <a
+          href="/docs/getting-started"
+          class="inline-flex items-center gap-2 text-sm font-medium text-amber-400 transition-colors hover:text-amber-300"
+        >
+          Full documentation
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Toolchain ────────────────────────────────────────────────────────── -->
+  <section class="border-t border-zinc-800/60 bg-zinc-900/20">
+    <div class="mx-auto max-w-5xl px-4 py-20 sm:px-6">
+      <h2
+        class="text-center text-3xl font-bold tracking-tight text-zinc-50"
+      >
+        The Toolchain
+      </h2>
+      <p class="mx-auto mt-3 max-w-xl text-center text-zinc-400">
+        Compiled-first tools selected for speed and a single-dependency
+        architecture.
+      </p>
+
+      <div class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {
+          tools.map((t) => (
+            <div class="rounded-xl border border-zinc-800 bg-zinc-900 p-5 transition-colors hover:border-zinc-700">
+              <div class="flex items-start justify-between gap-2">
+                <h3 class="font-semibold text-zinc-100">{t.name}</h3>
+                <span
+                  class:list={[
+                    "shrink-0 rounded border px-1.5 py-0.5 text-xs font-medium",
+                    langChip[t.lang],
+                  ]}
+                >
+                  {t.lang}
+                </span>
+              </div>
+              <p class="mt-2 text-xs leading-relaxed text-zinc-500">
+                Replaces {t.replaces}
+              </p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ───────────────────────────────────────────────────────────── -->
+  <footer class="border-t border-zinc-800/60">
+    <div
+      class="mx-auto flex max-w-5xl flex-col items-center gap-4 px-4 py-12 text-center sm:px-6"
+    >
+      <a href="/" class="flex items-center gap-2.5">
+        <img
+          src="/forgejs.png"
+          alt="Forge.js"
+          width="28"
+          height="28"
+          class="h-7 w-7 rounded-md"
+        />
+        <span class="text-sm font-bold tracking-tight text-zinc-50"
+          >Forge.js</span
+        >
+      </a>
+      <p class="text-sm text-zinc-600">
+        &copy; {year} Apollogeddon. Released under the MIT License.
+      </p>
+      <a
+        href={githubUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center gap-1.5 text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          aria-hidden="true"
+          ><path
+            d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.27-.01-1.16-.02-2.1-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.23-1.28-5.23-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 2.9-.39c.98 0 1.97.13 2.9.39 2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.14 0 1.55-.01 2.8-.01 3.18 0 .31.21.68.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5Z"
+          ></path></svg
+        >
+        apollogeddon/forgejs
+      </a>
+    </div>
+  </footer>
+</Base>
