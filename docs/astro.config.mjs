@@ -3,7 +3,7 @@ import { defineConfig } from "astro/config";
 
 export default defineConfig({
   site: "https://apollogeddon.github.io",
-  base: "/forgejs",
+  base: "/forgejs/",
   vite: {
     plugins: [tailwindcss()],
   },
