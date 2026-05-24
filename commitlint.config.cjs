@@ -1,4 +1,1 @@
-/** @type {import('@commitlint/types').UserConfig} */
-module.exports = {
-  extends: ["@commitlint/config-conventional"],
-};
+module.exports = require("./configs/commitlint.config.cjs");

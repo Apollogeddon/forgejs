@@ -13,46 +13,37 @@
   },
   "bin": "./dist/index.js",
   "exports": {
-    "./biome.json": "./biome.json",
+    "./biome.json": "./configs/biome.json",
     "./commitlint.config.cjs": {
-      "types": "./commitlint.config.d.ts",
-      "import": "./commitlint.config.cjs"
+      "types": "./configs/commitlint.config.d.ts",
+      "import": "./configs/commitlint.config.cjs"
     },
     "./snodeb.config.cjs": {
-      "types": "./snodeb.config.d.ts",
-      "import": "./snodeb.config.cjs"
+      "types": "./configs/snodeb.config.d.ts",
+      "import": "./configs/snodeb.config.cjs"
     },
     "./tsup.config.cjs": {
-      "types": "./tsup.config.d.ts",
-      "import": "./tsup.config.cjs"
+      "types": "./configs/tsup.config.d.ts",
+      "import": "./configs/tsup.config.cjs"
     },
     "./vitest.config.cjs": {
-      "types": "./vitest.config.d.ts",
-      "import": "./vitest.config.cjs"
+      "types": "./configs/vitest.config.d.ts",
+      "import": "./configs/vitest.config.cjs"
     },
-    "./tsconfig.json": "./tsconfig.json"
+    "./tsconfig.json": "./configs/tsconfig.json"
   },
   "files": [
     "dist",
-    "biome.json",
-    "commitlint.config.cjs",
-    "commitlint.config.d.ts",
-    "lefthook.yml",
-    "tsup.config.cjs",
-    "tsup.config.d.ts",
-    "snodeb.config.cjs",
-    "snodeb.config.d.ts",
-    "vitest.config.cjs",
-    "vitest.config.d.ts",
-    "tsconfig.json"
+    "configs",
+    "lefthook.yml"
   ],
   "scripts": {
     "watch": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "lint": "biome check --fix",
     "type": "tsc --noEmit",
-    "build": "tsup",
-    "test": "vitest run",
+    "build": "tsup --config configs/tsup.config.cjs",
+    "test": "vitest run --config configs/vitest.config.cjs",
     "publint": "publint",
     "prepare": "lefthook install"
   },
