@@ -10,18 +10,19 @@
     "lint": "npm run lint:ts && npm run lint:md",
     "type": "astro sync && tsc --noEmit",
     "build": "astro build",
-    "test": "",
     "preview": "astro preview",
     "prepare": "lefthook install"
   },
   "dependencies": {
-    "astro": "^5.0.0",
-    "sharp": "^0.33.0"
+    "astro": "6.3.7",
+    "sharp": "0.34.5"
   },
   "devDependencies": {
     "@apollogeddon/forgejs": "file:..",
-    "@tailwindcss/typography": "^0.5.16",
-    "@tailwindcss/vite": "^4.0.0",
-    "tailwindcss": "^4.0.0"
+    "@tailwindcss/typography": "0.5.16",
+    "@tailwindcss/vite": "4.0.0",
+    "markdownlint-cli2": "0.22.1",
+    "tailwindcss": "4.0.0",
+    "typescript": "6.0.3"
   }
 }
