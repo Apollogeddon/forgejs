@@ -17,7 +17,7 @@ async function importModule(modulePath: string) {
 
 describe("Code Configurations Imports", () => {
   it("should import vitest.config.cjs without errors and check basic structure", async () => {
-    const vitestConfigPath = path.join(process.cwd(), "vitest.config.cjs");
+    const vitestConfigPath = path.join(process.cwd(), "configs", "vitest.config.cjs");
     const configModule = await importModule(vitestConfigPath);
     expect(configModule).toBeDefined();
     // vitest.config.cjs exports an object directly, not a default export.
@@ -25,7 +25,7 @@ describe("Code Configurations Imports", () => {
   });
 
   it("should import tsup.config.ts without errors and check basic structure", async () => {
-    const tsupConfigPath = path.join(process.cwd(), "tsup.config.cjs");
+    const tsupConfigPath = path.join(process.cwd(), "configs", "tsup.config.cjs");
     // Using import() directly for ESM
     const configModule = await import(tsupConfigPath);
     expect(configModule).toBeDefined();
@@ -34,7 +34,7 @@ describe("Code Configurations Imports", () => {
   });
 
   it("should import snodeb.config.ts without errors and check basic structure", async () => {
-    const snodebConfigPath = path.join(process.cwd(), "snodeb.config.cjs");
+    const snodebConfigPath = path.join(process.cwd(), "configs", "snodeb.config.cjs");
     // Using import() directly for ESM
     const configModule = await import(snodebConfigPath);
     expect(configModule).toBeDefined();
@@ -43,7 +43,7 @@ describe("Code Configurations Imports", () => {
   });
 
   it("should import commitlint.config.ts without errors", async () => {
-    const commitlintConfigPath = path.join(process.cwd(), "commitlint.config.cjs");
+    const commitlintConfigPath = path.join(process.cwd(), "configs", "commitlint.config.cjs");
     const configModule = await import(commitlintConfigPath);
     expect(configModule).toBeDefined();
     expect(configModule.default).toBeDefined();
@@ -51,7 +51,7 @@ describe("Code Configurations Imports", () => {
   });
 });
 
-const rootDir = process.cwd();
+const rootDir = path.join(process.cwd(), "configs");
 
 describe("JSON Configurations", () => {
   it("should validate biome.json", () => {
