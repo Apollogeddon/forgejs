@@ -2,8 +2,31 @@
   "root": false,
   "$schema": "node_modules/@biomejs/biome/configuration_schema.json",
   "formatter": {
+    "enabled": true,
     "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
     "lineWidth": 120
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true
+    }
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "trailingCommas": "all",
+      "semicolons": "always"
+    }
   },
   "vcs": {
     "enabled": true,

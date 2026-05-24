@@ -1,9 +1,11 @@
 {
   "compilerOptions": {
     "types": ["node"],
+    "lib": ["ESNext"],
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "bundler",
+    "moduleDetection": "force",
     "ignoreDeprecations": "6.0",
     "isolatedModules": true,
     "rootDir": ".",
@@ -14,10 +16,14 @@
     "outDir": "dist",
     "verbatimModuleSyntax": true,
     "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  }
 }
