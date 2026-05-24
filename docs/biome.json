@@ -1,7 +1,7 @@
 {
   "root": false,
   "$schema": "node_modules/@biomejs/biome/configuration_schema.json",
-  "extends": ["@apollogeddon/forgejs/configs/biome.json"],
+  "extends": ["../configs/biome.json"],
   "css": {
     "parser": {
       "tailwindDirectives": true
