@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.2.2](https://github.com/Apollogeddon/forgejs/compare/v2.2.1...v2.2.2) (2026-05-30)
+
+
+### Bug Fixes
+
+* **deps:** bump the dependencies group across 1 directory with 4 updates ([ce679dc](https://github.com/Apollogeddon/forgejs/commit/ce679dc4f5cfc5ad3a0e50031790f9f4e583b50a))
+* **deps:** bump the dependencies group across 1 directory with 4 updates ([d810a2d](https://github.com/Apollogeddon/forgejs/commit/d810a2da5192f1ceafb6d2e3387424ce561616b7))
+
 ## [2.2.1](https://github.com/Apollogeddon/forgejs/compare/v2.2.0...v2.2.1) (2026-05-24)
 
 
