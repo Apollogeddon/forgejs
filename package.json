@@ -55,10 +55,10 @@
     "prepublishOnly": "npm run build && npm run type && npm run test && npm run publint"
   },
   "dependencies": {
-    "@biomejs/biome": "2.4.16",
+    "@biomejs/biome": "2.5.0",
     "@commitlint/cli": "21.0.2",
     "@commitlint/config-conventional": "21.0.2",
-    "@types/node": "25.9.1",
+    "@types/node": "25.9.3",
     "@vitest/coverage-v8": "4.1.8",
     "lefthook": "2.1.9",
     "publint": "0.3.21",
