@@ -11,10 +11,6 @@ on:
         required: false
         type: string
         default: '22'
-      auto_patch:
-        required: false
-        type: boolean
-        default: true
       enable_secrets:
         required: false
         type: boolean
@@ -69,31 +65,6 @@ jobs:
         run: npx @biomejs/biome check .
       - name: Type Check
         run: npm run type
-
-  # Adding OSV Fix back to maintain the auto_patch functionality on main
-  patch:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    if: inputs.auto_patch && github.ref == 'refs/heads/main'
-    defaults:
-      run:
-        working-directory: ${{ inputs.working_directory }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-      - name: OSV Scanner Fix
-        run: |
-          curl -L https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o osv-scanner
-          chmod +x osv-scanner
-          ./osv-scanner fix --non-interactive --strategy=in-place -L package-lock.json
-          rm osv-scanner
-          npm install
-      - name: Commit Security Patches
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "fix(deps): patch vulnerabilities via osv-scanner"
-          file_pattern: 'package.json package-lock.json'
 
   build:
     needs: [linting, secure]
