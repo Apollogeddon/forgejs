@@ -22,7 +22,6 @@ jobs:
     with:
       working_directory: ${{ inputs.working_directory }}
       node_version: ${{ inputs.node_version }}
-      auto_patch: false
       enable_secrets: ${{ inputs.enable_secrets }}
       artifact_name: 'dist'
 
