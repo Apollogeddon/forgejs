@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.1](https://github.com/Apollogeddon/forgejs/compare/v2.3.0...v2.3.1) (2026-06-14)
+
+
+### Bug Fixes
+
+* **ci:** fix patch ordering, auto-merge permissions, dead inputs, and simplify pipeline structure ([984f397](https://github.com/Apollogeddon/forgejs/commit/984f397eeffb7c0f2bc49be96db49f70942a0ab6))
+
 ## [2.3.0](https://github.com/Apollogeddon/forgejs/compare/v2.2.1...v2.3.0) (2026-06-14)
 
 
