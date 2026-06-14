@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.3.0](https://github.com/Apollogeddon/forgejs/compare/v2.2.1...v2.3.0) (2026-06-14)
+
+
+### Features
+
+* **workflows:** enhance auto-merge functionality for Dependabot PRs and update job configurations ([68cfec1](https://github.com/Apollogeddon/forgejs/commit/68cfec19c5a9ab6f6a83e003e46558cba9b209ef))
+
+
+### Bug Fixes
+
+* **biome:** correct linter rules configuration ([29d53f6](https://github.com/Apollogeddon/forgejs/commit/29d53f6245a34bed44f24610800b21df3f3a9c04))
+* **deps:** bump the dependencies group across 1 directory with 2 updates ([b99d2b2](https://github.com/Apollogeddon/forgejs/commit/b99d2b287f45aa494e582447b227fcdf7248369a))
+* **deps:** bump the dependencies group across 1 directory with 2 updates ([0242b76](https://github.com/Apollogeddon/forgejs/commit/0242b765a12aafefbc5766978f97deda0d50a3e0))
+* **deps:** bump the dependencies group across 1 directory with 4 updates ([ce679dc](https://github.com/Apollogeddon/forgejs/commit/ce679dc4f5cfc5ad3a0e50031790f9f4e583b50a))
+* **deps:** bump the dependencies group across 1 directory with 4 updates ([d810a2d](https://github.com/Apollogeddon/forgejs/commit/d810a2da5192f1ceafb6d2e3387424ce561616b7))
+* **deps:** bump the dependencies group with 5 updates ([45d56b8](https://github.com/Apollogeddon/forgejs/commit/45d56b81b7fc5fe0d71fc321f7a63674396e7a66))
+* **deps:** bump the dependencies group with 5 updates ([ace0f91](https://github.com/Apollogeddon/forgejs/commit/ace0f9193b31be01c8b17c2bef88d1d70f975c5a))
+* **workflows:** update permissions to allow write access ([f938195](https://github.com/Apollogeddon/forgejs/commit/f938195cb55702d9a15f9e253febc8a4e2d8e593))
+
 ## [2.2.1](https://github.com/Apollogeddon/forgejs/compare/v2.2.0...v2.2.1) (2026-05-24)
 
 
