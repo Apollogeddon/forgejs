@@ -1,25 +1,33 @@
-name: NodeJS Build
+name: ForgeJS Pages
 
 on:
   workflow_call:
     inputs:
-      working_directory:
-        required: false
-        type: string
-        default: '.'
       node_version:
         required: false
         type: string
         default: '22'
-      artifact_name:
+      working_directory:
         required: false
         type: string
-        default: 'dist'
+        default: 'docs'
+      enable_secrets:
+        required: false
+        type: boolean
+        default: true
 
 jobs:
+  quality:
+    uses: ./.github/workflows/quality.yml
+    with:
+      working_directory: ${{ inputs.working_directory }}
+      node_version: ${{ inputs.node_version }}
+      enable_secrets: ${{ inputs.enable_secrets }}
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    needs: [quality]
     defaults:
       run:
         working-directory: ${{ inputs.working_directory }}
@@ -37,8 +45,17 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
         run: npm run build
-      - name: Upload Build Artifact
+      - name: Upload Pages Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ inputs.artifact_name }}
+          name: pages-dist
           path: ${{ inputs.working_directory }}/dist
+
+  deploy:
+    uses: ./.github/workflows/website.yml
+    needs: [build]
+    with:
+      working_directory: ${{ inputs.working_directory }}
+      node_version: ${{ inputs.node_version }}
+      enable_versioning: false
+      artifact_name: 'pages-dist'

@@ -67,8 +67,8 @@ describe("GitHub Actions Job Conditions", () => {
     expect(wf.jobs.deploy.if).toContain("needs.version.outputs.new_release_published == true");
   });
 
-  it("should ensure default.yml auto-merges major GitHub actions", () => {
-    const wf = getWorkflow("default.yml");
+  it("should ensure merge.yml auto-merges major GitHub actions", () => {
+    const wf = getWorkflow("merge.yml");
     const autoMergeStep = wf.jobs["auto-merge"].steps?.find((s) => s.name === "Enable auto-merge for Dependabot PRs");
     expect(autoMergeStep).toBeDefined();
     expect(autoMergeStep?.if).toContain("steps.metadata.outputs.package-ecosystem == 'github_actions'");
