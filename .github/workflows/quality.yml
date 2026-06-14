@@ -15,10 +15,6 @@ on:
         required: false
         type: boolean
         default: true
-      artifact_name:
-        required: false
-        type: string
-        default: ''
 
 jobs:
   secure:
@@ -65,12 +61,3 @@ jobs:
         run: npx @biomejs/biome check .
       - name: Type Check
         run: npm run type
-
-  build:
-    needs: [linting, secure]
-    if: inputs.artifact_name != ''
-    uses: ./.github/workflows/building.yml
-    with:
-      working_directory: ${{ inputs.working_directory }}
-      node_version: ${{ inputs.node_version }}
-      artifact_name: ${{ inputs.artifact_name }}

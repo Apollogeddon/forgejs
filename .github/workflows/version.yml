@@ -3,14 +3,6 @@ name: NodeJS Version
 on:
   workflow_call:
     inputs:
-      artifact_name:
-        required: false
-        type: string
-        default: 'dist'
-      enable_secrets:
-        required: false
-        type: boolean
-        default: true
       node_version:
         required: false
         type: string

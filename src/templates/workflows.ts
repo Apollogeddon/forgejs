@@ -10,6 +10,11 @@ on:
 jobs:
   library:
     uses: apollogeddon/forgejs/.github/workflows/library.yml@main
+    permissions:
+      contents: write
+      pull-requests: write
+      packages: write
+      id-token: write
     with:
       node_version: '22'
       auto_patch: true
@@ -28,6 +33,9 @@ on:
 jobs:
   service:
     uses: apollogeddon/forgejs/.github/workflows/service.yml@main
+    permissions:
+      contents: write
+      pull-requests: write
     with:
       node_version: '22'
       auto_patch: true
@@ -46,6 +54,9 @@ on:
 jobs:
   debian:
     uses: apollogeddon/forgejs/.github/workflows/debian.yml@main
+    permissions:
+      contents: write
+      pull-requests: write
     with:
       node_version: '22'
       auto_patch: true
