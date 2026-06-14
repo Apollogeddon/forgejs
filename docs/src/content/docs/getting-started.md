@@ -117,7 +117,7 @@ A standard backend project adheres to the following structure:
 ```text
 .github/
   workflows/
-    ci.yml
+    index.yml
 src/
   index.ts
 tests/

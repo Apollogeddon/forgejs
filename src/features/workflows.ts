@@ -13,10 +13,10 @@ export const WorkflowFeature: Feature = {
       workflowName = ".github/workflows/debian.yml";
     } else if (cfg.library) {
       workflowContent = templates.libraryWorkflow;
-      workflowName = ".github/workflows/ci.yml";
+      workflowName = ".github/workflows/index.yml";
     } else if (cfg.backend || cfg.website) {
       workflowContent = templates.serviceWorkflow;
-      workflowName = ".github/workflows/ci.yml";
+      workflowName = ".github/workflows/index.yml";
     }
 
     if (workflowContent && workflowName) {

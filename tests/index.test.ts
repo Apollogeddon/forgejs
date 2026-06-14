@@ -187,7 +187,7 @@ describe("CLI Init Command", () => {
     expect(fs.existsSync(path.join(tempDir, "vitest.config.ts"))).toBe(true);
 
     // Should setup library workflow
-    const workflowPath = path.join(tempDir, ".github/workflows/ci.yml");
+    const workflowPath = path.join(tempDir, ".github/workflows/index.yml");
     expect(fs.existsSync(workflowPath)).toBe(true);
     const workflowContent = fs.readFileSync(workflowPath, "utf-8");
     expect(workflowContent).toContain("library.yml");
@@ -195,7 +195,7 @@ describe("CLI Init Command", () => {
 
   it("should setup service workflow for backend", () => {
     execSync(`npx tsx ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
-    const workflowPath = path.join(tempDir, ".github/workflows/ci.yml");
+    const workflowPath = path.join(tempDir, ".github/workflows/index.yml");
     expect(fs.existsSync(workflowPath)).toBe(true);
     const workflowContent = fs.readFileSync(workflowPath, "utf-8");
     expect(workflowContent).toContain("service.yml");
