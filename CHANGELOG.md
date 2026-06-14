@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.3.2](https://github.com/Apollogeddon/forgejs/compare/v2.3.1...v2.3.2) (2026-06-14)
+
+
+### Bug Fixes
+
+* update workflow filenames from ci.yml to index.yml in documentation and code ([6e92d54](https://github.com/Apollogeddon/forgejs/commit/6e92d547f77423051e15a0beed25ee61639111d8))
+* update workflow name for debian configuration to index.yml ([335fcbd](https://github.com/Apollogeddon/forgejs/commit/335fcbd262ac7a6c344e6968167fea82799d4f65))
+
 ## [2.3.1](https://github.com/Apollogeddon/forgejs/compare/v2.3.0...v2.3.1) (2026-06-14)
 
 
