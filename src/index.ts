@@ -35,8 +35,11 @@ const command = positionals[0];
 const modes = ["backend", "library", "website"];
 const hasModeFlag = modes.some((mode) => values[mode as keyof typeof values]);
 
+// true unless --no-all is explicitly passed; controls whether standard features default on
+const enableByDefault = values.all !== false;
+
 // If no mode flag is provided, backend is the default
-const isBackend = !!(values.backend || (!hasModeFlag && values.all !== false));
+const isBackend = !!(values.backend || (!hasModeFlag && enableByDefault));
 const isLibrary = !!values.library;
 const isWebsite = !!values.website;
 
@@ -56,11 +59,9 @@ const config = {
   library: isLibrary,
   website: isWebsite,
 
-  // Features: Enabled if explicitly set, or if 'all' is set, or enabled by default for standard setups
-  // We default Testing, Versioning, and Linting to true unless explicitly disabled or 'all' is false
-  testing: !!(values.testing ?? values.all !== false),
-  version: !!(values.version ?? values.all !== false),
-  linting: !!(values.linting ?? values.all !== false),
+  testing: !!(values.testing ?? enableByDefault),
+  version: !!(values.version ?? enableByDefault),
+  linting: !!(values.linting ?? enableByDefault),
 
   // Optional Opt-in features
   debian: !!values.debian,

@@ -20,7 +20,7 @@ This directory contains reusable GitHub Actions workflows for Node.js projects. 
 
 ## Setup Guide
 
-Reference workflows using the `uses` keyword in your GitHub Actions workflow files. The `init` command generates a starter `ci.yml` appropriate for the selected mode.
+Reference workflows using the `uses` keyword in your GitHub Actions workflow files. The `init` command generates a starter `index.yml` appropriate for the selected mode.
 
 ### Usage Examples
 

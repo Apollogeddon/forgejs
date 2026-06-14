@@ -32,9 +32,5 @@ export const BuildFeature: Feature = {
     } else {
       removeFile(cwd, "tsup.config.ts", cfg, fs);
     }
-
-    if (!cfg.library && !cfg.backend && !cfg.debian && !cfg.website) {
-      removeFile(cwd, "tsup.config.ts", cfg, fs);
-    }
   },
 };
