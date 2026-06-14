@@ -26,7 +26,7 @@ const options = {
 const { values, positionals } = parseArgs({
   args: process.argv.slice(2),
   options,
-  strict: false, // Allow other commands like 'init'
+  strict: false, // Allow unknown flags without throwing
 });
 
 const command = positionals[0];
@@ -59,11 +59,12 @@ const config = {
   library: isLibrary,
   website: isWebsite,
 
+  // Standard features: on by default, can be disabled with --no-<feature> or --no-all
   testing: !!(values.testing ?? enableByDefault),
   version: !!(values.version ?? enableByDefault),
   linting: !!(values.linting ?? enableByDefault),
 
-  // Optional Opt-in features
+  // Optional opt-in features
   debian: !!values.debian,
   docker: !!values.docker,
 };
