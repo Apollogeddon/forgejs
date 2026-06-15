@@ -59,7 +59,7 @@
     "@commitlint/cli": "21.0.2",
     "@commitlint/config-conventional": "21.0.2",
     "@types/node": "25.9.3",
-    "@vitest/coverage-v8": "4.1.8",
+    "@vitest/coverage-v8": "4.1.9",
     "lefthook": "2.1.9",
     "publint": "0.3.21",
     "snodeb": "1.1.4",
@@ -67,7 +67,7 @@
     "tsx": "4.22.4",
     "typescript": "6.0.3",
     "vite": "8.0.16",
-    "vitest": "4.1.8"
+    "vitest": "4.1.9"
   },
   "devDependencies": {
     "@types/js-yaml": "4.0.9",
