@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.3.3](https://github.com/Apollogeddon/forgejs/compare/v2.3.2...v2.3.3) (2026-06-19)
+
+
+### Bug Fixes
+
+* **deps:** bump @types/node from 25.9.3 to 26.0.0 ([6eb4f77](https://github.com/Apollogeddon/forgejs/commit/6eb4f7767508104ebdf5a0bfe8c618417ff83f5d))
+* **deps:** bump @types/node from 25.9.3 to 26.0.0 ([c635c57](https://github.com/Apollogeddon/forgejs/commit/c635c57462c63efed29b590b36f49ac20d433130))
+* **deps:** bump the dependencies group with 2 updates ([e305efb](https://github.com/Apollogeddon/forgejs/commit/e305efb19157249de4bbdde65b407e15599dc29f))
+* **deps:** bump the dependencies group with 2 updates ([e7358f2](https://github.com/Apollogeddon/forgejs/commit/e7358f23876e9eee4aed4c8b37765db6b517d0de))
+
 ## [2.3.2](https://github.com/Apollogeddon/forgejs/compare/v2.3.1...v2.3.2) (2026-06-14)
 
 
