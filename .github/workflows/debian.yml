@@ -61,7 +61,7 @@ jobs:
         with:
           name: dist
           path: ${{ inputs.working_directory }}/dist
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ inputs.node_version }}
           cache: 'npm'
