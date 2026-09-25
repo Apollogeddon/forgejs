@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.4.0](https://github.com/Apollogeddon/forgejs/compare/v2.3.3...v2.4.0) (2026-09-25)
+
+
+### Features
+
+* add website scaffold workflow and align auto_patch defaults ([d8944b4](https://github.com/Apollogeddon/forgejs/commit/d8944b4bc668aacb3e28ba9cd94a9c35b2bba163))
+
+
+### Bug Fixes
+
+* **deps:** bump js-yaml from 4.2.0 to 5.2.1 ([2e82f5c](https://github.com/Apollogeddon/forgejs/commit/2e82f5cc7da434b4af210c74068e3676fffec370))
+* **deps:** patch vulnerabilities via osv-scanner ([d4ee510](https://github.com/Apollogeddon/forgejs/commit/d4ee510999a4d974cbade5d1f7647f177ec686cf))
+* use namespace import for js-yaml to fix CI test failure ([9330a7e](https://github.com/Apollogeddon/forgejs/commit/9330a7ea188bc286bc1f7da363cfdda298d82c51))
+
 ## [2.3.3](https://github.com/Apollogeddon/forgejs/compare/v2.3.2...v2.3.3) (2026-09-25)
 
 
