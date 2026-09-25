@@ -23,6 +23,14 @@ on:
         required: false
         type: string
         default: ''
+      run_tests:
+        required: false
+        type: boolean
+        default: true
+      artifact_name:
+        required: false
+        type: string
+        default: 'dist'
 
 jobs:
   quality:
@@ -52,6 +60,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Tests
+        if: inputs.run_tests
         run: npm test
       - name: Upload Coverage
         if: always()
@@ -91,7 +100,7 @@ jobs:
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: dist
+          name: ${{ inputs.artifact_name }}
           path: ${{ inputs.working_directory }}/dist
 
   patch:
