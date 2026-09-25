@@ -369,4 +369,56 @@ describe("CLI Init Command", () => {
       execSync(`npx tsx ${CLI_SCRIPT} init`, { cwd: tempDir, stdio: "pipe" });
     }).toThrow();
   });
+
+  it("should actually disable a feature with --no-<feature>", () => {
+    execSync(`npx tsx ${CLI_SCRIPT} init --no-testing`, { cwd: tempDir });
+    expect(fs.existsSync(path.join(tempDir, "vitest.config.ts"))).toBe(false);
+    // unaffected standard features still run
+    expect(fs.existsSync(path.join(tempDir, "biome.json"))).toBe(true);
+  });
+
+  it("should disable all standard features with --no-all", () => {
+    execSync(`npx tsx ${CLI_SCRIPT} init --no-all`, { cwd: tempDir });
+    expect(fs.existsSync(path.join(tempDir, "vitest.config.ts"))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, "biome.json"))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, "commitlint.config.ts"))).toBe(false);
+    // Build/Base features always run regardless of --no-all
+    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
+  });
+
+  it("should let an explicit flag re-enable a feature disabled by --no-all", () => {
+    execSync(`npx tsx ${CLI_SCRIPT} init --no-all --testing`, { cwd: tempDir });
+    expect(fs.existsSync(path.join(tempDir, "vitest.config.ts"))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, "biome.json"))).toBe(false);
+  });
+
+  it("should exit non-zero for an unknown flag instead of silently ignoring it", () => {
+    expect(() => {
+      execSync(`npx tsx ${CLI_SCRIPT} init --dockr`, { cwd: tempDir, stdio: "pipe" });
+    }).toThrow();
+  });
+
+  it("should show help before validating conflicting flags", () => {
+    const stdout = execSync(`npx tsx ${CLI_SCRIPT} init --library --docker --help`, {
+      cwd: tempDir,
+      encoding: "utf-8",
+    });
+    expect(stdout).toContain("Usage: npx @apollogeddon/forgejs init");
+  });
+
+  it("should not overwrite a pre-existing custom script without --force", () => {
+    const initialPackageJson = { name: "test", scripts: { lint: "echo custom-lint" } };
+    fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify(initialPackageJson));
+
+    execSync(`npx tsx ${CLI_SCRIPT} init`, { cwd: tempDir });
+
+    const updatedPackageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
+    expect(updatedPackageJson.scripts.lint).toBe("echo custom-lint");
+  });
+
+  it("should not include the commitlint hook in lefthook.yml when --no-version is passed", () => {
+    execSync(`npx tsx ${CLI_SCRIPT} init --no-version`, { cwd: tempDir });
+    const lefthookConfig = fs.readFileSync(path.join(tempDir, "lefthook.yml"), "utf-8");
+    expect(lefthookConfig).not.toContain("commitlint");
+  });
 }, 120000);
