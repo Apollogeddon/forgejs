@@ -1,5 +1,5 @@
 import * as templates from "../templates/index.js";
-import { createFile, type Feature, removeFile } from "./types.js";
+import { createFile, type Feature, removeFile, setScript } from "./types.js";
 
 export const DockerFeature: Feature = {
   name: "Docker",
@@ -9,8 +9,8 @@ export const DockerFeature: Feature = {
     const a = createFile(cwd, "Dockerfile", content, cfg, fs);
     const b = createFile(cwd, ".dockerignore", templates.dockerIgnore, cfg, fs);
 
-    packageJson.scripts["docker:build"] = `docker build -t ${packageJson.name} .`;
-    packageJson.scripts["docker:run"] = `docker run -p 3000:3000 ${packageJson.name}`;
+    setScript(packageJson, cfg, "docker:build", `docker build -t ${packageJson.name} .`);
+    setScript(packageJson, cfg, "docker:run", `docker run -p 3000:3000 ${packageJson.name}`);
 
     return a && b;
   },

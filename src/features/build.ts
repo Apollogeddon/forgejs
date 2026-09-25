@@ -1,5 +1,5 @@
 import * as templates from "../templates/index.js";
-import { createFile, type Feature, removeFile } from "./types.js";
+import { createFile, type Feature, removeFile, setScript } from "./types.js";
 
 export const BuildFeature: Feature = {
   name: "Build",
@@ -8,20 +8,20 @@ export const BuildFeature: Feature = {
     let ok = true;
     if (cfg.website) {
       ok = createFile(cwd, "vite.config.ts", templates.viteConfig, cfg, fs);
-      packageJson.scripts.dev = "vite";
-      packageJson.scripts.build = "vite build";
-      packageJson.scripts.preview = "vite preview";
-      packageJson.scripts.type = "tsc --noEmit";
+      setScript(packageJson, cfg, "dev", "vite");
+      setScript(packageJson, cfg, "build", "vite build");
+      setScript(packageJson, cfg, "preview", "vite preview");
+      setScript(packageJson, cfg, "type", "tsc --noEmit");
     } else {
       ok = createFile(cwd, "tsup.config.ts", templates.tsupConfig, cfg, fs);
-      packageJson.scripts.watch = "tsx watch src/index.ts";
-      packageJson.scripts.start = "node dist/index.js";
-      packageJson.scripts.build = "tsup";
-      packageJson.scripts.type = "tsc --noEmit";
+      setScript(packageJson, cfg, "watch", "tsx watch src/index.ts");
+      setScript(packageJson, cfg, "start", "node dist/index.js");
+      setScript(packageJson, cfg, "build", "tsup");
+      setScript(packageJson, cfg, "type", "tsc --noEmit");
     }
 
     if (cfg.library) {
-      packageJson.scripts.publint = "publint";
+      setScript(packageJson, cfg, "publint", "publint");
     }
 
     return ok;

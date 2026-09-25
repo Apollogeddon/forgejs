@@ -35,6 +35,13 @@ export function createFile(cwd: string, fileName: string, content: string, cfg: 
   }
 }
 
+export function setScript(packageJson: PackageJson, cfg: InitConfig, key: string, value: string): void {
+  if (packageJson.scripts[key] !== undefined && !cfg.force) {
+    return;
+  }
+  packageJson.scripts[key] = value;
+}
+
 export function removeFile(cwd: string, fileName: string, cfg: InitConfig, fs: IFileSystem) {
   const filePath = fs.join(cwd, fileName);
   if (fs.existsSync(filePath)) {
