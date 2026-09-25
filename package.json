@@ -59,7 +59,7 @@
     "@commitlint/cli": "21.2.3",
     "@commitlint/config-conventional": "21.2.3",
     "@types/node": "26.6.2",
-    "@vitest/coverage-v8": "4.1.9",
+    "@vitest/coverage-v8": "5.0.1",
     "lefthook": "2.1.14",
     "publint": "0.3.24",
     "snodeb": "1.1.4",
