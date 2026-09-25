@@ -14,7 +14,10 @@ export const WorkflowFeature: Feature = {
     } else if (cfg.library) {
       workflowContent = templates.libraryWorkflow;
       workflowName = ".github/workflows/index.yml";
-    } else if (cfg.backend || cfg.website) {
+    } else if (cfg.website) {
+      workflowContent = templates.websiteWorkflow;
+      workflowName = ".github/workflows/index.yml";
+    } else if (cfg.backend) {
       workflowContent = templates.serviceWorkflow;
       workflowName = ".github/workflows/index.yml";
     }

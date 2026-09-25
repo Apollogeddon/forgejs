@@ -15,6 +15,10 @@ on:
         required: false
         type: boolean
         default: true
+      auto_patch:
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   build:
@@ -25,6 +29,7 @@ jobs:
       enable_secrets: ${{ inputs.enable_secrets }}
       run_tests: false
       artifact_name: 'pages-dist'
+      auto_patch: ${{ inputs.auto_patch }}
 
   deploy:
     uses: ./.github/workflows/website.yml
