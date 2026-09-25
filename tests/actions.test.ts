@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 import { describe, expect, it } from "vitest";
 
 const workflowsDir = path.join(process.cwd(), ".github", "workflows");
