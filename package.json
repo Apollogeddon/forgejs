@@ -51,7 +51,7 @@
     "build": "tsup --config configs/tsup.config.cjs",
     "test": "vitest run --config configs/vitest.config.cjs",
     "publint": "publint",
-    "prepare": "lefthook install || true",
+    "prepare": "lefthook install || exit 0",
     "prepublishOnly": "npm run build && npm run type && npm run test && npm run publint"
   },
   "dependencies": {
