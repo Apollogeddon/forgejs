@@ -23,6 +23,10 @@ on:
         required: false
         type: string
         default: ''
+      artifact_name:
+        required: false
+        type: string
+        default: 'dist'
 
 jobs:
   auto-merge:
@@ -39,6 +43,7 @@ jobs:
       enable_secrets: ${{ inputs.enable_secrets }}
       auto_patch: ${{ inputs.auto_patch }}
       build_env_vars: ${{ inputs.build_env_vars }}
+      artifact_name: ${{ inputs.artifact_name }}
 
   version:
     uses: ./.github/workflows/version.yml
@@ -59,14 +64,18 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v7
         with:
-          name: dist
+          name: ${{ inputs.artifact_name }}
           path: ${{ inputs.working_directory }}/dist
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ inputs.node_version }}
           cache: 'npm'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: "@${{ github.repository_owner }}"
       - name: Install dependencies
         run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build Debian Package
         run: |
           if [ -f .env.production ]; then

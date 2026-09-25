@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 concurrency:
@@ -11,60 +14,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  testing:
-    uses: ./.github/workflows/testing.yml
+  index:
+    uses: ./.github/workflows/library.yml
     with:
       node_version: '22'
       working_directory: '.'
     permissions:
       contents: write
       pull-requests: write
-
-  version:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/version.yml
-    needs: [testing]
-    with:
-      node_version: '22'
-      working_directory: '.'
-    permissions:
-      contents: write
-      pull-requests: write
-
-  publish:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [version]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.version.outputs.new_release_published == 'true' || needs.version.outputs.new_release_published == true)
-    permissions:
-      contents: read
       id-token: write
       packages: write
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v7
-        with:
-          name: dist
-          path: dist
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: "@${{ github.repository_owner }}"
-          cache: 'npm'
-      - name: Install Dependencies
-        run: npm ci
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Publish to GitHub Packages
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   pages:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     uses: ./.github/workflows/.pages.yml
-    needs: [testing]
     with:
       node_version: '22'
       working_directory: 'docs'
