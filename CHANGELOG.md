@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.3.3](https://github.com/Apollogeddon/forgejs/compare/v2.3.2...v2.3.3) (2026-09-25)
+
+
+### Bug Fixes
+
+* **deps:** bump @types/node from 25.9.3 to 26.0.0 ([6eb4f77](https://github.com/Apollogeddon/forgejs/commit/6eb4f7767508104ebdf5a0bfe8c618417ff83f5d))
+* **deps:** bump @types/node from 25.9.3 to 26.0.0 ([c635c57](https://github.com/Apollogeddon/forgejs/commit/c635c57462c63efed29b590b36f49ac20d433130))
+* **deps:** bump the dependencies group across 1 directory with 5 updates ([20af995](https://github.com/Apollogeddon/forgejs/commit/20af995c8ce71b8131fe344f2fb5246e63579a16))
+* **deps:** bump the dependencies group across 1 directory with 5 updates ([7d2677c](https://github.com/Apollogeddon/forgejs/commit/7d2677cf0352fe4af7570c7996c2b40df8a68abf))
+* **deps:** bump the dependencies group across 1 directory with 8 updates ([2d4250e](https://github.com/Apollogeddon/forgejs/commit/2d4250e3a2cdfc0132c97e578a772d490933bce3))
+* **deps:** bump the dependencies group across 1 directory with 8 updates ([1eeea96](https://github.com/Apollogeddon/forgejs/commit/1eeea9667648e13474e66269a86918bc91233b8f))
+* **deps:** bump the dependencies group with 2 updates ([e305efb](https://github.com/Apollogeddon/forgejs/commit/e305efb19157249de4bbdde65b407e15599dc29f))
+* **deps:** bump the dependencies group with 2 updates ([e7358f2](https://github.com/Apollogeddon/forgejs/commit/e7358f23876e9eee4aed4c8b37765db6b517d0de))
+* **deps:** bump the dependencies group with 4 updates ([d18aece](https://github.com/Apollogeddon/forgejs/commit/d18aece31c7b887c76b24a74e6bd14ff43f4a984))
+* **deps:** bump the dependencies group with 4 updates ([5c18622](https://github.com/Apollogeddon/forgejs/commit/5c1862208d19c911ad932f4a06ca143d2b1bff67))
+* **deps:** patch vulnerabilities via osv-scanner ([9fd7f3b](https://github.com/Apollogeddon/forgejs/commit/9fd7f3bfe7480fae5d362d5fc989496f27c4e84a))
+* ignore lifecycle scripts on the patch job's post-fix npm install ([450f31c](https://github.com/Apollogeddon/forgejs/commit/450f31c57dddf2daef5cabe9ef1f64c5a3d57122))
+* resync lockfiles and make prepare script Windows-safe ([55d2c30](https://github.com/Apollogeddon/forgejs/commit/55d2c3030cabd1588ed52089be40191c44d5b601))
+
 ## [2.3.2](https://github.com/Apollogeddon/forgejs/compare/v2.3.1...v2.3.2) (2026-06-14)
 
 
