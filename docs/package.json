@@ -11,7 +11,7 @@
     "type": "astro sync && tsc --noEmit",
     "build": "astro build",
     "preview": "astro preview",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install || exit 0"
   },
   "dependencies": {
     "astro": "6.3.7",
