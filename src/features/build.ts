@@ -18,8 +18,7 @@ export const BuildFeature: Feature = {
       setScript(packageJson, cfg, "start", "node dist/index.js");
       setScript(packageJson, cfg, "build", "tsup");
       setScript(packageJson, cfg, "type", "tsc --noEmit");
-      // tsup builds to dist/, but the default package.json main is "index.js" -
-      // wrong for any consumer/publint check once the project actually builds.
+      // Default main is "index.js", but tsup builds to dist/ - fails publint otherwise.
       packageJson.main = "dist/index.js";
       packageJson.types = "dist/index.d.ts";
     }

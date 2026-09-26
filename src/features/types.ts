@@ -42,8 +42,7 @@ export function createFileIfMissing(
   cfg: InitConfig,
   fs: IFileSystem,
 ): boolean {
-  // Scaffolds application source only if it doesn't exist yet - never touched again,
-  // even with --force, since this is the user's own code, not a forgejs-managed config.
+  // Never overwritten, even with --force - this is the user's own code, not a managed config.
   try {
     const filePath = fs.join(cwd, fileName);
     if (fs.existsSync(filePath)) {

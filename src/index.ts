@@ -2,9 +2,7 @@
 import { parseArgs } from "node:util";
 import { init } from "./core.js";
 
-// Define available options
 const options = {
-  // Modes
   backend: { type: "boolean" },
   library: { type: "boolean" },
   website: { type: "boolean" },
@@ -22,7 +20,6 @@ const options = {
   linting: { type: "boolean" },
   "no-linting": { type: "boolean" },
 
-  // Meta
   force: { type: "boolean" },
   all: { type: "boolean" },
   "no-all": { type: "boolean" },
@@ -54,17 +51,15 @@ if (values.help) {
 
 const command = positionals[0];
 
-// Resolve a standard feature flag against its --no-<x> negation and the --all default
 function resolveFeature(flag: boolean | undefined, negated: boolean | undefined, enableByDefault: boolean): boolean {
   if (negated) return false;
   return !!(flag ?? enableByDefault);
 }
 
-// Determine active features
 const modes = ["backend", "library", "website"];
 const hasModeFlag = modes.some((mode) => values[mode as keyof typeof values]);
 
-// true unless --no-all is explicitly passed; controls whether standard features default on
+// Standard features default on unless --no-all is passed
 const enableByDefault = !values["no-all"] && values.all !== false;
 
 // If no mode flag is provided, backend is the default
@@ -72,7 +67,6 @@ const isBackend = !!(values.backend || (!hasModeFlag && enableByDefault));
 const isLibrary = !!values.library;
 const isWebsite = !!values.website;
 
-// Validate: only one mode can be active at a time
 const activeModes = [isBackend, isLibrary, isWebsite].filter(Boolean);
 if (activeModes.length > 1) {
   console.error("❌ Error: Only one mode (--backend, --library, --website) can be active at a time.");
@@ -83,22 +77,18 @@ const config = {
   force: !!values.force,
   dryRun: !!values["dry-run"],
 
-  // Modes
   backend: isBackend,
   library: isLibrary,
   website: isWebsite,
 
-  // Standard features: on by default, can be disabled with --no-<feature> or --no-all
   testing: resolveFeature(values.testing, values["no-testing"], enableByDefault),
   version: resolveFeature(values.version, values["no-version"], enableByDefault),
   linting: resolveFeature(values.linting, values["no-linting"], enableByDefault),
 
-  // Optional opt-in features
   debian: !!values.debian,
   docker: !!values.docker,
 };
 
-// Validate Config
 if (config.library) {
   if (config.docker) {
     console.error("❌ Error: Docker configuration is not available for Library mode.");
