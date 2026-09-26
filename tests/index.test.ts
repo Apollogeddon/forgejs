@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 const CLI_SCRIPT = path.resolve(__dirname, "../src/index.ts");
 
-// Helper for robust cleanup on Windows
+// Retries because Windows can briefly hold locks on just-used files
 function robustRemoveDir(dir: string, maxRetries = 5, delay = 500) {
   if (!fs.existsSync(dir)) return;
 
@@ -18,7 +18,6 @@ function robustRemoveDir(dir: string, maxRetries = 5, delay = 500) {
       if (i === maxRetries - 1) {
         console.warn(`Warning: Final attempt to clean up temp dir failed: ${error}`);
       } else {
-        // Wait and retry
         const syncWait = (ms: number) => {
           const end = Date.now() + ms;
           while (Date.now() < end) {}
@@ -33,7 +32,6 @@ describe("CLI Init Command", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    // Create a unique temporary directory for each test in the system temp folder
     tempDir = path.join(os.tmpdir(), `forgejs-test-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
     if (fs.existsSync(tempDir)) {
       robustRemoveDir(tempDir);
@@ -46,14 +44,12 @@ describe("CLI Init Command", () => {
   });
 
   it("should create configuration files when running init (default backend)", () => {
-    // We use tsx to run the typescript file directly
     try {
       execSync(`npx tsx ${CLI_SCRIPT} init`, { cwd: tempDir });
     } catch (error) {
       throw new Error(`CLI execution failed: ${error}`);
     }
 
-    // Check if files were created
     const expectedFiles = [
       "biome.json",
       "vitest.config.ts",
@@ -76,27 +72,22 @@ describe("CLI Init Command", () => {
   });
 
   it("should not overwrite existing files without --force", () => {
-    // Create a dummy file first
     const dummyContent = '{"dummy": true, "original": true}';
     fs.writeFileSync(path.join(tempDir, "biome.json"), dummyContent);
 
     execSync(`npx tsx ${CLI_SCRIPT} init`, { cwd: tempDir });
 
-    // Check content remains unchanged
     const content = fs.readFileSync(path.join(tempDir, "biome.json"), "utf-8");
     expect(content).toBe(dummyContent);
   });
 
   it("should overwrite existing files with --force", () => {
-    // Create a dummy file first
     const dummyContent = '{"dummy": true, "original": true}';
     fs.writeFileSync(path.join(tempDir, "biome.json"), dummyContent);
 
     execSync(`npx tsx ${CLI_SCRIPT} init --force`, { cwd: tempDir });
 
-    // Check content has been overwritten
     const content = fs.readFileSync(path.join(tempDir, "biome.json"), "utf-8");
-    // Expect content to be the default biome config now
     expect(content).not.toBe(dummyContent);
     expect(content).toContain("node_modules/@apollogeddon/forgejs/configs/biome.json");
   });
@@ -132,7 +123,6 @@ describe("CLI Init Command", () => {
   });
 
   it("should create package.json if it does not exist and add type: module and scripts", () => {
-    // No package.json initially
     execSync(`npx tsx ${CLI_SCRIPT} init`, { cwd: tempDir });
 
     const packageJsonPath = path.join(tempDir, "package.json");
@@ -170,7 +160,6 @@ describe("CLI Init Command", () => {
     execSync(`npx tsx ${CLI_SCRIPT} init --website`, { cwd: tempDir });
 
     expect(fs.existsSync(path.join(tempDir, "vite.config.ts"))).toBe(true);
-    // Should NOT have tsup config
     expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(false);
 
     const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
@@ -183,10 +172,8 @@ describe("CLI Init Command", () => {
 
     expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
 
-    // Should create testing config (enabled by default)
     expect(fs.existsSync(path.join(tempDir, "vitest.config.ts"))).toBe(true);
 
-    // Should setup library workflow
     const workflowPath = path.join(tempDir, ".github/workflows/index.yml");
     expect(fs.existsSync(workflowPath)).toBe(true);
     const workflowContent = fs.readFileSync(workflowPath, "utf-8");
@@ -204,39 +191,31 @@ describe("CLI Init Command", () => {
   it("should support --debian flag to setup snodeb", () => {
     execSync(`npx tsx ${CLI_SCRIPT} init --debian`, { cwd: tempDir });
 
-    // Should create snodeb config
     expect(fs.existsSync(path.join(tempDir, "snodeb.config.cjs"))).toBe(true);
 
-    // Should create tsup config (now default)
     expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
 
-    // Should update package.json with debian script AND build script
     const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
     expect(packageJson.scripts["build:deb"]).toBe("snodeb");
     expect(packageJson.scripts.build).toBe("tsup");
   });
 
   it("should not create files or modify package.json with --dry-run", () => {
-    // Create a dummy package.json to verify it's not modified
     const initialPackageJson = { name: "test", scripts: { test: "echo original" } };
     fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify(initialPackageJson));
 
     const stdout = execSync(`npx tsx ${CLI_SCRIPT} init --dry-run`, { cwd: tempDir, encoding: "utf-8" });
 
-    // Should log dry run warnings
     expect(stdout).toContain("DRY RUN MODE");
     expect(stdout).toContain("[DryRun] Would");
 
-    // Files should NOT be created
     expect(fs.existsSync(path.join(tempDir, "biome.json"))).toBe(false);
 
-    // package.json should NOT be modified
     const currentPackageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
     expect(currentPackageJson.scripts.test).toBe("echo original");
   });
 
   it("should overwrite user scripts when running with --force", () => {
-    // Create package.json with conflicting script
     const initialPackageJson = {
       name: "test",
       scripts: {
@@ -250,7 +229,6 @@ describe("CLI Init Command", () => {
 
     const updatedPackageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
 
-    // Conflicting script should be overwritten
     expect(updatedPackageJson.scripts.build).toBe("tsup");
 
     // Non-conflicting script should be preserved (because ...packageJson.scripts is merged in)
@@ -306,15 +284,12 @@ describe("CLI Init Command", () => {
   });
 
   it("should cleanup obsolete files when changing modes", () => {
-    // 1. Init as Debian
     execSync(`npx tsx ${CLI_SCRIPT} init --debian`, { cwd: tempDir });
     expect(fs.existsSync(path.join(tempDir, "snodeb.config.cjs"))).toBe(true);
 
-    // 2. Re-init as Backend WITHOUT force (should keep snodeb)
     execSync(`npx tsx ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
     expect(fs.existsSync(path.join(tempDir, "snodeb.config.cjs"))).toBe(true);
 
-    // 3. Re-init as Backend WITH force (should remove snodeb)
     execSync(`npx tsx ${CLI_SCRIPT} init --backend --force`, { cwd: tempDir });
     expect(fs.existsSync(path.join(tempDir, "snodeb.config.cjs"))).toBe(false);
   });

@@ -9,7 +9,7 @@ describe("Package Integrity", () => {
   it('should ensure all files listed in "exports" exist', () => {
     const exportsField = packageJson.exports;
     if (!exportsField) {
-      return; // No exports field, nothing to test
+      return;
     }
 
     for (const key in exportsField) {
@@ -20,7 +20,6 @@ describe("Package Integrity", () => {
         if (typeof exportPath === "string") {
           filePath = exportPath;
         } else if (typeof exportPath === "object" && exportPath !== null) {
-          // Handle conditional exports like { "import": "./file.js", "types": "./file.d.ts" }
           for (const condition in exportPath) {
             if (Object.hasOwn(exportPath, condition)) {
               const conditionalPath = (exportPath as Record<string, unknown>)[condition];
@@ -31,9 +30,8 @@ describe("Package Integrity", () => {
               }
             }
           }
-          continue; // Move to the next export key
+          continue;
         } else {
-          // Skip other types or malformed exports
           continue;
         }
 
@@ -45,16 +43,15 @@ describe("Package Integrity", () => {
   it('should ensure all files listed in "files" exist', () => {
     const filesField = packageJson.files;
     if (!filesField) {
-      return; // No files field, nothing to test
+      return;
     }
 
     for (const fileGlob of filesField) {
-      // Exclude 'dist' directory itself or files within it
+      // dist/ only exists after a build
       if (fileGlob === "dist" || fileGlob.startsWith("dist/") || fileGlob.startsWith("dist\\")) {
-        continue; // Skip checking the dist directory
+        continue;
       }
-      // Basic check for direct file existence. Globs might need more advanced handling.
-      // For simplicity, we assume direct file paths for now.
+      // Globs aren't expanded; entries are assumed to be literal paths.
       expect(fs.existsSync(path.join(rootDir, fileGlob)), `File not found: ${fileGlob}`).toBe(true);
     }
   });
