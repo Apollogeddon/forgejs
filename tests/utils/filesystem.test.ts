@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 import { init } from "../../src/core.js";
 import type { IFileSystem } from "../../src/utils/filesystem.js";
 
-// Mock FileSystem implementation
 class MockFileSystem implements IFileSystem {
   private files: Map<string, string> = new Map();
   private directories: Set<string> = new Set([process.cwd()]);
@@ -49,7 +48,6 @@ class MockFileSystem implements IFileSystem {
     return content;
   }
 
-  // Helper for tests to check file content
   getFileContent(p: string): string | undefined {
     return this.files.get(p);
   }
@@ -80,25 +78,20 @@ describe("CLI Init with MockFileSystem", () => {
   it("should create expected files in mock filesystem", () => {
     const mockFs = new MockFileSystem();
 
-    // Silence console logs during test
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     init(defaultConfig, mockFs);
 
     const cwd = mockFs.cwd();
 
-    // Check core files
     expect(mockFs.existsSync(mockFs.join(cwd, "biome.json"))).toBe(true);
     expect(mockFs.existsSync(mockFs.join(cwd, "tsconfig.json"))).toBe(true);
     expect(mockFs.existsSync(mockFs.join(cwd, "lefthook.yml"))).toBe(true);
 
-    // Check library files
     expect(mockFs.existsSync(mockFs.join(cwd, "tsup.config.ts"))).toBe(true);
 
-    // Check testing files
     expect(mockFs.existsSync(mockFs.join(cwd, "vitest.config.ts"))).toBe(true);
 
-    // Check package.json creation and content
     const packageJsonContent = mockFs.getFileContent(mockFs.join(cwd, "package.json"));
     expect(packageJsonContent).toBeDefined();
     const packageJson = JSON.parse(packageJsonContent ?? "{}");
@@ -126,13 +119,11 @@ describe("CLI Init with MockFileSystem", () => {
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     const cwd = mockFs.cwd();
 
-    // Pre-create a file
     const existingContent = "original content";
     mockFs.writeFileSync(mockFs.join(cwd, "biome.json"), existingContent);
 
     init(defaultConfig, mockFs);
 
-    // Content should remain unchanged
     expect(mockFs.getFileContent(mockFs.join(cwd, "biome.json"))).toBe(existingContent);
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("already exists. Skipping."));
 
@@ -144,13 +135,11 @@ describe("CLI Init with MockFileSystem", () => {
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     const cwd = mockFs.cwd();
 
-    // Pre-create a file
     const existingContent = "original content";
     mockFs.writeFileSync(mockFs.join(cwd, "biome.json"), existingContent);
 
     init({ ...defaultConfig, force: true }, mockFs);
 
-    // Content should be overwritten (check for schema present in default config)
     const newContent = mockFs.getFileContent(mockFs.join(cwd, "biome.json"));
     expect(newContent).not.toBe(existingContent);
     expect(newContent).toContain("configuration_schema.json");

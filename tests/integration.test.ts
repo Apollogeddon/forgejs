@@ -4,11 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-// Real end-to-end checks: scaffold a project, install real dependencies (pointing
-// the devDependency at this repo via `file:`), and run the real generated scripts.
-// Unlike the rest of the suite (which only checks generated file content), this is
-// the only place that catches wiring bugs like a config extending a path that never
-// gets installed, or a build script that has no source to build.
+// The only suite that installs real deps and runs the generated scripts, so it catches wiring
+// bugs (a config extending an uninstalled path, a build with no source) that content checks miss.
 
 const CLI_SCRIPT = path.resolve(__dirname, "../src/index.ts");
 const REPO_ROOT = path.resolve(__dirname, "..").replace(/\\/g, "/");
@@ -54,9 +51,12 @@ describe("End-to-end: a scaffolded project actually works", () => {
     fs.mkdirSync(tempDir, { recursive: true });
   });
 
-  afterEach(() => {
-    robustRemoveDir(tempDir);
-  });
+  afterEach(
+    () => {
+      robustRemoveDir(tempDir);
+    },
+    30000, // removing a full node_modules can exceed vitest's 10s default on Windows
+  );
 
   it(
     "backend scaffold lints, type-checks, builds, tests, and runs",

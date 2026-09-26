@@ -2,15 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-// Removed fileURLToPath and URL for simpler dynamic imports of local files.
 
-// Helper to dynamically import CJS and ESM modules
 async function importModule(modulePath: string) {
   if (modulePath.endsWith(".cjs")) {
-    // For CommonJS modules, require directly.
     return require(modulePath);
   } else {
-    // For ESM modules, use dynamic import.
     return await import(modulePath);
   }
 }
@@ -26,7 +22,6 @@ describe("Code Configurations Imports", () => {
 
   it("should import tsup.config.ts without errors and check basic structure", async () => {
     const tsupConfigPath = path.join(process.cwd(), "configs", "tsup.config.cjs");
-    // Using import() directly for ESM
     const configModule = await import(tsupConfigPath);
     expect(configModule).toBeDefined();
     expect(configModule.default).toBeDefined();
@@ -35,7 +30,6 @@ describe("Code Configurations Imports", () => {
 
   it("should import snodeb.config.ts without errors and check basic structure", async () => {
     const snodebConfigPath = path.join(process.cwd(), "configs", "snodeb.config.cjs");
-    // Using import() directly for ESM
     const configModule = await import(snodebConfigPath);
     expect(configModule).toBeDefined();
     expect(configModule.default).toBeDefined();
