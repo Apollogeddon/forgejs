@@ -5,9 +5,8 @@ import type { InitConfig, PackageJson } from "./types.js";
 import type { IFileSystem } from "./utils/filesystem.js";
 import { NodeFileSystem } from "./utils/filesystem.js";
 
-// This file sits one directory below the repo root in both dev (src/core.ts) and
-// the tsup-bundled output (dist/index.js, which inlines this module), so "../package.json"
-// resolves correctly in both. Don't move this read into a more deeply-nested file.
+// core.ts and the tsup bundle output are both one directory below repo root, so
+// "../package.json" resolves in both - don't move this into a deeper-nested file.
 const require = createRequire(import.meta.url);
 const ownPackageJson = require("../package.json") as { name: string; version: string };
 
@@ -31,7 +30,6 @@ export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()): n
     console.log("⚠️  Force mode enabled. Existing files will be overwritten.");
   }
 
-  // Load package.json
   const packageJsonPath = fs.join(cwd, "package.json");
   let packageJson: PackageJson;
 
@@ -59,12 +57,10 @@ export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()): n
     return 1;
   }
 
-  // forgejs's own tooling (biome, tsup, vitest, lefthook, commitlint, etc.) is only
-  // available in the generated project via npm's dependency hoisting once forgejs
-  // itself is installed - without this, none of the generated scripts can resolve.
+  // Generated scripts (biome, tsup, vitest, ...) resolve via npm hoisting once
+  // forgejs is a devDependency here - without this line, none of them work.
   setDependency(packageJson, cfg, ownPackageJson.name, `^${ownPackageJson.version}`);
 
-  // Feature Pipeline
   const activeFeatures: features.Feature[] = [
     features.BaseFeature,
     features.LintingFeature,
@@ -76,7 +72,6 @@ export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()): n
     features.WorkflowFeature,
   ];
 
-  // 1. Apply Features
   for (const feature of activeFeatures) {
     if (feature.shouldRun(cfg)) {
       if (!feature.apply(cwd, cfg, fs, packageJson)) {
@@ -85,7 +80,7 @@ export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()): n
     }
   }
 
-  // 2. Update Package.json (consolidated write)
+  // Features only mutate packageJson in memory; this is the single write.
   try {
     if (cfg.dryRun) {
       console.log("[DryRun] Would update package.json");
@@ -98,7 +93,6 @@ export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()): n
     hasError = true;
   }
 
-  // 3. Cleanup Obsolete Files
   for (const feature of activeFeatures) {
     feature.cleanup(cwd, cfg, fs);
   }
