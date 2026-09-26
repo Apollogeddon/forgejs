@@ -9,6 +9,3 @@ dist
 coverage/
 tests/tmp-*
 junit-report.xml
-
-CLAUDE.md
-GEMINI.md
