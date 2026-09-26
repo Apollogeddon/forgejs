@@ -1,9 +1,15 @@
 {
   "cSpell.words": [
+    "biome",
     "biomejs",
     "commitlint",
+    "dockerignore",
     "forgejs",
+    "gitleaks",
     "hyperse",
+    "lefthook",
+    "npmrc",
+    "osv",
     "publint",
     "releaserc",
     "snodeb",
