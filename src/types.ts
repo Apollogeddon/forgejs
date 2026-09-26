@@ -19,6 +19,7 @@ export interface PackageJson {
   type?: string;
   private?: boolean;
   scripts: Record<string, string>;
+  devDependencies?: Record<string, string>;
   keywords: string[];
   author: string;
   license: string;

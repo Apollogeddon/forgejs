@@ -35,11 +35,52 @@ export function createFile(cwd: string, fileName: string, content: string, cfg: 
   }
 }
 
+export function createFileIfMissing(
+  cwd: string,
+  fileName: string,
+  content: string,
+  cfg: InitConfig,
+  fs: IFileSystem,
+): boolean {
+  // Scaffolds application source only if it doesn't exist yet - never touched again,
+  // even with --force, since this is the user's own code, not a forgejs-managed config.
+  try {
+    const filePath = fs.join(cwd, fileName);
+    if (fs.existsSync(filePath)) {
+      return true;
+    }
+
+    if (cfg.dryRun) {
+      console.log(`[DryRun] Would create ${fileName}`);
+      return true;
+    }
+
+    const dirPath = fs.dirname(filePath);
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
+    fs.writeFileSync(filePath, content);
+    console.log(`✅ Created ${fileName}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Failed to create ${fileName}:`, error instanceof Error ? error.message : String(error));
+    return false;
+  }
+}
+
 export function setScript(packageJson: PackageJson, cfg: InitConfig, key: string, value: string): void {
   if (packageJson.scripts[key] !== undefined && !cfg.force) {
     return;
   }
   packageJson.scripts[key] = value;
+}
+
+export function setDependency(packageJson: PackageJson, cfg: InitConfig, name: string, version: string): void {
+  packageJson.devDependencies ??= {};
+  if (packageJson.devDependencies[name] !== undefined && !cfg.force) {
+    return;
+  }
+  packageJson.devDependencies[name] = version;
 }
 
 export function removeFile(cwd: string, fileName: string, cfg: InitConfig, fs: IFileSystem) {

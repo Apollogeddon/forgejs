@@ -1,7 +1,15 @@
+import { createRequire } from "node:module";
 import * as features from "./features/index.js";
+import { setDependency } from "./features/types.js";
 import type { InitConfig, PackageJson } from "./types.js";
 import type { IFileSystem } from "./utils/filesystem.js";
 import { NodeFileSystem } from "./utils/filesystem.js";
+
+// This file sits one directory below the repo root in both dev (src/core.ts) and
+// the tsup-bundled output (dist/index.js, which inlines this module), so "../package.json"
+// resolves correctly in both. Don't move this read into a more deeply-nested file.
+const require = createRequire(import.meta.url);
+const ownPackageJson = require("../package.json") as { name: string; version: string };
 
 export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()): number {
   const cwd = fs.cwd();
@@ -50,6 +58,11 @@ export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()): n
     );
     return 1;
   }
+
+  // forgejs's own tooling (biome, tsup, vitest, lefthook, commitlint, etc.) is only
+  // available in the generated project via npm's dependency hoisting once forgejs
+  // itself is installed - without this, none of the generated scripts can resolve.
+  setDependency(packageJson, cfg, ownPackageJson.name, `^${ownPackageJson.version}`);
 
   // Feature Pipeline
   const activeFeatures: features.Feature[] = [
