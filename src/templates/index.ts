@@ -3,6 +3,7 @@ export * from "./commitlint.js";
 export * from "./docker.js";
 export * from "./lefthook.js";
 export * from "./snodeb.js";
+export * from "./starter.js";
 export * from "./tsconfig.js";
 export * from "./tsup.js";
 export * from "./vite.js";
