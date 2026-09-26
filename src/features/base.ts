@@ -1,12 +1,12 @@
 import * as templates from "../templates/index.js";
-import { createFile, type Feature } from "./types.js";
+import { createFile, createFileIfMissing, type Feature } from "./types.js";
 
 export const BaseFeature: Feature = {
   name: "Base Setup",
   shouldRun: () => true,
   apply: (cwd, cfg, fs, packageJson) => {
     const tsconfig = cfg.website ? templates.websiteTsconfigConfig : templates.tsconfigConfig;
-    const ok = createFile(cwd, "tsconfig.json", tsconfig, cfg, fs);
+    let ok = createFile(cwd, "tsconfig.json", tsconfig, cfg, fs);
 
     if (packageJson.type !== "module") {
       packageJson.type = "module";
@@ -16,6 +16,15 @@ export const BaseFeature: Feature = {
     if (!cfg.library) {
       packageJson.private = true;
       console.log("✅ Set 'private': true in package.json (service mode)");
+    }
+
+    // tsc/tsup/vite all need real source to exist at build/type-check time, so a
+    // freshly-scaffolded project needs a starter file right away.
+    if (cfg.website) {
+      ok = createFileIfMissing(cwd, "index.html", templates.indexHtml(packageJson.name), cfg, fs) && ok;
+      ok = createFileIfMissing(cwd, "src/main.ts", templates.mainTs(packageJson.name), cfg, fs) && ok;
+    } else {
+      ok = createFileIfMissing(cwd, "src/index.ts", templates.indexTs(packageJson.name), cfg, fs) && ok;
     }
 
     return ok;
