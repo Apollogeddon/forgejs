@@ -1,5 +1,6 @@
 import { execSync } from "node:child_process";
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -9,6 +10,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 const CLI_SCRIPT = path.resolve(__dirname, "../src/index.ts");
 const REPO_ROOT = path.resolve(__dirname, "..").replace(/\\/g, "/");
+
+const require = createRequire(import.meta.url);
+const tsxPackageJsonPath = require.resolve("tsx/package.json");
+const TSX_CLI = path.join(path.dirname(tsxPackageJsonPath), require(tsxPackageJsonPath).bin);
 
 function robustRemoveDir(dir: string, maxRetries = 5, delay = 500) {
   if (!fs.existsSync(dir)) return;
@@ -31,7 +36,7 @@ function robustRemoveDir(dir: string, maxRetries = 5, delay = 500) {
 }
 
 function scaffoldAndInstall(tempDir: string, ...initArgs: string[]) {
-  execSync(`npx tsx ${CLI_SCRIPT} init ${initArgs.join(" ")}`, { cwd: tempDir, stdio: "pipe" });
+  execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${initArgs.join(" ")}`, { cwd: tempDir, stdio: "pipe" });
 
   const pkgPath = path.join(tempDir, "package.json");
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));

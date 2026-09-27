@@ -1,10 +1,17 @@
 import { execSync } from "node:child_process";
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 const CLI_SCRIPT = path.resolve(__dirname, "../src/index.ts");
+
+// Invoking the local tsx binary directly, rather than `npx tsx` from an unrelated tempDir cwd,
+// avoids npx re-resolving/installing tsx per call - a source of npm cache races under CI parallelism.
+const require = createRequire(import.meta.url);
+const tsxPackageJsonPath = require.resolve("tsx/package.json");
+const TSX_CLI = path.join(path.dirname(tsxPackageJsonPath), require(tsxPackageJsonPath).bin);
 
 // Retries because Windows can briefly hold locks on just-used files
 function robustRemoveDir(dir: string, maxRetries = 5, delay = 500) {
@@ -45,7 +52,7 @@ describe("CLI Init Command", () => {
 
   it("should create configuration files when running init (default backend)", () => {
     try {
-      execSync(`npx tsx ${CLI_SCRIPT} init`, { cwd: tempDir });
+      execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
     } catch (error) {
       throw new Error(`CLI execution failed: ${error}`);
     }
@@ -65,7 +72,7 @@ describe("CLI Init Command", () => {
   });
 
   it("should verify content of generated biome.json", () => {
-    execSync(`npx tsx ${CLI_SCRIPT} init`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
 
     const biomeConfig = JSON.parse(fs.readFileSync(path.join(tempDir, "biome.json"), "utf-8"));
     expect(biomeConfig.extends).toContain("node_modules/@apollogeddon/forgejs/configs/biome.json");
@@ -75,7 +82,7 @@ describe("CLI Init Command", () => {
     const dummyContent = '{"dummy": true, "original": true}';
     fs.writeFileSync(path.join(tempDir, "biome.json"), dummyContent);
 
-    execSync(`npx tsx ${CLI_SCRIPT} init`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
 
     const content = fs.readFileSync(path.join(tempDir, "biome.json"), "utf-8");
     expect(content).toBe(dummyContent);
@@ -85,7 +92,7 @@ describe("CLI Init Command", () => {
     const dummyContent = '{"dummy": true, "original": true}';
     fs.writeFileSync(path.join(tempDir, "biome.json"), dummyContent);
 
-    execSync(`npx tsx ${CLI_SCRIPT} init --force`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --force`, { cwd: tempDir });
 
     const content = fs.readFileSync(path.join(tempDir, "biome.json"), "utf-8");
     expect(content).not.toBe(dummyContent);
@@ -102,7 +109,7 @@ describe("CLI Init Command", () => {
     };
     fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify(initialPackageJson, null, 2));
 
-    execSync(`npx tsx ${CLI_SCRIPT} init`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
 
     const updatedPackageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
 
@@ -123,7 +130,7 @@ describe("CLI Init Command", () => {
   });
 
   it("should create package.json if it does not exist and add type: module and scripts", () => {
-    execSync(`npx tsx ${CLI_SCRIPT} init`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
 
     const packageJsonPath = path.join(tempDir, "package.json");
     expect(fs.existsSync(packageJsonPath)).toBe(true);
@@ -146,7 +153,7 @@ describe("CLI Init Command", () => {
   });
 
   it("should support --docker flag", () => {
-    execSync(`npx tsx ${CLI_SCRIPT} init --docker`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --docker`, { cwd: tempDir });
 
     expect(fs.existsSync(path.join(tempDir, "Dockerfile"))).toBe(true);
     expect(fs.existsSync(path.join(tempDir, ".dockerignore"))).toBe(true);
@@ -157,7 +164,7 @@ describe("CLI Init Command", () => {
   });
 
   it("should support --website flag", () => {
-    execSync(`npx tsx ${CLI_SCRIPT} init --website`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --website`, { cwd: tempDir });
 
     expect(fs.existsSync(path.join(tempDir, "vite.config.ts"))).toBe(true);
     expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(false);
@@ -168,7 +175,7 @@ describe("CLI Init Command", () => {
   });
 
   it("should support --library flag to setup library only", () => {
-    execSync(`npx tsx ${CLI_SCRIPT} init --library`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --library`, { cwd: tempDir });
 
     expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
 
@@ -181,7 +188,7 @@ describe("CLI Init Command", () => {
   });
 
   it("should setup service workflow for backend", () => {
-    execSync(`npx tsx ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
     const workflowPath = path.join(tempDir, ".github/workflows/index.yml");
     expect(fs.existsSync(workflowPath)).toBe(true);
     const workflowContent = fs.readFileSync(workflowPath, "utf-8");
@@ -189,7 +196,7 @@ describe("CLI Init Command", () => {
   });
 
   it("should support --debian flag to setup snodeb", () => {
-    execSync(`npx tsx ${CLI_SCRIPT} init --debian`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --debian`, { cwd: tempDir });
 
     expect(fs.existsSync(path.join(tempDir, "snodeb.config.cjs"))).toBe(true);
 
@@ -204,7 +211,7 @@ describe("CLI Init Command", () => {
     const initialPackageJson = { name: "test", scripts: { test: "echo original" } };
     fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify(initialPackageJson));
 
-    const stdout = execSync(`npx tsx ${CLI_SCRIPT} init --dry-run`, { cwd: tempDir, encoding: "utf-8" });
+    const stdout = execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --dry-run`, { cwd: tempDir, encoding: "utf-8" });
 
     expect(stdout).toContain("DRY RUN MODE");
     expect(stdout).toContain("[DryRun] Would");
@@ -225,7 +232,7 @@ describe("CLI Init Command", () => {
     };
     fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify(initialPackageJson));
 
-    execSync(`npx tsx ${CLI_SCRIPT} init --force`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --force`, { cwd: tempDir });
 
     const updatedPackageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
 
@@ -236,25 +243,25 @@ describe("CLI Init Command", () => {
   });
 
   it("should display help with --help", () => {
-    const stdout = execSync(`npx tsx ${CLI_SCRIPT} --help`, { cwd: tempDir, encoding: "utf-8" });
+    const stdout = execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} --help`, { cwd: tempDir, encoding: "utf-8" });
     expect(stdout).toContain("Usage: npx @apollogeddon/forgejs init");
     expect(stdout).toContain("--dry-run");
   });
 
   it("should fail when using --library with --docker", () => {
     expect(() => {
-      execSync(`npx tsx ${CLI_SCRIPT} init --library --docker`, { cwd: tempDir, stdio: "pipe" });
+      execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --library --docker`, { cwd: tempDir, stdio: "pipe" });
     }).toThrow();
   });
 
   it("should fail when using --library with --debian", () => {
     expect(() => {
-      execSync(`npx tsx ${CLI_SCRIPT} init --library --debian`, { cwd: tempDir, stdio: "pipe" });
+      execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --library --debian`, { cwd: tempDir, stdio: "pipe" });
     }).toThrow();
   });
 
   it("should generate Nginx Dockerfile for --website --docker", () => {
-    execSync(`npx tsx ${CLI_SCRIPT} init --website --docker`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --website --docker`, { cwd: tempDir });
     expect(fs.existsSync(path.join(tempDir, "Dockerfile"))).toBe(true);
     const content = fs.readFileSync(path.join(tempDir, "Dockerfile"), "utf-8");
     expect(content).toContain("nginx");
@@ -263,7 +270,7 @@ describe("CLI Init Command", () => {
   });
 
   it("should generate Distroless Dockerfile for --backend --docker", () => {
-    execSync(`npx tsx ${CLI_SCRIPT} init --backend --docker`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend --docker`, { cwd: tempDir });
     expect(fs.existsSync(path.join(tempDir, "Dockerfile"))).toBe(true);
     const content = fs.readFileSync(path.join(tempDir, "Dockerfile"), "utf-8");
     expect(content).toContain("gcr.io/distroless/nodejs");
@@ -273,47 +280,47 @@ describe("CLI Init Command", () => {
 
   it("should fail when using --website with --debian", () => {
     expect(() => {
-      execSync(`npx tsx ${CLI_SCRIPT} init --website --debian`, { cwd: tempDir, stdio: "pipe" });
+      execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --website --debian`, { cwd: tempDir, stdio: "pipe" });
     }).toThrow();
   });
 
   it("should set private: true for backend/website projects", () => {
-    execSync(`npx tsx ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
     const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
     expect(packageJson.private).toBe(true);
   });
 
   it("should cleanup obsolete files when changing modes", () => {
-    execSync(`npx tsx ${CLI_SCRIPT} init --debian`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --debian`, { cwd: tempDir });
     expect(fs.existsSync(path.join(tempDir, "snodeb.config.cjs"))).toBe(true);
 
-    execSync(`npx tsx ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
     expect(fs.existsSync(path.join(tempDir, "snodeb.config.cjs"))).toBe(true);
 
-    execSync(`npx tsx ${CLI_SCRIPT} init --backend --force`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend --force`, { cwd: tempDir });
     expect(fs.existsSync(path.join(tempDir, "snodeb.config.cjs"))).toBe(false);
   });
 
   it("should NOT set private: true for library projects", () => {
-    execSync(`npx tsx ${CLI_SCRIPT} init --library`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --library`, { cwd: tempDir });
     const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
     expect(packageJson.private).toBeUndefined();
   });
 
   it("should fail when using --backend with --website", () => {
     expect(() => {
-      execSync(`npx tsx ${CLI_SCRIPT} init --backend --website`, { cwd: tempDir, stdio: "pipe" });
+      execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend --website`, { cwd: tempDir, stdio: "pipe" });
     }).toThrow();
   });
 
   it("should fail when using --backend with --library", () => {
     expect(() => {
-      execSync(`npx tsx ${CLI_SCRIPT} init --backend --library`, { cwd: tempDir, stdio: "pipe" });
+      execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend --library`, { cwd: tempDir, stdio: "pipe" });
     }).toThrow();
   });
 
   it("should behave as default backend when --all is passed with no mode flag", () => {
-    execSync(`npx tsx ${CLI_SCRIPT} init --all`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --all`, { cwd: tempDir });
     for (const file of [
       "biome.json",
       "vitest.config.ts",
@@ -328,32 +335,32 @@ describe("CLI Init Command", () => {
 
   it("should exit non-zero for an unknown command", () => {
     expect(() => {
-      execSync(`npx tsx ${CLI_SCRIPT} frobnicate`, { cwd: tempDir, stdio: "pipe" });
+      execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} frobnicate`, { cwd: tempDir, stdio: "pipe" });
     }).toThrow();
   });
 
   it("should exit non-zero when no command is given", () => {
     expect(() => {
-      execSync(`npx tsx ${CLI_SCRIPT}`, { cwd: tempDir, stdio: "pipe" });
+      execSync(`node "${TSX_CLI}" ${CLI_SCRIPT}`, { cwd: tempDir, stdio: "pipe" });
     }).toThrow();
   });
 
   it("should exit non-zero when package.json is malformed", () => {
     fs.writeFileSync(path.join(tempDir, "package.json"), "{ this is : not valid json ");
     expect(() => {
-      execSync(`npx tsx ${CLI_SCRIPT} init`, { cwd: tempDir, stdio: "pipe" });
+      execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir, stdio: "pipe" });
     }).toThrow();
   });
 
   it("should actually disable a feature with --no-<feature>", () => {
-    execSync(`npx tsx ${CLI_SCRIPT} init --no-testing`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --no-testing`, { cwd: tempDir });
     expect(fs.existsSync(path.join(tempDir, "vitest.config.ts"))).toBe(false);
     // unaffected standard features still run
     expect(fs.existsSync(path.join(tempDir, "biome.json"))).toBe(true);
   });
 
   it("should disable all standard features with --no-all", () => {
-    execSync(`npx tsx ${CLI_SCRIPT} init --no-all`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --no-all`, { cwd: tempDir });
     expect(fs.existsSync(path.join(tempDir, "vitest.config.ts"))).toBe(false);
     expect(fs.existsSync(path.join(tempDir, "biome.json"))).toBe(false);
     expect(fs.existsSync(path.join(tempDir, "commitlint.config.ts"))).toBe(false);
@@ -362,19 +369,19 @@ describe("CLI Init Command", () => {
   });
 
   it("should let an explicit flag re-enable a feature disabled by --no-all", () => {
-    execSync(`npx tsx ${CLI_SCRIPT} init --no-all --testing`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --no-all --testing`, { cwd: tempDir });
     expect(fs.existsSync(path.join(tempDir, "vitest.config.ts"))).toBe(true);
     expect(fs.existsSync(path.join(tempDir, "biome.json"))).toBe(false);
   });
 
   it("should exit non-zero for an unknown flag instead of silently ignoring it", () => {
     expect(() => {
-      execSync(`npx tsx ${CLI_SCRIPT} init --dockr`, { cwd: tempDir, stdio: "pipe" });
+      execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --dockr`, { cwd: tempDir, stdio: "pipe" });
     }).toThrow();
   });
 
   it("should show help before validating conflicting flags", () => {
-    const stdout = execSync(`npx tsx ${CLI_SCRIPT} init --library --docker --help`, {
+    const stdout = execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --library --docker --help`, {
       cwd: tempDir,
       encoding: "utf-8",
     });
@@ -385,14 +392,14 @@ describe("CLI Init Command", () => {
     const initialPackageJson = { name: "test", scripts: { lint: "echo custom-lint" } };
     fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify(initialPackageJson));
 
-    execSync(`npx tsx ${CLI_SCRIPT} init`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
 
     const updatedPackageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
     expect(updatedPackageJson.scripts.lint).toBe("echo custom-lint");
   });
 
   it("should not include the commitlint hook in lefthook.yml when --no-version is passed", () => {
-    execSync(`npx tsx ${CLI_SCRIPT} init --no-version`, { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --no-version`, { cwd: tempDir });
     const lefthookConfig = fs.readFileSync(path.join(tempDir, "lefthook.yml"), "utf-8");
     expect(lefthookConfig).not.toContain("commitlint");
   });
