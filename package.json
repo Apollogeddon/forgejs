@@ -50,6 +50,7 @@
     "type": "tsc --noEmit",
     "build": "tsup --config configs/tsup.config.cjs",
     "test": "vitest run --config configs/vitest.config.cjs",
+    "test:unit": "vitest run --config configs/vitest.config.cjs --exclude tests/integration.test.ts --reporter=dot --coverage.enabled=false",
     "publint": "publint",
     "prepare": "lefthook install || exit 0",
     "prepublishOnly": "npm run build && npm run type && npm run test && npm run publint"
