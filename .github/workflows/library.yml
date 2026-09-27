@@ -36,12 +36,6 @@ on:
         required: false
 
 jobs:
-  auto-merge:
-    uses: ./.github/workflows/merge.yml
-    permissions:
-      contents: write
-      pull-requests: write
-
   testing:
     uses: ./.github/workflows/testing.yml
     with:
@@ -51,6 +45,13 @@ jobs:
       auto_patch: ${{ inputs.auto_patch }}
       build_env_vars: ${{ inputs.build_env_vars }}
       artifact_name: ${{ inputs.artifact_name }}
+
+  auto-merge:
+    uses: ./.github/workflows/merge.yml
+    needs: [testing]
+    permissions:
+      contents: write
+      pull-requests: write
 
   version:
     uses: ./.github/workflows/version.yml
