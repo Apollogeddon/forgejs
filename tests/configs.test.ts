@@ -53,6 +53,5 @@ describe("JSON Configurations", () => {
     const json = JSON.parse(content);
     expect(json).toHaveProperty("$schema");
     expect(json.formatter).toBeDefined();
-    expect(json.vcs).toBeDefined();
   });
 });

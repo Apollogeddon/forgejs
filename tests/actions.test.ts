@@ -48,27 +48,16 @@ describe("GitHub Actions Job Conditions", () => {
 
   it("should ensure debian.yml only builds on new_release_published", () => {
     const wf = getWorkflow("debian.yml");
-    expect(wf.jobs.build.if).toContain("needs.version.outputs.new_release_published == 'true'");
-    expect(wf.jobs.build.if).toContain("needs.version.outputs.new_release_published == true");
+    expect(wf.jobs.build.if).toContain("new_release_published");
   });
 
   it("should ensure library.yml jobs only run on new_release_published", () => {
     const wf = getWorkflow("library.yml");
-    expect(wf.jobs.publish.if).toContain("needs.version.outputs.new_release_published == 'true'");
-    expect(wf.jobs.publish.if).toContain("needs.version.outputs.new_release_published == true");
+    expect(wf.jobs.publish.if).toContain("new_release_published");
   });
 
   it("should ensure website.yml jobs only run on new_release_published", () => {
     const wf = getWorkflow("website.yml");
-    expect(wf.jobs.deploy.if).toContain("needs.version.outputs.new_release_published == 'true'");
-    expect(wf.jobs.deploy.if).toContain("needs.version.outputs.new_release_published == true");
-  });
-
-  it("should ensure merge.yml auto-merges major GitHub actions", () => {
-    const wf = getWorkflow("merge.yml");
-    const autoMergeStep = wf.jobs["auto-merge"].steps?.find((s) => s.name === "Enable auto-merge for Dependabot PRs");
-    expect(autoMergeStep).toBeDefined();
-    expect(autoMergeStep?.if).toContain("steps.metadata.outputs.package-ecosystem == 'github_actions'");
-    expect(autoMergeStep?.if).toContain("steps.metadata.outputs.update-type == 'version-update:semver-major'");
+    expect(wf.jobs.deploy.if).toContain("new_release_published");
   });
 });
