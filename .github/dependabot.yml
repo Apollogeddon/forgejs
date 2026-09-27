@@ -6,8 +6,22 @@ updates:
       interval: "daily"
     # Limit open PRs to prevent flooding
     open-pull-requests-limit: 10
-    # Group non-major updates to reduce PR volume
     groups:
+      # These packages must stay on matching versions - group them at any update
+      # type so Dependabot never proposes one half of a pair without the other.
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/coverage-v8"
+      commitlint:
+        patterns:
+          - "@commitlint/cli"
+          - "@commitlint/config-conventional"
+      js-yaml:
+        patterns:
+          - "js-yaml"
+          - "@types/js-yaml"
+      # Group remaining non-major updates to reduce PR volume
       dependencies:
         patterns:
           - "*"
