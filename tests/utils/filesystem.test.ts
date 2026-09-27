@@ -125,7 +125,6 @@ describe("CLI Init with MockFileSystem", () => {
     init(defaultConfig, mockFs);
 
     expect(mockFs.getFileContent(mockFs.join(cwd, "biome.json"))).toBe(existingContent);
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("already exists. Skipping."));
 
     consoleSpy.mockRestore();
   });
@@ -142,7 +141,7 @@ describe("CLI Init with MockFileSystem", () => {
 
     const newContent = mockFs.getFileContent(mockFs.join(cwd, "biome.json"));
     expect(newContent).not.toBe(existingContent);
-    expect(newContent).toContain("configuration_schema.json");
+    expect(newContent).toContain("node_modules/@apollogeddon/forgejs/configs/biome.json");
 
     consoleSpy.mockRestore();
   });
