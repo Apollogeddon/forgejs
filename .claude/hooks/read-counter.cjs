@@ -1,8 +1,11 @@
-// PreToolUse hook (Read|Grep): counts calls per session, nudges toward
-// spawning a Haiku Explore agent past the threshold set in CLAUDE.md.
-const os = require("os");
-const path = require("path");
-const fs = require("fs");
+// PostToolUse hook (Read|Grep|Glob): counts calls per session and, past a threshold,
+// injects a nudge into Claude's context (a plain systemMessage would only reach the user).
+const os = require("node:os");
+const path = require("node:path");
+const fs = require("node:fs");
+
+const WARNING_THRESHOLD = 10;
+const WARNING_INTERVAL = 8;
 
 let input = "";
 process.stdin.on("data", (chunk) => {
@@ -28,12 +31,15 @@ process.stdin.on("end", () => {
 	count += 1;
 	fs.writeFileSync(countFile, String(count));
 
-	const firstWarning = count === 3;
-	const repeatWarning = count > 3 && (count - 3) % 5 === 0;
+	const firstWarning = count === WARNING_THRESHOLD;
+	const repeatWarning = count > WARNING_THRESHOLD && (count - WARNING_THRESHOLD) % WARNING_INTERVAL === 0;
 	if (firstWarning || repeatWarning) {
 		process.stdout.write(
 			JSON.stringify({
-				systemMessage: `Read/Grep call #${count} this session — CLAUDE.md says to delegate multi-file exploration to a Haiku Explore agent instead of reading directly.`,
+				hookSpecificOutput: {
+					hookEventName: "PostToolUse",
+					additionalContext: `Read/Grep/Glob call #${count} this session. If you are still searching rather than working on files you will edit, delegate the rest of the search to an Explore agent.`,
+				},
 			}),
 		);
 	}

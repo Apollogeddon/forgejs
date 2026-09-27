@@ -1,63 +1,18 @@
 # Claude Code Instructions
 
-## Subagent Model Routing
+General working rules (subagent routing, tool use, response style) live in the user-level `~/.claude/CLAUDE.md`. This file is project-specific.
 
-The main conversation (Sonnet) is the **orchestrator only** — it delegates work, synthesises results, and makes edits. It does not do bulk reading or deep planning itself.
+## Reading the codebase
 
-### When to spawn and which model to use
+`src/` is ~1k lines and `tests/` ~800: read what you need directly rather than delegating. Use an `Explore` agent only for `docs/` (a separate Astro package), `node_modules`. Lockfiles, `coverage/`, `dist/` and `junit-report.xml` are denied to `Read` in `settings.json` — use `npm ls <pkg>` to check a resolved version.
 
-| Task type | Model | Subagent type |
-| --- | --- | --- |
-| File reads, searches, grep/glob, log analysis, summarisation | `haiku` | `Explore` |
-| Multi-file codebase exploration | `haiku` | `Explore` |
-| General coding, edits, refactoring, moderate reasoning | `sonnet` (default, no spawn) | — |
-| Architecture decisions, complex multi-file planning | `opus` | `Plan` or `claude` |
-| Security review, deep debugging requiring judgment | `opus` | `claude` |
-| Code review of a PR or branch | `opus` | `claude` |
-
-### Rules
-
-- **Never read more than ~2 files directly** in the main context. If a task requires reading more, spawn a Haiku `Explore` agent. Direct `Read`/`Grep` results land in the main Sonnet context and inflate cache costs on every subsequent turn. This is backed by a `PreToolUse` hook (`.claude/hooks/read-counter.cjs`) that counts `Read`/`Grep` calls per session and warns past the threshold — don't rely on memory alone.
-- **Always spawn Opus for planning** before implementing anything non-trivial. Let Opus produce the plan, then execute it.
-- **Subagent overhead** (~500 tokens cold context) is worth it whenever the agent would read more than a few hundred lines or produce reasoning that would otherwise fill the main context.
-- Specify `model:` explicitly on every `Agent` call — never rely on the default for research or planning tasks. `Explore` and `Plan` are pinned to `haiku`/`opus` via `.claude/agents/Explore.md` and `.claude/agents/Plan.md`, so this is now a backstop, not the only enforcement — but `claude` (used for opus-tier review/security work) has no such override and still needs `model: "opus"` passed explicitly every time.
-
-### Example routing
-
-```text
-# Exploration / research → Haiku
-Agent(subagent_type: "Explore", model: "haiku", prompt: "Find all callers of X and what triggers each call")
-
-# Planning → Opus
-Agent(subagent_type: "Plan", model: "opus", prompt: "Design the fix for <problem>")
-
-# Code review → Opus
-Agent(subagent_type: "claude", model: "opus", prompt: "Review the changes on this branch for correctness")
-
-# Implementation → Sonnet (main context, no spawn needed)
-Edit(...)
-```
-
-## Tool Use
-
-- Prefer dedicated tools (Read, Grep, Glob, Edit) over Bash for file operations.
-- Use Grep/Glob directly for **single targeted lookups** where the result is small (one file, a few lines).
-- For anything broader, spawn a Haiku `Explore` agent — don't dump large files into the main context.
-- Never re-read a file you just edited; trust the edit succeeded.
-- Run independent tool calls in parallel in a single response rather than sequentially.
-
-## Responses
-
-- Keep responses short and direct. No trailing summaries of what was just done.
-- No comments explaining what code does — only add a comment when the *why* is non-obvious.
-- No multi-paragraph docstrings or block comment headers.
-- Do not add error handling, fallbacks, or abstractions beyond what the task requires.
-- Do not suggest follow-up tasks or refactors unless asked.
+A `PostToolUse` hook (`.claude/hooks/read-counter.cjs`) reminds you past 10 Read/Grep/Glob calls in a session.
 
 ## Quality Control
 
-- A `PostToolUse` hook (`.claude/hooks/lint-on-edit.cjs`) runs `biome check --fix` on every file touched by `Edit`/`Write` under `src/**` — instant feedback, not a substitute for the checks below.
-- Before reporting a non-trivial change complete, run `npm run lint && npm run type && npm run test`.
+- A `PostToolUse` hook (`.claude/hooks/lint-on-edit.cjs`) runs `biome check --fix` on every `src/**` file touched by `Edit`/`Write`. Errors it can't fix are returned to you — fix them before moving on.
+- While iterating, run `npm run test:unit` (dot reporter, no coverage, skips the slow real-`npm install` integration test).
+- Before reporting a non-trivial change complete, run `npm run lint && npm run type && npm run test`. Always run the full `npm run test` when a change touches config wiring, dependencies or `extends` paths — only the integration test catches those.
 - Run `/code-review` (medium+) on non-trivial diffs before considering them done; use `/simplify` as a cleanup pass afterward.
 
 ## Architecture
@@ -70,7 +25,13 @@ Generated file *content* lives in `src/templates/*.ts` as plain string/function 
 
 `src/utils/filesystem.ts`'s `IFileSystem` abstraction (`NodeFileSystem` in production, injectable for tests) is what makes `--dry-run` a single code path rather than a parallel one, and lets `tests/index.test.ts` mock the filesystem where needed. `tests/integration.test.ts` is different: it does a *real* `npm install` (pointing the `@apollogeddon/forgejs` devDependency at this repo via `file:`) and runs the real generated scripts — this is the only place that catches wiring bugs like a config `extends`-ing a path nothing ever installs.
 
-## Context Management
+## Change checklist
 
-- Use `/compact` when a session grows long to compress history before continuing.
-- Use `/clear` when switching to an unrelated task rather than carrying stale context forward.
+Adding or changing a CLI flag or feature usually touches all of these — check each one before calling it done:
+
+1. `src/index.ts` — the `parseArgs` option (plus its `no-<x>` negation for standard features) and the help text.
+2. `src/types.ts` — the `InitConfig` field.
+3. `src/features/<feature>.ts` — `shouldRun`/`apply`/`cleanup`; register new features in `src/features/index.ts` in pipeline order.
+4. `src/templates/<name>.ts` — generated content, re-exported from `src/templates/index.ts`; shipped base configs in `configs/` if the generated file `extends` one.
+5. `tests/index.test.ts` (unit, mocked filesystem); `tests/integration.test.ts` if it changes what gets installed or run; `tests/actions.test.ts` for workflow templates.
+6. Docs: `docs/src/content/docs/getting-started.md` (flag reference), `configuration.md`, and `workflows/*.md` for workflow changes.

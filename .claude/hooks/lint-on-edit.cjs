@@ -1,6 +1,9 @@
-// PostToolUse hook (Edit|Write): runs biome check --fix on the touched
-// file for instant feedback, mirroring the repo's `npm run lint` script.
-const { execFileSync } = require("child_process");
+// PostToolUse hook (Edit|Write): runs biome check --fix on a touched src/ file. Unfixable
+// diagnostics exit 2 so they're fed back to Claude (plain stdout only reaches the transcript).
+const { execFileSync } = require("node:child_process");
+const path = require("node:path");
+
+const projectDir = process.env.CLAUDE_PROJECT_DIR || path.resolve(__dirname, "../..");
 
 let input = "";
 process.stdin.on("data", (chunk) => {
@@ -18,11 +21,18 @@ process.stdin.on("end", () => {
 	if (!file || !/\.(ts|tsx|js|jsx|cjs|mjs|json)$/.test(file)) {
 		return;
 	}
+	// biome.json only includes src/**; biome errors on explicitly passed files outside it
+	const relative = path.relative(projectDir, path.resolve(projectDir, file));
+	if (!relative.startsWith(`src${path.sep}`)) {
+		return;
+	}
 
 	try {
-		// shell: true so npx resolves on Windows (npx.cmd isn't found by a direct spawn)
-		execFileSync("npx", ["biome", "check", "--fix", file], { stdio: "inherit", shell: true });
-	} catch {
-		// non-blocking: surface nothing further, biome already printed the issue
+		// run biome's JS entry with this node binary: no npx, no shell, safe with any path
+		const biome = require.resolve("@biomejs/biome/bin/biome", { paths: [projectDir] });
+		execFileSync(process.execPath, [biome, "check", "--fix", relative], { cwd: projectDir, stdio: "pipe" });
+	} catch (err) {
+		process.stderr.write(`${err.stdout ?? ""}${err.stderr ?? ""}` || String(err));
+		process.exit(2);
 	}
 });

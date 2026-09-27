@@ -1,24 +1,22 @@
 {
   "hooks": {
-    "PreToolUse": [
+    "PostToolUse": [
       {
-        "matcher": "Read|Grep",
+        "matcher": "Read|Grep|Glob",
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/read-counter.cjs",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/read-counter.cjs\"",
             "timeout": 10
           }
         ]
-      }
-    ],
-    "PostToolUse": [
+      },
       {
         "matcher": "Edit|Write",
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/lint-on-edit.cjs",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/lint-on-edit.cjs\"",
             "timeout": 30
           }
         ]
@@ -27,9 +25,17 @@
   },
   "permissions": {
     "allow": [
-      "Bash(npm run type *)",
-      "Bash(npm test *)",
-      "Bash(npm run test *)"
+      "Bash(npm run lint*)",
+      "Bash(npm run type*)",
+      "Bash(npm test*)",
+      "Bash(npm run test*)"
+    ],
+    "deny": [
+      "Read(./package-lock.json)",
+      "Read(./docs/package-lock.json)",
+      "Read(./coverage/**)",
+      "Read(./dist/**)",
+      "Read(./junit-report.xml)"
     ]
   }
 }
