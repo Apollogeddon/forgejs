@@ -9,7 +9,7 @@
   <p align="center">
     DevOps Support and Quality Control for modern Node.js projects
     <br />
-    <a href="https://apollogeddon.github.io/forgejs"><strong>Explore the docs »</strong></a>
+    <a href="https://apollogeddon.github.io/forgejs"><strong>Explore the docs</strong></a>
     <br />
     <br />
     <a href="https://apollogeddon.github.io/forgejs/docs/getting-started">Getting Started</a>
@@ -22,7 +22,7 @@
 
 <br />
 
-## 📦 Installation
+## Installation
 
 Install the package as a development dependency:
 
@@ -30,7 +30,7 @@ Install the package as a development dependency:
 npm install --save-dev @apollogeddon/forgejs
 ```
 
-## 🏁 Getting Started
+## Getting Started
 
 To quickly set up your project with the recommended configurations, scripts, and CI workflows, use the `init` command.
 
@@ -40,7 +40,7 @@ npx @apollogeddon/forgejs init [options]
 
 By default, this sets up a **Node.js Backend/Service**. You can specify other modes:
 
-* `--backend` (Default) for Node.js services.
+* `--backend` (default) for Node.js services.
 * `--library` for TypeScript libraries.
 * `--website` for Frontend applications (Vite/Astro).
 
@@ -50,9 +50,9 @@ This command will:
 * **Inject Scripts:** Add `watch`, `start`, `lint`, `test`, and `build` to your `package.json`.
 * **Standardise:** Ensure `type: "module"` is set and development standards are enforced.
 
-## ⚙️ Standardised Stack
+## Standardised Stack
 
-Forge.js enforces a "Gold Standard" stack designed for performance and reliability:
+Forge.js enforces a standardised stack designed for performance and reliability:
 
 | Category | Tool | Description |
 | :--- | :--- | :--- |
@@ -65,11 +65,11 @@ Forge.js enforces a "Gold Standard" stack designed for performance and reliabili
 | **Releases** | [Release Please](https://github.com/googleapis/release-please) | Automated versioning and changelogs via GitHub Actions. |
 | **CI/CD** | [GitHub Actions](https://github.com/features/actions) | Reusable workflows for Testing, Quality, and Releases. |
 
-## 🔄 Tooling & Versioning Strategy
+## Tooling & Versioning Strategy
 
-Forge.js adopts an opinionated "batteries-included" approach.
+Forge.js takes an opinionated, batteries-included approach to tooling.
 
 * **Managed Versions:** This package manages the versions of core tools (Biome, Vitest, Tsup, OSV-Scanner) as dependencies.
 * **Simplified Upgrades:** To upgrade your linter or test runner, simply upgrade `@apollogeddon/forgejs`.
-* **Security First:** We integrate security scanning into the standard workflow to catch vulnerabilities early.
-* **Stability:** We ensure that all tools in the stack work harmoniously together before releasing a new version.
+* **Security First:** Security scanning is integrated into the standard workflow to catch vulnerabilities early.
+* **Stability:** All tools in the stack are verified to work together before a new version is released.
