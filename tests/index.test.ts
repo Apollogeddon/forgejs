@@ -244,8 +244,6 @@ describe("CLI Init Command", () => {
     const updatedPackageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
 
     expect(updatedPackageJson.scripts.build).toBe("tsup");
-
-    // Non-conflicting script should be preserved
     expect(updatedPackageJson.scripts.custom).toBe("echo custom");
   });
 
