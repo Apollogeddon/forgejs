@@ -10,8 +10,7 @@
     "lint": "npm run lint:ts && npm run lint:md",
     "type": "astro sync && tsc --noEmit",
     "build": "astro build",
-    "preview": "astro preview",
-    "prepare": "lefthook install || exit 0"
+    "preview": "astro preview"
   },
   "dependencies": {
     "astro": "6.3.7",
