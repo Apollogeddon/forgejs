@@ -7,6 +7,8 @@ import * as yaml from "js-yaml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 const CLI_SCRIPT = path.resolve(__dirname, "../src/index.ts");
+// Generated index.yml calls these reusable workflows at @main; this repo is what @main serves
+const REPO_WORKFLOWS = path.resolve(__dirname, "../.github/workflows");
 
 // Invoking the local tsx binary directly, rather than `npx tsx` from an unrelated tempDir cwd,
 // avoids npx re-resolving/installing tsx per call - a source of npm cache races under CI parallelism.
@@ -163,6 +165,12 @@ describe("CLI Init Command", () => {
     const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
     expect(packageJson.scripts["docker:build"]).toBeDefined();
     expect(packageJson.scripts["docker:run"]).toBeDefined();
+
+    const dockerfile = fs.readFileSync(path.join(tempDir, "Dockerfile"), "utf-8");
+    // compiled once on the build host, but production deps installed per target platform
+    expect(dockerfile).toMatch(/^FROM --platform=\$BUILDPLATFORM node:22-slim AS build$/m);
+    expect(dockerfile).toMatch(/^FROM node:22-slim AS deps$/m);
+    expect(dockerfile).toContain("USER node");
   });
 
   it("should support --website flag", () => {
@@ -237,7 +245,7 @@ describe("CLI Init Command", () => {
 
     expect(updatedPackageJson.scripts.build).toBe("tsup");
 
-    // Non-conflicting script should be preserved (because ...packageJson.scripts is merged in)
+    // Non-conflicting script should be preserved
     expect(updatedPackageJson.scripts.custom).toBe("echo custom");
   });
 
@@ -263,14 +271,6 @@ describe("CLI Init Command", () => {
     expect(content).toContain("npm ci");
   });
 
-  it("should generate a non-root node Dockerfile for --backend --docker", () => {
-    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend --docker`, { cwd: tempDir });
-    expect(fs.existsSync(path.join(tempDir, "Dockerfile"))).toBe(true);
-    const content = fs.readFileSync(path.join(tempDir, "Dockerfile"), "utf-8");
-    expect(content).toContain("USER node");
-    expect(content).toContain("npm ci");
-  });
-
   it.each([
     ["--backend", "service"],
     ["--website", "website"],
@@ -289,10 +289,35 @@ describe("CLI Init Command", () => {
     expect(Object.keys(readGeneratedWorkflow(tempDir).jobs)).toEqual(["service"]);
   });
 
-  it("should build platform-independent stages on the build host", () => {
-    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend --docker`, { cwd: tempDir });
-    const content = fs.readFileSync(path.join(tempDir, "Dockerfile"), "utf-8");
-    expect(content).toContain("FROM --platform=$BUILDPLATFORM");
+  it.each([
+    ["--no-testing", "run_tests"],
+    ["--no-version", "enable_versioning"],
+  ])("should switch off the matching pipeline step for %s", (flag, input) => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${flag}`, { cwd: tempDir });
+    expect(readGeneratedWorkflow(tempDir).jobs.service.with?.[input]).toBe(false);
+  });
+
+  it.each([
+    "--backend",
+    "--library",
+    "--website",
+    "--debian",
+    "--backend --docker --no-testing --no-version",
+    "--library --no-testing --no-version",
+    "--website --docker --no-testing --no-version",
+    "--debian --docker --no-testing --no-version",
+  ])("should only pass inputs the called workflows declare (%s)", (flags) => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${flags}`, { cwd: tempDir });
+    for (const [name, job] of Object.entries(readGeneratedWorkflow(tempDir).jobs)) {
+      const callee = path.basename(String(job.uses).split("@")[0]);
+      const workflow = yaml.load(fs.readFileSync(path.join(REPO_WORKFLOWS, callee), "utf-8")) as {
+        on: { workflow_call: { inputs?: Record<string, unknown> } };
+      };
+      const declared = Object.keys(workflow.on.workflow_call.inputs ?? {});
+      for (const input of Object.keys(job.with ?? {})) {
+        expect(declared, `${name} passes undeclared input '${input}' to ${callee}`).toContain(input);
+      }
+    }
   });
 
   it("should fail when using --website with --debian", () => {
