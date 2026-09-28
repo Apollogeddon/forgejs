@@ -53,6 +53,7 @@ jobs:
         with:
           node-version: ${{ inputs.node_version }}
           cache: 'npm'
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
           registry-url: 'https://npm.pkg.github.com'
           scope: "@${{ github.repository_owner }}"
       - name: Install dependencies
@@ -66,7 +67,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: coverage
+          name: coverage-${{ inputs.artifact_name }}
           path: ${{ inputs.working_directory }}/coverage
           if-no-files-found: ignore
 
@@ -83,6 +84,7 @@ jobs:
         with:
           node-version: ${{ inputs.node_version }}
           cache: 'npm'
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
           registry-url: 'https://npm.pkg.github.com'
           scope: "@${{ github.repository_owner }}"
       - name: Install dependencies
@@ -119,6 +121,7 @@ jobs:
         with:
           node-version: ${{ inputs.node_version }}
           cache: 'npm'
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
           registry-url: 'https://npm.pkg.github.com'
           scope: "@${{ github.repository_owner }}"
       - name: OSV Scanner Fix

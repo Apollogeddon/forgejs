@@ -19,6 +19,14 @@ on:
         required: false
         type: boolean
         default: true
+      run_tests:
+        required: false
+        type: boolean
+        default: true
+      enable_versioning:
+        required: false
+        type: boolean
+        default: true
       build_env_vars:
         required: false
         type: string
@@ -54,9 +62,11 @@ jobs:
       enable_secrets: ${{ inputs.enable_secrets }}
       auto_patch: ${{ inputs.auto_patch }}
       build_env_vars: ${{ inputs.build_env_vars }}
+      run_tests: ${{ inputs.run_tests }}
       artifact_name: ${{ inputs.artifact_name }}
 
   version:
+    if: inputs.enable_versioning
     uses: ./.github/workflows/version.yml
     needs: [testing]
     with:
@@ -81,6 +91,7 @@ jobs:
         with:
           node-version: ${{ inputs.node_version }}
           cache: 'npm'
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
           registry-url: 'https://npm.pkg.github.com'
           scope: "@${{ github.repository_owner }}"
       - name: Install dependencies
