@@ -49,7 +49,10 @@ function runExpectingFailure(args: string, cwd: string): string {
 const DEFAULT_SCRIPTS = ["watch", "start", "lint", "security", "type", "build", "test", "prepare"];
 
 type GeneratedWorkflow = {
-  jobs: Record<string, { with?: Record<string, unknown>; permissions?: Record<string, string> }>;
+  jobs: Record<
+    string,
+    { uses?: string; needs?: string; with?: Record<string, unknown>; permissions?: Record<string, string> }
+  >;
 };
 
 function readGeneratedWorkflow(cwd: string): GeneratedWorkflow {
@@ -272,18 +275,18 @@ describe("CLI Init Command", () => {
     ["--backend", "service"],
     ["--website", "website"],
     ["--debian", "debian"],
-  ])("should enable the docker pipeline input for %s --docker", (mode, job) => {
+  ])("should add a docker job after the pipeline for %s --docker", (mode, pipeline) => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${mode} --docker`, { cwd: tempDir });
-    const workflow = readGeneratedWorkflow(tempDir);
-    expect(workflow.jobs[job].with?.docker).toBe(true);
-    expect(workflow.jobs[job].permissions?.packages).toBe("write");
+    const docker = readGeneratedWorkflow(tempDir).jobs.docker;
+    expect(docker.uses).toContain("/docker.yml@");
+    expect(docker.needs).toBe(pipeline);
+    expect(docker.permissions?.packages).toBe("write");
+    expect(String(docker.with?.version)).toContain(`needs.${pipeline}.outputs.version`);
   });
 
-  it("should leave the docker pipeline input off without --docker", () => {
+  it("should not add a docker job without --docker", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
-    const workflow = readGeneratedWorkflow(tempDir);
-    expect(workflow.jobs.service.with?.docker).toBeUndefined();
-    expect(workflow.jobs.service.permissions?.packages).toBeUndefined();
+    expect(Object.keys(readGeneratedWorkflow(tempDir).jobs)).toEqual(["service"]);
   });
 
   it("should build platform-independent stages on the build host", () => {

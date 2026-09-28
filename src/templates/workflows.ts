@@ -86,10 +86,23 @@ jobs:
     secrets: inherit
 `;
 
-// Docker is an add-on to any non-library pipeline, so it's layered onto the mode's template.
-// packages: write lets the reusable docker.yml push to GHCR with the caller's token.
+// Docker is a separate job rather than part of the shared pipelines so projects without it
+// don't carry a permanently skipped job; it runs after the pipeline and pushes on release.
 export function withDocker(workflow: string): string {
-  return workflow
-    .replace("      pull-requests: write\n", "      pull-requests: write\n      packages: write\n")
-    .replace("    with:\n", "    with:\n      docker: true\n");
+  const pipeline = workflow.match(/^jobs:\n {2}([\w-]+):/m)?.[1];
+  if (!pipeline) {
+    throw new Error("withDocker: workflow has no pipeline job");
+  }
+  return `${workflow}
+  docker:
+    needs: ${pipeline}
+    uses: apollogeddon/forgejs/.github/workflows/docker.yml@main
+    permissions:
+      contents: read
+      packages: write
+    with:
+      push: \${{ github.ref == 'refs/heads/main' && needs.${pipeline}.outputs.new_release_published == 'true' }}
+      version: \${{ needs.${pipeline}.outputs.version }}
+    secrets: inherit
+`;
 }
