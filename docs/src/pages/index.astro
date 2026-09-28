@@ -24,7 +24,7 @@ const features = [
   },
   {
     title: "Automated Releases",
-    body: "Semantic Release pipelines handle versioning, changelogs, and publishing deterministically from commit history.",
+    body: "release-please pipelines handle versioning, changelogs, and publishing deterministically from commit history.",
     icon: "tag",
   },
 ];
@@ -58,7 +58,7 @@ const tools = [
   { name: "Tsup", lang: "Go", replaces: "Webpack, Rollup, Babel" },
   { name: "Vitest", lang: "JS", replaces: "Jest, Mocha" },
   { name: "Lefthook", lang: "Go", replaces: "Husky, lint-staged" },
-  { name: "Semantic Release", lang: "JS", replaces: "Manual tagging" },
+  { name: "release-please", lang: "JS", replaces: "Manual tagging" },
   { name: "Commitlint", lang: "JS", replaces: "Manual commit review" },
   { name: "Publint", lang: "JS", replaces: "Manual export checks" },
   { name: "Snodeb", lang: "JS", replaces: "pkg, nexe" },
@@ -104,7 +104,7 @@ const langChip: Record<string, string> = {
 
       <p class="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-zinc-400">
         Reusable GitHub Actions workflows and tooling configurations for
-        TypeScript and Node.js. Centralise 15+ configs and scaffold projects
+        TypeScript and Node.js. Centralise your Biome, TypeScript and Vitest setup and scaffold projects
         with a single command.
       </p>
 

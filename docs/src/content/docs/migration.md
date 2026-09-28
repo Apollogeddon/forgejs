@@ -21,7 +21,7 @@ Remove configuration files for tools replaced by this library to prevent conflic
 
 - **Remove ESLint & Prettier:** `rm .eslintrc* .prettierrc* .eslintignore .prettierignore`
 - **Remove Jest:** `rm jest.config.*`
-- **Remove Semantic Release (local):** `rm .releaserc` (if replacing with the extended JSON)
+- **Remove semantic-release (if used):** `rm .releaserc*` — releases are handled by release-please in CI.
 
 ### 3. Update Dependencies
 

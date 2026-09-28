@@ -8,14 +8,40 @@ This repository utilizes a strict set of tools to ensure code quality and standa
 > **Note**
 > This project utilises a `.editorconfig` file. Ensure the IDE is configured to respect these settings (indentation, line endings, etc.) to maintain consistency across the codebase.
 
+## Development Setup
+
+```bash
+git clone https://github.com/Apollogeddon/forgejs
+cd forgejs
+npm install
+```
+
+`npm install` also installs the Lefthook Git hooks. Installing `@apollogeddon` packages needs a GitHub token with `read:packages` in your `.npmrc`.
+
 ## Quality Control Tools
 
-The project relies on several tools to maintain quality standards:
+| Script | What it runs |
+| :--- | :--- |
+| `npm run lint` | Biome lint and format with fixes |
+| `npm run type` | TypeScript type checking |
+| `npm run test` | The full Vitest suite, including the end-to-end tests |
+| `npm run test:unit` | Unit tests only — dot reporter, no coverage, skips the end-to-end tests |
+| `npm run publint` | Package export validation |
 
-- **Lefthook**: Manages Git hooks to run checks before commits.
-- **Commitlint**: Ensures commit messages follow the Conventional Commits specification.
-- **Biome**: Handles linting and formatting.
-- **Publint**: Validates package integrity and exports before release.
+Run `lint`, `type` and `test` before opening a pull request.
+
+> **Note**
+> The end-to-end tests (`tests/integration.test.ts`) scaffold real projects, run `npm install`, and execute every generated script. They are the only tests that catch wiring bugs such as a config extending a path nothing installs, so run the full `npm run test` for changes to templates, dependencies or the shared configs.
+
+## Documentation
+
+This site lives in `docs/` as its own npm project, built with Astro:
+
+```bash
+cd docs
+npm install
+npm run dev     # live preview at http://localhost:4321/forgejs/
+```
 
 ## Conventional Commits
 
