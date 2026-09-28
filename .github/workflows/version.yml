@@ -29,9 +29,6 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    defaults:
-      run:
-        working-directory: ${{ inputs.working_directory }}
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       releases_created: ${{ steps.release.outputs.releases_created }}
@@ -42,4 +39,6 @@ jobs:
         id: release
         with:
           release-type: node
+          # empty means the repository root
+          path: ${{ inputs.working_directory != '.' && inputs.working_directory || '' }}
           token: ${{ secrets.GITHUB_TOKEN }}
