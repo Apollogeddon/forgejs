@@ -9,24 +9,25 @@ Solutions for common requirements and configuration patterns.
 
 ### Ignoring Files in Biome
 
-To maintain inheritance from the shared configuration while ignoring specific paths (such as generated code or artifacts), use the `files.ignore` array in `biome.json`.
+Biome 2 selects files with `files.includes`; prefix a pattern with `!` to exclude it. Keep `extends` so the shared rules still apply:
 
 ```json
 {
-  "extends": ["node_modules/@apollogeddon/forgejs/biome.json"],
+  "$schema": "node_modules/@biomejs/biome/configuration_schema.json",
+  "extends": ["node_modules/@apollogeddon/forgejs/configs/biome.json"],
   "files": {
-    "ignore": ["src/generated/**", "**/*.d.ts", "public/**"]
+    "includes": ["**", "!src/generated/**", "!public/**"]
   }
 }
 ```
 
 ### Enforcing Coverage Thresholds
 
-Vitest can enforce code coverage requirements during the test run. Configure the `coverage` object in `vitest.config.ts` to fail the build if thresholds are not met.
+Configure `coverage.thresholds` in `vitest.config.ts` to fail the run when coverage drops:
 
 ```ts
-import { mergeConfig } from 'vitest/config';
-import baseConfig from '@apollogeddon/forgejs/vitest.config.cjs';
+import baseConfig from "@apollogeddon/forgejs/vitest.config.cjs";
+import { mergeConfig } from "vitest/config";
 
 export default mergeConfig(baseConfig, {
   test: {
@@ -35,77 +36,31 @@ export default mergeConfig(baseConfig, {
         lines: 80,
         functions: 80,
         branches: 80,
-        statements: 80
-      }
-    }
-  }
+        statements: 80,
+      },
+    },
+  },
 });
 ```
 
 ### Multiple Entry Points (Tsup)
 
-For libraries that export multiple sub-modules (e.g., `import { util } from 'my-lib/util'`), configure Tsup to generate multiple entry points.
+For libraries that export sub-modules (e.g. `import { util } from "my-lib/util"`), give Tsup several entry points:
 
 ```ts
-import { defineConfig } from "tsup";
 import baseConfig from "@apollogeddon/forgejs/tsup.config.cjs";
+import { defineConfig } from "tsup";
 
 export default defineConfig({
   ...baseConfig,
-  entry: [
-    "src/index.ts",
-    "src/utils.ts",
-    "src/components/index.ts"
-  ],
-  splitting: true
+  entry: ["src/index.ts", "src/utils.ts", "src/components/index.ts"],
+  splitting: true,
 });
 ```
 
-### Lefthook: Linting Staged Files
+### Adding Your Own Scripts
 
-To improve commit speed, configure Lefthook to run linting only on changed (staged) files.
-
-```yml
-pre-commit:
-  parallel: true
-  commands:
-    lint:
-      glob: "*.{js,ts,jsx,tsx,json}"
-      run: npx @biomejs/biome check --apply {staged_files} && git add {staged_files}
-```
-
-## Workflow Patterns
-
-### Monorepo Execution
-
-The workflows support monorepo structures via the `working_directory` input.
-
-```yaml
-jobs:
-  test-ui:
-    uses: apollogeddon/forgejs/.github/workflows/testing.yml@main
-    with:
-      working_directory: './packages/ui'
-```
-
-### Testing Across Node Versions
-
-Use a build matrix strategy to validate compatibility across multiple Node.js versions.
-
-```yaml
-jobs:
-  test:
-    strategy:
-      matrix:
-        node: ['18', '20', '22']
-    uses: apollogeddon/forgejs/.github/workflows/testing.yml@main
-    with:
-      node_version: ${{ matrix.node }}
-```
-
-### Custom Build Steps
-
-For projects requiring code generation (e.g., Prisma, GraphQL Codegen) prior to compilation, use a `prebuild` script in `package.json`. NPM automatically executes this script before `npm run build`.
+Add scripts alongside the generated ones. npm runs a `pre<script>` hook automatically, which suits code generation before a build:
 
 ```json
 {
@@ -114,4 +69,70 @@ For projects requiring code generation (e.g., Prisma, GraphQL Codegen) prior to 
     "build": "tsup"
   }
 }
+```
+
+Forge.js never removes scripts it didn't create.
+
+## Workflow Patterns
+
+### Monorepo Execution
+
+Point a workflow at a sub-directory with `working_directory`:
+
+```yaml
+jobs:
+  api:
+    uses: apollogeddon/forgejs/.github/workflows/service.yml@main
+    permissions:
+      contents: write
+      pull-requests: write
+    with:
+      working_directory: 'packages/api'
+      node_version: '22'
+    secrets: inherit
+```
+
+### Testing Across Node Versions
+
+Call `testing.yml` from a matrix to run the quality and test jobs on several Node.js versions:
+
+```yaml
+jobs:
+  test:
+    strategy:
+      matrix:
+        node: ['22', '24']
+    uses: apollogeddon/forgejs/.github/workflows/testing.yml@main
+    with:
+      node_version: ${{ matrix.node }}
+```
+
+### Build-Time Environment Variables
+
+Pass `build_env_vars` to write variables into `.env` before the build — useful for public API keys a static site needs at build time:
+
+```yaml
+jobs:
+  website:
+    uses: apollogeddon/forgejs/.github/workflows/website.yml@main
+    with:
+      build_env_vars: "PUBLIC_API_URL=${{ vars.PUBLIC_API_URL }}"
+```
+
+### Building Docker Images for More Platforms
+
+With `--docker`, CI builds `linux/amd64` and `linux/arm64`. Add platforms with `docker_platforms`:
+
+```yaml
+jobs:
+  service:
+    uses: apollogeddon/forgejs/.github/workflows/service.yml@main
+    permissions:
+      contents: write
+      pull-requests: write
+      packages: write
+    with:
+      docker: true
+      docker_platforms: 'linux/amd64,linux/arm64,linux/arm/v7'
+    secrets: inherit
 ```

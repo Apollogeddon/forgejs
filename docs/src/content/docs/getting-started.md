@@ -8,6 +8,8 @@ Forge.js provides **tooling configurations** and **GitHub Actions workflows** fo
 ## Requirements
 
 - **Node.js** >= 22
+- Access to GitHub Packages, where `@apollogeddon/forgejs` is published — a token with `read:packages` in your `.npmrc`.
+- Git, for the generated Lefthook hooks.
 
 ## Setup Guide
 
@@ -21,112 +23,94 @@ npm install --save-dev @apollogeddon/forgejs
 
 ### 2. Initialisation
 
-Use the included CLI to bootstrap the project with recommended configurations.
+Run `init` in an existing project, or in an empty directory to start a new one:
 
 ```bash
-npx @apollogeddon/forgejs init
+npx @apollogeddon/forgejs init            # Node.js service/application (default)
+npx @apollogeddon/forgejs init --library  # publishable TypeScript library
+npx @apollogeddon/forgejs init --website  # frontend website (Vite)
 ```
 
-The command performs the following actions:
+Then install dependencies, which also installs the Git hooks through the `prepare` script:
 
-- Creates configuration files (`biome.json`, `vitest.config.ts`, `lefthook.yml`, `tsconfig.json`, etc.) if absent.
-- Sets `type: "module"` in `package.json`.
-- Injects standard scripts into `package.json`.
+```bash
+npm install
+```
+
+`init` is safe to re-run. It creates missing files and scripts, sets `type: "module"` in `package.json`, and leaves anything that already exists alone.
 
 ### 3. Advanced: Overwriting Files
 
-To overwrite existing configuration files with the library defaults, use the `--force` flag:
+Pass `--force` to overwrite existing config files and scripts with the Forge.js defaults:
 
 ```bash
 npx @apollogeddon/forgejs init --force
 ```
 
+`--force` never touches your own source code: the starter `src/index.ts` (and `index.html` and `src/main.ts` for websites) are only ever created when missing. Use `--dry-run` first to see exactly what would change.
+
 ## Injected Scripts
 
-Scripts vary by mode. The following are injected for **backend** and **library** modes:
+Forge.js adds scripts to `package.json`. Run them with `npm run <script>`.
 
-| Script | Command | Description |
+| Script | Command | Added when |
 | :--- | :--- | :--- |
-| `lint` | `biome check --fix` | Lints and formats code with Biome. |
-| `security` | `osv-scanner scan -r .` | Scans for known vulnerabilities. |
-| `type` | `tsc --noEmit` | Runs TypeScript type checking. |
-| `watch` | `tsx watch src/index.ts` | Watches source for changes during development. |
-| `start` | `node dist/index.js` | Runs the compiled application. |
-| `build` | `tsup` | Bundles the project with Tsup. |
-| `test` | `vitest run` | Runs unit tests once. |
-| `prepare` | `lefthook install` | Installs Git hooks. |
+| `lint` | `biome check --fix` | linting on |
+| `security` | `osv-scanner scan -r .` | linting on |
+| `prepare` | `lefthook install` | linting on |
+| `type` | `tsc --noEmit` | always |
+| `test` | `vitest run` | testing on |
+| `build` | `tsup` (`vite build` for websites) | always |
+| `start` | `node dist/index.js` | `--backend`, `--library` |
+| `watch` | `tsx watch src/index.ts` | `--backend`, `--library` |
+| `publint` | `publint` | `--library` |
+| `dev` | `vite` | `--website` |
+| `preview` | `vite preview` | `--website` |
+| `docker:build` / `docker:run` | `docker build` / `docker run` for the project image | `--docker` |
+| `build:deb` | `snodeb` | `--debian` |
 
-**Library mode** additionally injects:
-
-| Script | Command | Description |
-| :--- | :--- | :--- |
-| `publint` | `publint` | Validates package exports for compatibility. |
-
-**Website mode** replaces the build/run scripts with:
-
-| Script | Command | Description |
-| :--- | :--- | :--- |
-| `dev` | `vite` | Starts the Vite development server. |
-| `build` | `vite build` | Builds for production. |
-| `preview` | `vite preview` | Previews the production build. |
-
-**Optional scripts** injected by feature flags:
-
-| Script | Flag | Command |
-| :--- | :--- | :--- |
-| `docker:build` | `--docker` | `docker build -t {name} .` |
-| `docker:run` | `--docker` | `docker run -p 3000:3000 {name}` |
-| `build:deb` | `--debian` | `snodeb` |
+Existing scripts with the same name are kept unless you pass `--force`.
 
 ## CLI Options
 
 ```text
-Usage: npx @apollogeddon/forgejs init [options]
-
-Modes (Default is --backend):
-  --backend   Setup for Node.js backend/service [Default]
-  --library   Setup for TypeScript library
-  --website   Setup for Frontend website (Vite/Astro)
-
-Standard Features (Enabled by default):
-  --testing   Setup Testing (vitest)
-  --version   Setup Versioning (commitlint)
-  --linting   Setup Linting & Formatting (biome, lefthook)
-
-Optional Features:
-  --docker    Setup Docker configuration
-  --debian    Setup Debian packaging (snodeb)
-
-Options:
-  --all       Enable all standard features [Default]
-  --force     Overwrite existing files (and enforce script standards)
-  --dry-run   Simulate the process without making changes
-  --help      Show this help message
+npx @apollogeddon/forgejs init [options]
 ```
 
-**Validation rules:**
+| Option | Description |
+| :--- | :--- |
+| `--backend` | Node.js service/application (default). |
+| `--library` | Publishable TypeScript library. |
+| `--website` | Frontend website built with Vite. |
+| `--testing` / `--no-testing` | Vitest (default: on). |
+| `--linting` / `--no-linting` | Biome + Lefthook (default: on). |
+| `--version` / `--no-version` | release-please + commitlint (default: on). |
+| `--all` / `--no-all` | Enable or disable every standard feature at once; an explicit flag such as `--testing` still wins. |
+| `--docker` | Add a `Dockerfile` and container CI (not available for `--library`). |
+| `--debian` | Add Snodeb `.deb` packaging (not available for `--library` or `--website`). |
+| `--force` | Overwrite existing config files and scripts. |
+| `--dry-run` | Show what would change without writing anything. |
+| `--help` | Show the help message. |
 
-- Only one mode may be active at a time.
-- `--docker` and `--debian` are not available in `--library` mode.
-- `--debian` is not available in `--website` mode.
+Only one mode may be active at a time.
 
 ## Project Structure
 
-A standard backend project adheres to the following structure:
+A default `init` (backend) produces:
 
 ```text
-.github/
-  workflows/
-    index.yml
-src/
-  index.ts
-tests/
-  index.test.ts
-biome.json
-commitlint.config.ts
-lefthook.yml
-package.json
-tsconfig.json
-tsup.config.ts
-vitest.config.ts
+.
+├── .github/
+│   └── workflows/index.yml   # CI/CD calling the reusable workflows
+├── src/
+│   └── index.ts
+├── biome.json                # extends the Forge.js Biome config
+├── commitlint.config.ts      # extends the Forge.js commitlint config
+├── lefthook.yml
+├── package.json              # type: module, scripts, @apollogeddon/forgejs devDependency
+├── tsconfig.json             # extends the Forge.js tsconfig
+├── tsup.config.ts            # extends the Forge.js Tsup config
+└── vitest.config.ts          # merges the Forge.js Vitest config
 ```
+
+`--website` replaces `tsup.config.ts` with `vite.config.ts` and adds `index.html` and `src/main.ts`. `--docker` adds `Dockerfile` and `.dockerignore`, and `--debian` adds `snodeb.config.cjs`.
