@@ -25,11 +25,13 @@ describe("GitHub Actions Workflows YAML Syntax", () => {
 });
 
 interface Workflow {
+  on?: { workflow_call?: { inputs?: Record<string, unknown> } };
   jobs: Record<
     string,
     {
       if?: string;
       uses?: string;
+      with?: Record<string, unknown>;
       secrets?: string;
       steps?: Array<{
         name?: string;
@@ -59,5 +61,25 @@ describe("GitHub Actions Job Conditions", () => {
   it("should ensure website.yml jobs only run on new_release_published", () => {
     const wf = getWorkflow("website.yml");
     expect(wf.jobs.deploy.if).toContain("new_release_published");
+  });
+});
+
+describe("Reusable workflow wiring", () => {
+  const load = (file: string) =>
+    yaml.load(fs.readFileSync(path.join(workflowsDir, file), "utf-8")) as unknown as Workflow;
+  const workflowFiles = fs.readdirSync(workflowsDir).filter((file) => file.endsWith(".yml"));
+
+  workflowFiles.forEach((file) => {
+    it(`should only call existing local workflows with declared inputs from ${file}`, () => {
+      for (const [name, job] of Object.entries(load(file).jobs ?? {})) {
+        if (!job.uses?.startsWith("./.github/workflows/")) continue;
+        const callee = path.basename(job.uses);
+        expect(fs.existsSync(path.join(workflowsDir, callee)), `${file}:${name} calls missing ${callee}`).toBe(true);
+        const declared = Object.keys(load(callee).on?.workflow_call?.inputs ?? {});
+        for (const input of Object.keys(job.with ?? {})) {
+          expect(declared, `${file}:${name} passes undeclared input '${input}' to ${callee}`).toContain(input);
+        }
+      }
+    });
   });
 });
