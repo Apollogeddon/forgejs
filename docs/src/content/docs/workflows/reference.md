@@ -40,7 +40,7 @@ The workflows follow a modular design. The logical progression from code change 
 
 ## service.yml
 
-*Orchestrates the full pipeline for backend and website projects.*
+*Orchestrates the full pipeline for backend projects.*
 
 1. Calls → `testing.yml` to validate and build the project.
 2. Calls → `version.yml` to trigger a release on the main branch. *(Needs: testing)*
@@ -68,7 +68,11 @@ The workflows follow a modular design. The logical progression from code change 
 
 ## website.yml
 
-*Deploys to GitHub Pages.*
+*Orchestrates the full pipeline for website projects and deploys to GitHub Pages.*
 
-1. Calls → `version.yml` to check if a new release was published.
-2. **`deploy`** — Downloads the build artifact and deploys to GitHub Pages. Only runs when a new release is published on the main branch. *(Needs: version)*
+1. Calls → `testing.yml` to validate and build the site. Pass `run_tests: false` for sites without tests.
+2. Calls → `merge.yml` to auto-merge Dependabot PRs once testing passes. Disable with `auto_merge: false`. *(Needs: testing)*
+3. Calls → `version.yml` to check if a new release was published. Skip with `enable_versioning: false`. *(Needs: testing)*
+4. **`deploy`** — Downloads the build artifact and deploys to GitHub Pages. Runs on the main branch only, and when versioning is enabled, only when a new release is published. *(Needs: testing, version)*
+
+`website.yml` was a deploy-only step before v3. Callers that ran `testing.yml` themselves and passed in a prebuilt artifact should now call `website.yml` alone.

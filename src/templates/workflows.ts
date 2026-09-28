@@ -52,15 +52,8 @@ on:
     branches: ["main"]
 
 jobs:
-  auto-merge:
-    uses: apollogeddon/forgejs/.github/workflows/merge.yml@main
-    permissions:
-      contents: write
-      pull-requests: write
-    secrets: inherit
-
   website:
-    uses: apollogeddon/forgejs/.github/workflows/.pages.yml@main
+    uses: apollogeddon/forgejs/.github/workflows/website.yml@main
     permissions:
       contents: write
       pages: write
