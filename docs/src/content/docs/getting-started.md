@@ -92,7 +92,7 @@ npx @apollogeddon/forgejs init [options]
 | `--dry-run` | Show what would change without writing anything. |
 | `--help` | Show the help message. |
 
-Only one mode may be active at a time.
+Only one mode may be active at a time. `--no-testing` and `--no-version` also switch off the matching step in the generated CI workflow.
 
 ## Project Structure
 
