@@ -70,7 +70,7 @@ Forge.js enforces a standardised stack designed for performance and reliability:
 
 Forge.js takes an opinionated, batteries-included approach to tooling.
 
-* **Managed Versions:** This package manages the versions of core tools (Biome, Vitest, Tsup, OSV-Scanner) as dependencies.
+* **Managed Versions:** This package manages the versions of core tools (Biome, Vitest, Tsup) as dependencies. OSV-Scanner runs as a system binary in CI.
 * **Simplified Upgrades:** To upgrade your linter or test runner, simply upgrade `@apollogeddon/forgejs`.
 * **Security First:** Security scanning is integrated into the standard workflow to catch vulnerabilities early.
 * **Stability:** All tools in the stack are verified to work together before a new version is released.

@@ -33,6 +33,7 @@ jobs:
     uses: apollogeddon/forgejs/.github/workflows/service.yml@main
     permissions:
       contents: write
+      packages: read
       pull-requests: write
     with:
       node_version: '22'
@@ -65,6 +66,7 @@ jobs:
     uses: apollogeddon/forgejs/.github/workflows/website.yml@main
     permissions:
       contents: write
+      packages: read
       pages: write
       id-token: write
       pull-requests: write
@@ -101,9 +103,11 @@ jobs:
 | `node_version` | `'22'` | Node.js version for every job |
 | `working_directory` | `'.'` | Directory containing `package.json` |
 | `enable_secrets` | `true` | Run the Gitleaks secret scan |
-| `artifact_name` | `'dist'` | Name of the build artifact passed between jobs |
+| `artifact_name` | `'dist'` | Name of the build artifact passed between jobs (`library.yml`, `debian.yml`, `website.yml`) |
 | `auto_patch` | `true` | On `main`, run `osv-scanner fix` and commit any dependency security patches |
 | `build_env_vars` | `''` | Lines written to `.env` before the build |
+| `run_tests` | `true` | Run the Vitest suite — `init --no-testing` sets it to `false` |
+| `enable_versioning` | `true` | Run release-please — `init --no-version` sets it to `false` |
 
 ## Common Secrets
 
@@ -115,6 +119,7 @@ Pass `secrets: inherit` so the workflows can use the repository's `GITHUB_TOKEN`
 | :--- | :--- |
 | `contents: write` | release-please tags and releases, security patch commits |
 | `pull-requests: write` | release PRs and Dependabot auto-merge |
+| `packages: read` | Installing `@apollogeddon` packages from GitHub Packages (service, website, Debian) |
 | `packages: write` | Publishing to GitHub Packages (library) and pushing Docker images to GHCR (the `docker` job) |
 | `id-token: write` | GitHub Pages (website) |
 | `pages: write` | GitHub Pages deployment (website) |

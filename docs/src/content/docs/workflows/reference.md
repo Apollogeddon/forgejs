@@ -27,7 +27,7 @@ Dependabot pull requests are auto-merged by `merge.yml` once testing passes.
 *The full QA suite.*
 
 1. Calls → `quality.yml`.
-2. **`testing`** — Runs the Vitest suite (skip with `run_tests: false`) and uploads the coverage report. *(Needs: quality)*
+2. **`testing`** — Runs the Vitest suite (skip with `run_tests: false`) and uploads the coverage report as `coverage-<artifact_name>`. *(Needs: quality)*
 3. **`build`** — Writes `build_env_vars` to `.env`, runs the build, and uploads the result as the `artifact_name` artifact. *(Needs: quality, testing)*
 4. **`patch`** — On `main` with `auto_patch` enabled, runs `osv-scanner fix` against `package-lock.json` and commits any security patches. *(Needs: quality, testing, build)*
 
@@ -35,7 +35,7 @@ Dependabot pull requests are auto-merged by `merge.yml` once testing passes.
 
 *Manages the release lifecycle.*
 
-1. **`release-please`** — On the main branch, opens or updates the release PR from Conventional Commits, and creates the tag and GitHub release when it merges.
+1. **`release-please`** — On the main branch, opens or updates the release PR from Conventional Commits, and creates the tag and GitHub release when it merges. A `working_directory` other than `.` becomes release-please's `path`, so a package in a monorepo is versioned on its own.
 
 Outputs `new_release_published`, `version` and `tag_name` for the delivery jobs.
 
@@ -51,7 +51,9 @@ Outputs `new_release_published`, `version` and `tag_name` for the delivery jobs.
 
 1. Calls → `testing.yml` to validate and build the project.
 2. Calls → `merge.yml` to auto-merge Dependabot PRs once testing passes. *(Needs: testing)*
-3. Calls → `version.yml` to trigger a release on the main branch. *(Needs: testing)*
+3. Calls → `version.yml` to trigger a release on the main branch. Skip with `enable_versioning: false`. *(Needs: testing)*
+
+Pass `run_tests: false` to skip the test suite. `service.yml`, `library.yml` and `debian.yml` all accept `run_tests` and `enable_versioning`, and `init` sets them for `--no-testing` and `--no-version`.
 
 ## library.yml
 

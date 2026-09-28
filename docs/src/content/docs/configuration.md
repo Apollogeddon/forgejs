@@ -93,13 +93,12 @@ import { defineConfig } from "tsup";
 
 export default defineConfig({
   ...baseConfig,
-  // Override or add project-specific properties here
 });
 ```
 
 ### Vite — Websites
 
-`--website` generates a `vite.config.ts` that builds to `dist/`, the directory the website workflow deploys to GitHub Pages.
+`--website` generates a `vite.config.ts` that builds to `dist/`, the directory the website workflow deploys to GitHub Pages. It sets `base: "./"` so asset URLs are relative and the site works under a GitHub Pages project path (`https://<owner>.github.io/<repo>/`).
 
 ### release-please — Versioning
 

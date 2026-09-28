@@ -105,6 +105,9 @@ jobs:
     uses: apollogeddon/forgejs/.github/workflows/testing.yml@main
     with:
       node_version: ${{ matrix.node }}
+      # artifact names must be unique per run, and security patching should only run once
+      artifact_name: dist-node-${{ matrix.node }}
+      auto_patch: false
 ```
 
 ### Build-Time Environment Variables
