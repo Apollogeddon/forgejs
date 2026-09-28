@@ -1,12 +1,12 @@
-name: GitHub Pages Deploy
+name: NodeJS Website
 
 on:
   workflow_call:
     inputs:
-      artifact_name:
+      enable_secrets:
         required: false
-        type: string
-        default: 'dist'
+        type: boolean
+        default: true
       node_version:
         required: false
         type: string
@@ -15,25 +15,67 @@ on:
         required: false
         type: string
         default: '.'
+      auto_patch:
+        required: false
+        type: boolean
+        default: true
+      build_env_vars:
+        required: false
+        type: string
+        default: ''
+      artifact_name:
+        required: false
+        type: string
+        default: 'dist'
+      run_tests:
+        required: false
+        type: boolean
+        default: true
       enable_versioning:
+        required: false
+        type: boolean
+        default: true
+      auto_merge:
         required: false
         type: boolean
         default: true
 
 jobs:
+  testing:
+    uses: ./.github/workflows/testing.yml
+    with:
+      working_directory: ${{ inputs.working_directory }}
+      node_version: ${{ inputs.node_version }}
+      enable_secrets: ${{ inputs.enable_secrets }}
+      auto_patch: ${{ inputs.auto_patch }}
+      build_env_vars: ${{ inputs.build_env_vars }}
+      artifact_name: ${{ inputs.artifact_name }}
+      run_tests: ${{ inputs.run_tests }}
+
+  auto-merge:
+    if: inputs.auto_merge
+    uses: ./.github/workflows/merge.yml
+    needs: [testing]
+    permissions:
+      contents: write
+      pull-requests: write
+
   version:
     if: inputs.enable_versioning
     uses: ./.github/workflows/version.yml
+    needs: [testing]
     with:
       node_version: ${{ inputs.node_version }}
       working_directory: ${{ inputs.working_directory }}
 
   deploy:
     runs-on: ubuntu-latest
-    needs: [version]
+    needs: [testing, version]
+    # always() so a skipped version job (enable_versioning: false) doesn't skip the deploy
     if: |
       always() &&
       github.ref == 'refs/heads/main' &&
+      needs.testing.result == 'success' &&
       (needs.version.result == 'success' || needs.version.result == 'skipped') &&
       (!inputs.enable_versioning || needs.version.outputs.new_release_published == 'true' || needs.version.outputs.new_release_published == true)
     environment:
