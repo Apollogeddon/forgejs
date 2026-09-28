@@ -17,6 +17,7 @@ This directory contains reusable GitHub Actions workflows for Node.js projects. 
 | `library.yml` | NPM publishing to GitHub Packages with OIDC provenance |
 | `debian.yml` | Debian package creation with Snodeb |
 | `website.yml` | Orchestrator for websites — testing, auto-merge, version, then GitHub Pages deployment |
+| `docker.yml` | Multi-platform Docker image build, pushed to GHCR on release — enabled with `docker: true` on `service.yml`, `website.yml` or `debian.yml` |
 
 ## Setup Guide
 

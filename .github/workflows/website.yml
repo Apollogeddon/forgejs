@@ -39,6 +39,18 @@ on:
         required: false
         type: boolean
         default: true
+      docker:
+        required: false
+        type: boolean
+        default: false
+      docker_platforms:
+        required: false
+        type: string
+        default: 'linux/amd64,linux/arm64'
+      docker_native_arm:
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   testing:
@@ -53,9 +65,10 @@ jobs:
       run_tests: ${{ inputs.run_tests }}
 
   auto-merge:
-    if: inputs.auto_merge
     uses: ./.github/workflows/merge.yml
-    needs: [testing]
+    needs: [testing, docker]
+    # docker is skipped when disabled, and a plain `needs` on a skipped job would skip auto-merge too
+    if: ${{ !cancelled() && inputs.auto_merge && needs.testing.result == 'success' && (needs.docker.result == 'success' || needs.docker.result == 'skipped') }}
     permissions:
       contents: write
       pull-requests: write
@@ -67,6 +80,18 @@ jobs:
     with:
       node_version: ${{ inputs.node_version }}
       working_directory: ${{ inputs.working_directory }}
+
+  docker:
+    needs: [testing, version]
+    # !cancelled() so a skipped version job (PRs, enable_versioning: false) doesn't skip the build
+    if: ${{ !cancelled() && inputs.docker && needs.testing.result == 'success' && (needs.version.result == 'success' || needs.version.result == 'skipped') }}
+    uses: ./.github/workflows/docker.yml
+    with:
+      working_directory: ${{ inputs.working_directory }}
+      platforms: ${{ inputs.docker_platforms }}
+      native_arm: ${{ inputs.docker_native_arm }}
+      push: ${{ github.ref == 'refs/heads/main' && needs.version.outputs.new_release_published == 'true' }}
+      version: ${{ needs.version.outputs.version }}
 
   deploy:
     runs-on: ubuntu-latest

@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import os from "node:os";
@@ -100,5 +100,58 @@ describe("End-to-end: a scaffolded project actually works", () => {
       execSync("npm test", { cwd: tempDir, stdio: "pipe" });
     },
     180000,
+  );
+}, 900000);
+
+const hasDocker = spawnSync("docker", ["info"], { stdio: "ignore" }).status === 0;
+
+// The Dockerfile's `npm ci` runs inside the build context, where the file: path scaffoldAndInstall
+// points at doesn't exist, so vendor this repo into the context as a tarball instead.
+function vendorForgejsIntoContext(tempDir: string) {
+  const packed = execSync(`npm pack "${REPO_ROOT}" --pack-destination . --silent`, { cwd: tempDir, encoding: "utf-8" });
+  const tarball = packed.trim().split("\n").pop();
+  const pkgPath = path.join(tempDir, "package.json");
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+  pkg.devDependencies["@apollogeddon/forgejs"] = `file:./${tarball}`;
+  fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
+  execSync("npm install --legacy-peer-deps", { cwd: tempDir, stdio: "pipe" });
+}
+
+describe.skipIf(!hasDocker)("End-to-end: a scaffolded project's Docker image builds and runs", () => {
+  let tempDir: string;
+  let image: string;
+
+  beforeEach(() => {
+    const id = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    tempDir = path.join(os.tmpdir(), `forgejs-docker-${id}`);
+    image = `forgejs-e2e:${id}`;
+    fs.mkdirSync(tempDir, { recursive: true });
+  });
+
+  afterEach(() => {
+    spawnSync("docker", ["rmi", "-f", image], { stdio: "ignore" });
+    robustRemoveDir(tempDir);
+  }, 30000);
+
+  it(
+    "backend image builds and runs",
+    () => {
+      scaffoldAndInstall(tempDir, "--backend", "--docker");
+      vendorForgejsIntoContext(tempDir);
+      execSync(`docker build -t ${image} .`, { cwd: tempDir, stdio: "pipe" });
+      const output = execSync(`docker run --rm ${image}`, { cwd: tempDir, encoding: "utf-8" });
+      expect(output).toContain("Hello from");
+    },
+    300000,
+  );
+
+  it(
+    "website image builds",
+    () => {
+      scaffoldAndInstall(tempDir, "--website", "--docker");
+      vendorForgejsIntoContext(tempDir);
+      execSync(`docker build -t ${image} .`, { cwd: tempDir, stdio: "pipe" });
+    },
+    300000,
   );
 }, 900000);

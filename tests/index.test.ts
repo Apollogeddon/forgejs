@@ -3,6 +3,7 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
+import * as yaml from "js-yaml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 const CLI_SCRIPT = path.resolve(__dirname, "../src/index.ts");
@@ -46,6 +47,14 @@ function runExpectingFailure(args: string, cwd: string): string {
 }
 
 const DEFAULT_SCRIPTS = ["watch", "start", "lint", "security", "type", "build", "test", "prepare"];
+
+type GeneratedWorkflow = {
+  jobs: Record<string, { with?: Record<string, unknown>; permissions?: Record<string, string> }>;
+};
+
+function readGeneratedWorkflow(cwd: string): GeneratedWorkflow {
+  return yaml.load(fs.readFileSync(path.join(cwd, ".github/workflows/index.yml"), "utf-8")) as GeneratedWorkflow;
+}
 
 describe("CLI Init Command", () => {
   let tempDir: string;
@@ -251,12 +260,36 @@ describe("CLI Init Command", () => {
     expect(content).toContain("npm ci");
   });
 
-  it("should generate Distroless Dockerfile for --backend --docker", () => {
+  it("should generate a non-root node Dockerfile for --backend --docker", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend --docker`, { cwd: tempDir });
     expect(fs.existsSync(path.join(tempDir, "Dockerfile"))).toBe(true);
     const content = fs.readFileSync(path.join(tempDir, "Dockerfile"), "utf-8");
-    expect(content).toContain("gcr.io/distroless/nodejs");
+    expect(content).toContain("USER node");
     expect(content).toContain("npm ci");
+  });
+
+  it.each([
+    ["--backend", "service"],
+    ["--website", "website"],
+    ["--debian", "debian"],
+  ])("should enable the docker pipeline input for %s --docker", (mode, job) => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${mode} --docker`, { cwd: tempDir });
+    const workflow = readGeneratedWorkflow(tempDir);
+    expect(workflow.jobs[job].with?.docker).toBe(true);
+    expect(workflow.jobs[job].permissions?.packages).toBe("write");
+  });
+
+  it("should leave the docker pipeline input off without --docker", () => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
+    const workflow = readGeneratedWorkflow(tempDir);
+    expect(workflow.jobs.service.with?.docker).toBeUndefined();
+    expect(workflow.jobs.service.permissions?.packages).toBeUndefined();
+  });
+
+  it("should build platform-independent stages on the build host", () => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend --docker`, { cwd: tempDir });
+    const content = fs.readFileSync(path.join(tempDir, "Dockerfile"), "utf-8");
+    expect(content).toContain("FROM --platform=$BUILDPLATFORM");
   });
 
   it("should fail when using --website with --debian", () => {

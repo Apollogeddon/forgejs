@@ -85,3 +85,11 @@ jobs:
       auto_patch: true
     secrets: inherit
 `;
+
+// Docker is an add-on to any non-library pipeline, so it's layered onto the mode's template.
+// packages: write lets the reusable docker.yml push to GHCR with the caller's token.
+export function withDocker(workflow: string): string {
+  return workflow
+    .replace("      pull-requests: write\n", "      pull-requests: write\n      packages: write\n")
+    .replace("    with:\n", "    with:\n      docker: true\n");
+}

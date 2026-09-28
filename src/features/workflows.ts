@@ -23,6 +23,9 @@ export const WorkflowFeature: Feature = {
     }
 
     if (workflowContent && workflowName) {
+      if (cfg.docker) {
+        workflowContent = templates.withDocker(workflowContent);
+      }
       return createFile(cwd, workflowName, workflowContent, cfg, fs);
     }
     return true;
