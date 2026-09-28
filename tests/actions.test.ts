@@ -25,7 +25,7 @@ describe("GitHub Actions Workflows YAML Syntax", () => {
 });
 
 interface Workflow {
-  on?: { workflow_call?: { inputs?: Record<string, unknown> } };
+  on?: { workflow_call?: { inputs?: Record<string, unknown>; outputs?: Record<string, unknown> } };
   jobs: Record<
     string,
     {
@@ -81,5 +81,15 @@ describe("Reusable workflow wiring", () => {
         }
       }
     });
+  });
+});
+
+describe("Pipeline outputs used by the generated docker job", () => {
+  const load = (file: string) =>
+    yaml.load(fs.readFileSync(path.join(workflowsDir, file), "utf-8")) as unknown as Workflow;
+
+  it.each(["service.yml", "website.yml", "debian.yml"])("should expose release outputs from %s", (file) => {
+    const outputs = Object.keys(load(file).on?.workflow_call?.outputs ?? {});
+    expect(outputs).toEqual(expect.arrayContaining(["new_release_published", "version"]));
   });
 });
