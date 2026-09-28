@@ -51,8 +51,7 @@ describe("Package Integrity", () => {
       if (fileGlob === "dist" || fileGlob.startsWith("dist/") || fileGlob.startsWith("dist\\")) {
         continue;
       }
-      // Globs aren't expanded; entries are assumed to be literal paths.
-      expect(fs.existsSync(path.join(rootDir, fileGlob)), `File not found: ${fileGlob}`).toBe(true);
+      expect(fs.globSync(fileGlob, { cwd: rootDir }).length, `Nothing matches: ${fileGlob}`).toBeGreaterThan(0);
     }
   });
 });
