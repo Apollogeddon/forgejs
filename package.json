@@ -41,8 +41,9 @@
   },
   "files": [
     "dist",
-    "configs",
-    "lefthook.yml"
+    "configs/*.json",
+    "configs/*.cjs",
+    "configs/*.d.ts"
   ],
   "scripts": {
     "watch": "tsx watch src/index.ts",
