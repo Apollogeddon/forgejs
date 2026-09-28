@@ -3,6 +3,7 @@
   "version": "2.4.0",
   "description": "Quality control library for maintaining best practice nodejs",
   "author": "apollogeddon",
+  "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
