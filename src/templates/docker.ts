@@ -1,7 +1,5 @@
-// @apollogeddon packages live on GitHub Packages, which needs a token even to read. The .npmrc only
-// holds a placeholder; the token is mounted per RUN as a build secret, so it never lands in a layer.
-// `?` makes npm substitute an empty string instead of failing when no secret is passed. The secret is
-// read from its file mount because Podman/Buildah doesn't support BuildKit's `env=` secret mounts.
+// Token is mounted per RUN as a build secret (never lands in a layer) and read from its file mount,
+// not BuildKit's `env=` form, since Podman/Buildah doesn't support that. `?` avoids failing when unset.
 const npmrc = `RUN printf '@apollogeddon:registry=https://npm.pkg.github.com\\n//npm.pkg.github.com/:_authToken=\${NODE_AUTH_TOKEN?}\\n' > /root/.npmrc`;
 const npmSecret = `--mount=type=secret,id=npm_token NODE_AUTH_TOKEN="$(cat /run/secrets/npm_token 2>/dev/null)"`;
 
@@ -15,9 +13,8 @@ COPY . .
 RUN ${npmSecret} npm ci --ignore-scripts
 RUN npm run build
 
-# Production dependencies can include native add-ons, so install them per target platform.
-# Install scripts stay enabled so those add-ons compile; prepare is dropped because it runs
-# lefthook, a dev dependency that --omit=dev leaves out.
+# Installed per target platform since native add-ons may need compiling (scripts stay enabled);
+# prepare is dropped because it runs lefthook, a dev dependency --omit=dev leaves out.
 FROM node:22-slim AS deps
 WORKDIR /usr/src/app
 ${npmrc}
