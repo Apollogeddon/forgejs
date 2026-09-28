@@ -15,7 +15,7 @@ export const BaseFeature: Feature = {
 
     if (!cfg.library) {
       packageJson.private = true;
-      console.log("✅ Set 'private': true in package.json (service mode)");
+      console.log(`✅ Set 'private': true in package.json (${cfg.website ? "website" : "service"} mode)`);
     }
 
     // tsc/tsup/vite all need real source to exist, so scaffold a starter file now.
