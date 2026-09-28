@@ -64,6 +64,7 @@ Forge.js enforces a standardised stack designed for performance and reliability:
 | **Commits** | [Commitlint](https://commitlint.js.org/) | Enforces Conventional Commits standards. |
 | **Releases** | [Release Please](https://github.com/googleapis/release-please) | Automated versioning and changelogs via GitHub Actions. |
 | **CI/CD** | [GitHub Actions](https://github.com/features/actions) | Reusable workflows for Testing, Quality, and Releases. |
+| **Containers** | [Docker Buildx](https://docs.docker.com/build/) | With `--docker`, CI builds the image for `linux/amd64` and `linux/arm64` (configurable via `docker_platforms`) on every PR and pushes it to GHCR on release. See [Workflows](https://apollogeddon.github.io/forgejs/docs/workflows/reference). |
 
 ## Tooling & Versioning Strategy
 
