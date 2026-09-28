@@ -35,6 +35,7 @@ jobs:
     uses: apollogeddon/forgejs/.github/workflows/service.yml@main
     permissions:
       contents: write
+      packages: read
       pull-requests: write
     with:
       node_version: '22'
@@ -56,6 +57,7 @@ jobs:
     uses: apollogeddon/forgejs/.github/workflows/website.yml@main
     permissions:
       contents: write
+      packages: read
       pages: write
       id-token: write
       pull-requests: write
@@ -79,12 +81,21 @@ jobs:
     uses: apollogeddon/forgejs/.github/workflows/debian.yml@main
     permissions:
       contents: write
+      packages: read
       pull-requests: write
     with:
       node_version: '22'
       auto_patch: true
     secrets: inherit
 `;
+
+// Disabled standard features become pipeline inputs so CI doesn't run what the project doesn't have.
+export function withPipelineInputs(workflow: string, inputs: Record<string, boolean>): string {
+  const lines = Object.entries(inputs)
+    .map(([key, value]) => `      ${key}: ${value}\n`)
+    .join("");
+  return workflow.replace("    with:\n", `    with:\n${lines}`);
+}
 
 // Docker is a separate job rather than part of the shared pipelines so projects without it
 // don't carry a permanently skipped job; it runs after the pipeline and pushes on release.

@@ -23,6 +23,10 @@ export const WorkflowFeature: Feature = {
     }
 
     if (workflowContent && workflowName) {
+      const inputs: Record<string, boolean> = {};
+      if (!cfg.testing) inputs.run_tests = false;
+      if (!cfg.version) inputs.enable_versioning = false;
+      workflowContent = templates.withPipelineInputs(workflowContent, inputs);
       if (cfg.docker) {
         workflowContent = templates.withDocker(workflowContent);
       }
