@@ -1,5 +1,48 @@
 # Changelog
 
+## [3.0.0](https://github.com/Apollogeddon/forgejs/compare/v2.4.0...v3.0.0) (2026-09-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* fold build, auto-merge and versioning into website.yml
+
+### Features
+
+* add publish input to library.yml for optional publish gating ([08c900d](https://github.com/Apollogeddon/forgejs/commit/08c900db5a35841383da92c39117102715a1a7af))
+* **ci:** build multi-platform docker images and push to GHCR on release ([cfc6658](https://github.com/Apollogeddon/forgejs/commit/cfc6658a62f95e34d5af22a8a27f6b51395d7b4b))
+* fold build, auto-merge and versioning into website.yml ([eea0d07](https://github.com/Apollogeddon/forgejs/commit/eea0d074bb2a843775bc814296543448dc3bc81b))
+
+
+### Bug Fixes
+
+* add --no-&lt;feature&gt; negation, reject unknown flags, check --help first ([eb23cb7](https://github.com/Apollogeddon/forgejs/commit/eb23cb768da74d1cc9a39bfd5b0b77fdc0528286))
+* add own package as devDependency so scaffolded tools actually install ([ae49832](https://github.com/Apollogeddon/forgejs/commit/ae49832057fd6723f45317acb05affdf00f9356e))
+* **ci:** add run_tests and enable_versioning inputs and fix caching and release issues ([e9b2207](https://github.com/Apollogeddon/forgejs/commit/e9b220798041b5b44e88a3fe3cb148523fbf31f3))
+* **ci:** gate auto-merge on testing in service and debian workflows ([1a6f359](https://github.com/Apollogeddon/forgejs/commit/1a6f359da597735238a9d1fdc5c20d2795e817e4))
+* **deps:** bump js-yaml from 5.2.1 to 5.4.2 in the dependencies group ([748e72f](https://github.com/Apollogeddon/forgejs/commit/748e72f75f7c5315f211ff814d8f6744914b6ccf))
+* **deps:** bump js-yaml from 5.2.1 to 5.4.2 in the dependencies group ([327df2b](https://github.com/Apollogeddon/forgejs/commit/327df2bdd25e99dde5b285c8b180187dfa1a54e5))
+* **deps:** bump the dependencies group with 2 updates ([91235af](https://github.com/Apollogeddon/forgejs/commit/91235af0d4b827ef7b3e79f0f3f424c555aee028))
+* **deps:** bump the dependencies group with 2 updates ([77ea092](https://github.com/Apollogeddon/forgejs/commit/77ea092a09202b494f720a71c299d6854ec75ed6))
+* **deps:** bump the vitest group across 1 directory with 2 updates ([cc62c76](https://github.com/Apollogeddon/forgejs/commit/cc62c7637d64b45fcf9596b8702ff80aafa0d7e8))
+* **deps:** bump the vitest group across 1 directory with 2 updates ([c49c6fc](https://github.com/Apollogeddon/forgejs/commit/c49c6fc78d834ff6e14e9b4842de8617444da69d))
+* **deps:** bump the vitest group with 2 updates ([8d5eac6](https://github.com/Apollogeddon/forgejs/commit/8d5eac6485827b1bec0b6712963df4b373b18f05))
+* **deps:** bump the vitest group with 2 updates ([8653a16](https://github.com/Apollogeddon/forgejs/commit/8653a16da4e5a63f8a43c3cc874be567a36f2925))
+* **deps:** bump typescript from 6.0.3 to 7.0.2 ([5e627c8](https://github.com/Apollogeddon/forgejs/commit/5e627c81086862586f9a471775cf016789ee248e))
+* **deps:** bump typescript from 6.0.3 to 7.0.2 ([228d1b8](https://github.com/Apollogeddon/forgejs/commit/228d1b89800f13fc662a9d03f5360f5de6d3b660))
+* **deps:** patch vulnerabilities via osv-scanner ([cf97525](https://github.com/Apollogeddon/forgejs/commit/cf9752523eda186ef276abdcced0c38278e83664))
+* **deps:** pin typescript to 6.0.3 until tsup supports TS 7 ([f3f950d](https://github.com/Apollogeddon/forgejs/commit/f3f950d978540e5a6305df2910f7c89725c72a92))
+* gate auto-merge on the testing job so it can't merge a failing PR ([cd60fbf](https://github.com/Apollogeddon/forgejs/commit/cd60fbf3569a85cd71d4d32a9098e12bb91453f2))
+* honour --no-testing and --no-version in generated ci and grant packages read ([9d3caf9](https://github.com/Apollogeddon/forgejs/commit/9d3caf97f31c3f9ad0be2bb93f75c2018c2818ae))
+* invoke local tsx binary directly instead of npx to avoid CI cache races ([a2168fb](https://github.com/Apollogeddon/forgejs/commit/a2168fb1952b3615f90cdb960020fda0679e79e2))
+* name the mode correctly in the private package log ([35f25ba](https://github.com/Apollogeddon/forgejs/commit/35f25ba0d85e91300744761ca887be1f4967d7c4))
+* only include commitlint hook in lefthook.yml when versioning is enabled ([99c5f54](https://github.com/Apollogeddon/forgejs/commit/99c5f5469f2e24b7aa91c08e117a5e8c5c99a81a))
+* only overwrite package.json scripts when --force is passed ([0b2ae3a](https://github.com/Apollogeddon/forgejs/commit/0b2ae3a810aadbbd29315eb41b57f89d9bf5045d))
+* pair vitest/commitlint/js-yaml packages in dependabot and auto-merge all update types ([0d5673b](https://github.com/Apollogeddon/forgejs/commit/0d5673b22ec889e6468393fbaa569e037a10dff6))
+* point package.json main/types at dist/ output for publint ([f6d8814](https://github.com/Apollogeddon/forgejs/commit/f6d8814f87328fe1d58377f8b9b5c34b48c61da5))
+* scaffold starter source so tsc/tsup/vite work on a fresh project ([3126068](https://github.com/Apollogeddon/forgejs/commit/31260685a777e3b2cd51214bec754bc4755a4d68))
+* use a relative vite base so websites work on github pages project sites ([1fecae2](https://github.com/Apollogeddon/forgejs/commit/1fecae20cfd41ece7837ef841448f26e7c13c3f4))
+
 ## [2.4.0](https://github.com/Apollogeddon/forgejs/compare/v2.3.3...v2.4.0) (2026-09-25)
 
 
