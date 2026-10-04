@@ -3,6 +3,11 @@ name: NodeJS Service
 on:
   workflow_call:
     inputs:
+      runs_on:
+        description: "Runner label for every job, e.g. a self-hosted scale set's"
+        required: false
+        type: string
+        default: 'ubuntu-latest'
       enable_secrets:
         required: false
         type: boolean
@@ -45,6 +50,8 @@ on:
 jobs:
   auto-merge:
     uses: ./.github/workflows/merge.yml
+    with:
+      runs_on: ${{ inputs.runs_on }}
     needs: [testing]
     permissions:
       contents: write
@@ -53,6 +60,7 @@ jobs:
   testing:
     uses: ./.github/workflows/testing.yml
     with:
+      runs_on: ${{ inputs.runs_on }}
       working_directory: ${{ inputs.working_directory }}
       node_version: ${{ inputs.node_version }}
       enable_secrets: ${{ inputs.enable_secrets }}
@@ -65,5 +73,6 @@ jobs:
     uses: ./.github/workflows/version.yml
     needs: [testing]
     with:
+      runs_on: ${{ inputs.runs_on }}
       node_version: ${{ inputs.node_version }}
       working_directory: ${{ inputs.working_directory }}

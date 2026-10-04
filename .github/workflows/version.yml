@@ -3,6 +3,11 @@ name: NodeJS Version
 on:
   workflow_call:
     inputs:
+      runs_on:
+        description: "Runner label for every job, e.g. a self-hosted scale set's"
+        required: false
+        type: string
+        default: 'ubuntu-latest'
       node_version:
         required: false
         type: string
@@ -24,7 +29,7 @@ on:
 
 jobs:
   release-please:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs_on }}
     if: github.ref == 'refs/heads/main'
     permissions:
       contents: write
