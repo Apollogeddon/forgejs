@@ -53,7 +53,9 @@ jobs:
 - With `test_on_push: false`, turn off **Require branches to be up to date before merging**. Otherwise every PR is checked again before merge.
 - `testing.yml`'s `patch` job runs on `main` after the checks, so with `test_on_push: false` only the weekly schedule runs it.
 
-`test_on_push` is on `service.yml` only. `library.yml`, `debian.yml` and `website.yml` publish, package or deploy the artifact the checks build in the same run, so a push to `main` still runs the checks; they take `test_release_prs`.
+`library.yml`, `debian.yml` and `website.yml` take `test_on_push` too. There, a push to `main` runs release-please first, and only when it makes a release does it run the checks, the build, and the publish, package or deploy that ships what they built. A `website.yml` caller with `enable_versioning: false` deploys every push, so its pushes are always checked.
+
+In that mode release-please tags the release before the push's checks run. If they fail, the tag and the GitHub release exist with nothing published, and need putting right by hand. So with these three, keep `test_release_prs: true`: the release PR is then checked with exactly what its merge ships.
 
 ## quality.yml
 
