@@ -3,6 +3,11 @@ name: NodeJS Tests
 on:
   workflow_call:
     inputs:
+      runs_on:
+        description: "Runner label for every job, e.g. a self-hosted scale set's"
+        required: false
+        type: string
+        default: 'ubuntu-latest'
       working_directory:
         required: false
         type: string
@@ -36,12 +41,13 @@ jobs:
   quality:
     uses: ./.github/workflows/quality.yml
     with:
+      runs_on: ${{ inputs.runs_on }}
       working_directory: ${{ inputs.working_directory }}
       node_version: ${{ inputs.node_version }}
       enable_secrets: ${{ inputs.enable_secrets }}
 
   testing:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs_on }}
     timeout-minutes: 10
     needs: [quality]
     defaults:
@@ -72,7 +78,7 @@ jobs:
           if-no-files-found: ignore
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs_on }}
     timeout-minutes: 10
     needs: [quality, testing]
     defaults:
@@ -108,7 +114,7 @@ jobs:
   patch:
     if: inputs.auto_patch && github.ref == 'refs/heads/main'
     needs: [quality, testing, build]
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs_on }}
     timeout-minutes: 10
     permissions:
       contents: write

@@ -3,6 +3,11 @@ name: NodeJS Debian
 on:
   workflow_call:
     inputs:
+      runs_on:
+        description: "Runner label for every job, e.g. a self-hosted scale set's"
+        required: false
+        type: string
+        default: 'ubuntu-latest'
       enable_secrets:
         required: false
         type: boolean
@@ -49,6 +54,8 @@ on:
 jobs:
   auto-merge:
     uses: ./.github/workflows/merge.yml
+    with:
+      runs_on: ${{ inputs.runs_on }}
     needs: [testing]
     permissions:
       contents: write
@@ -57,6 +64,7 @@ jobs:
   testing:
     uses: ./.github/workflows/testing.yml
     with:
+      runs_on: ${{ inputs.runs_on }}
       working_directory: ${{ inputs.working_directory }}
       node_version: ${{ inputs.node_version }}
       enable_secrets: ${{ inputs.enable_secrets }}
@@ -70,11 +78,12 @@ jobs:
     uses: ./.github/workflows/version.yml
     needs: [testing]
     with:
+      runs_on: ${{ inputs.runs_on }}
       node_version: ${{ inputs.node_version }}
       working_directory: ${{ inputs.working_directory }}
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs_on }}
     timeout-minutes: 10
     needs: [version]
     if: github.ref == 'refs/heads/main' && (needs.version.outputs.new_release_published == 'true' || needs.version.outputs.new_release_published == true)
