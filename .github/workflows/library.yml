@@ -8,6 +8,11 @@ on:
         required: false
         type: string
         default: 'ubuntu-latest'
+      test_release_prs:
+        description: "Run the checks on release-please's release pull requests"
+        required: false
+        type: boolean
+        default: true
       enable_secrets:
         required: false
         type: boolean
@@ -47,6 +52,8 @@ on:
 
 jobs:
   testing:
+    # Pushes to main always run the checks: `publish` takes the artifact they build in the same run.
+    if: inputs.test_release_prs || !startsWith(github.head_ref, 'release-please--')
     uses: ./.github/workflows/testing.yml
     with:
       runs_on: ${{ inputs.runs_on }}
