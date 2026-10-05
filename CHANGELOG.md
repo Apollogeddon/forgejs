@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.1.0](https://github.com/Apollogeddon/forgejs/compare/v3.0.0...v3.1.0) (2026-10-05)
+
+
+### Features
+
+* build every platform on a remote buildkit, on self-hosted runners without a docker daemon ([ca73c5d](https://github.com/Apollogeddon/forgejs/commit/ca73c5d6acb62483355fd1cd7dae40463519d512))
+* opt-in test_on_push and test_release_prs inputs, so a change is checked once on its pr ([32327d5](https://github.com/Apollogeddon/forgejs/commit/32327d5f1b4954bcfce3bfdfc80e21ef6ad363b9))
+* runs_on input on every reusable workflow, passed down to each job ([bd044c8](https://github.com/Apollogeddon/forgejs/commit/bd044c8490a4574511e00e124ecd1baf6b570f46))
+* test_on_push on library, debian and website: a push checks and ships only on a release ([d085343](https://github.com/Apollogeddon/forgejs/commit/d085343272f4e822d8ac39ae78b5ed884ac53d1e))
+
+
+### Bug Fixes
+
+* **deps:** bump lefthook from 2.1.14 to 2.1.15 in the dependencies group ([1a95016](https://github.com/Apollogeddon/forgejs/commit/1a95016ef92ffd7839408e33861690afc656a1b1))
+* **deps:** bump lefthook from 2.1.14 to 2.1.15 in the dependencies group ([edb1248](https://github.com/Apollogeddon/forgejs/commit/edb1248a9b4b91696c9fc159eafc18f0580e43af))
+* keep docker.yml's merge job on github-hosted runners, as it needs a docker daemon ([bddcb54](https://github.com/Apollogeddon/forgejs/commit/bddcb54cef9d35423b2cf9ad816569214ce6a0bb))
+
 ## [3.0.0](https://github.com/Apollogeddon/forgejs/compare/v2.4.0...v3.0.0) (2026-09-29)
 
 
