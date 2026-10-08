@@ -67,6 +67,6 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Biome Lint
-        run: npx @biomejs/biome check .
+        run: npx @biomejs/biome ci .
       - name: Type Check
         run: npm run type
