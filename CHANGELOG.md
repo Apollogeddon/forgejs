@@ -1,5 +1,24 @@
 # Changelog
 
+## [3.1.1](https://github.com/Apollogeddon/forgejs/compare/v3.1.0...v3.1.1) (2026-10-08)
+
+
+### Bug Fixes
+
+* **ci:** add timeouts to the release-please and pages deploy jobs ([0e027bd](https://github.com/Apollogeddon/forgejs/commit/0e027bd1222280460911a34fc001d458ce640bb4))
+* **ci:** don't leave the token in .git/config for jobs that never push ([e521ef9](https://github.com/Apollogeddon/forgejs/commit/e521ef979a13e507ed33052860576a63e7b80518))
+* **ci:** harden the reusable workflows and the generated ci ([57cc810](https://github.com/Apollogeddon/forgejs/commit/57cc810e429980effde0625b916f78c60bd99f59))
+* **ci:** lint with biome ci, which never writes and annotates the pr ([580cd5f](https://github.com/Apollogeddon/forgejs/commit/580cd5f20defa2bfff7e58a6827b869648c5f863))
+* **ci:** pass build_env_vars through the environment, never into the script ([35d6a3a](https://github.com/Apollogeddon/forgejs/commit/35d6a3a4d095a89b81f83bb0b3c158153442d74a))
+* **ci:** publish the tested artifact without installing or running scripts ([1dad31e](https://github.com/Apollogeddon/forgejs/commit/1dad31e0c85e1f348b7972b2cc3f62f7c15448e3))
+* **ci:** publish without the npm cache, install scripts or an unused id-token ([b5d91f8](https://github.com/Apollogeddon/forgejs/commit/b5d91f853565e7f60e0ec6f447e8ff09b5494204))
+* **deps:** bump the dependencies group across 1 directory with 5 updates ([c8ef382](https://github.com/Apollogeddon/forgejs/commit/c8ef3826546e1b0d3bedca8d9684ded806e6a999))
+* **deps:** bump the dependencies group across 1 directory with 5 updates ([1149b3a](https://github.com/Apollogeddon/forgejs/commit/1149b3aa4bf46dfb0c1d3cedce5f21507a13508b))
+* **deps:** bump the vitest group with 2 updates ([fd265dc](https://github.com/Apollogeddon/forgejs/commit/fd265dc023aee7b5e4d22e135e1ea3eef5240e85))
+* **deps:** bump the vitest group with 2 updates ([1b19b09](https://github.com/Apollogeddon/forgejs/commit/1b19b093d7ef084fea40b7ca6cfb960d951e949e))
+* **deps:** patch vulnerabilities via osv-scanner ([a9290fa](https://github.com/Apollogeddon/forgejs/commit/a9290fa9391cc8d89b8848e4f95fe4ba725e7e60))
+* generate ci with a concurrency rule and without secrets: inherit or an unused id-token ([555abd7](https://github.com/Apollogeddon/forgejs/commit/555abd79499cca6f53e6b91046fcbca6293ca1fc))
+
 ## [3.1.0](https://github.com/Apollogeddon/forgejs/compare/v3.0.0...v3.1.0) (2026-10-05)
 
 
