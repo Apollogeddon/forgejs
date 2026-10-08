@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.1.3](https://github.com/Apollogeddon/forgejs/compare/v3.1.2...v3.1.3) (2026-10-08)
+
+
+### Bug Fixes
+
+* auto-merge a Dependabot PR that only waits on checks nobody requires ([5a62ef5](https://github.com/Apollogeddon/forgejs/commit/5a62ef5163344daedef64157e123dbcad849203c))
+* auto-merge a Dependabot PR that only waits on checks nobody requires ([d79a5bd](https://github.com/Apollogeddon/forgejs/commit/d79a5bde56d440b3e8525d3e6cdf7996afb90750))
+* **deps:** bump lefthook from 2.1.16 to 2.1.17 in the dependencies group ([b43b1a9](https://github.com/Apollogeddon/forgejs/commit/b43b1a981748b21f37a9b91f8e311fad9c3161f9))
+* **deps:** bump lefthook from 2.1.16 to 2.1.17 in the dependencies group ([48bc64f](https://github.com/Apollogeddon/forgejs/commit/48bc64f4bcc9cf65068986806a3e2a9dea9c2266))
+
 ## [3.1.2](https://github.com/Apollogeddon/forgejs/compare/v3.1.1...v3.1.2) (2026-10-08)
 
 
