@@ -8,23 +8,23 @@ const year = new Date().getFullYear();
 
 const features = [
   {
-    title: "Standardised Tooling",
+    title: "Standardised tooling",
     body: "Default configurations for Biome, Vitest, and Tsup enforce consistency across every project from day one.",
     icon: "settings",
   },
   {
-    title: "Reusable Workflows",
-    body: "Modular GitHub Actions workflows for testing, building, and releasing — no manual YAML authoring required.",
+    title: "Reusable workflows",
+    body: "Reusable GitHub Actions workflows for testing, building and releasing, called from a generated workflow file.",
     icon: "workflow",
   },
   {
-    title: "Project Scaffolding",
-    body: "Bootstrap a complete repository instantly with a single npx command. No boilerplate to copy-paste.",
+    title: "Project scaffolding",
+    body: "Set up a backend, library or website with one npx command, with no boilerplate to copy.",
     icon: "rocket",
   },
   {
-    title: "Automated Releases",
-    body: "release-please pipelines handle versioning, changelogs, and publishing deterministically from commit history.",
+    title: "Automated releases",
+    body: "release-please derives versions and changelogs from commit history, and the pipelines publish each release.",
     icon: "tag",
   },
 ];
@@ -33,7 +33,7 @@ const steps = [
   {
     n: "01",
     title: "Install",
-    body: "Add Forge.js as a development dependency.",
+    body: "Add Forge.js as a development dependency from GitHub Packages.",
     code: `npm install --save-dev ${pkg.name}`,
   },
   {
@@ -45,10 +45,10 @@ const steps = [
   {
     n: "03",
     title: "Extend",
-    body: "Inherit best practices by extending the shared Biome config.",
+    body: "The generated configs extend the shared ones. Add project-specific settings alongside.",
     code: `// biome.json
 {
-  "extends": ["node_modules/${pkg.name}/biome.json"]
+  "extends": ["node_modules/${pkg.name}/configs/biome.json"]
 }`,
   },
 ];
@@ -113,7 +113,7 @@ const langChip: Record<string, string> = {
           href={`${import.meta.env.BASE_URL}docs/getting-started`}
           class="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-500"
         >
-          Get Started
+          Get started
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="15"
@@ -182,7 +182,7 @@ const langChip: Record<string, string> = {
         Why Forge.js
       </h2>
       <p class="mx-auto mt-3 max-w-xl text-center text-zinc-400">
-        Everything a modern Node.js project needs to ship with confidence.
+        The tooling and CI/CD a TypeScript or Node.js project needs, in one package.
       </p>
 
       <div class="mt-12 grid gap-5 sm:grid-cols-2">
@@ -233,7 +233,7 @@ const langChip: Record<string, string> = {
       <h2
         class="text-center text-3xl font-bold tracking-tight text-zinc-50"
       >
-        Quick Start
+        Quick start
       </h2>
       <p class="mx-auto mt-3 max-w-xl text-center text-zinc-400">
         From empty repo to a standardised toolchain in three steps.
@@ -287,7 +287,7 @@ const langChip: Record<string, string> = {
       <h2
         class="text-center text-3xl font-bold tracking-tight text-zinc-50"
       >
-        The Toolchain
+        The toolchain
       </h2>
       <p class="mx-auto mt-3 max-w-xl text-center text-zinc-400">
         Compiled-first tools selected for speed and a single-dependency

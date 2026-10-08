@@ -3,13 +3,13 @@ title: Examples
 description: Common configuration patterns and workflow recipes for Forge.js projects.
 ---
 
-Solutions for common requirements and configuration patterns.
+Recipes for common changes to a Forge.js project: overriding the shared configs and adapting the reusable workflows.
 
-## Configuration Patterns
+## Configuration patterns
 
-### Ignoring Files in Biome
+### Ignore files in Biome
 
-Biome 2 selects files with `files.includes`; prefix a pattern with `!` to exclude it. Keep `extends` so the shared rules still apply:
+Biome 2 selects files with `files.includes`. Prefix a pattern with `!` to exclude it, and keep `extends` so the shared rules still apply:
 
 ```json
 {
@@ -21,7 +21,7 @@ Biome 2 selects files with `files.includes`; prefix a pattern with `!` to exclud
 }
 ```
 
-### Enforcing Coverage Thresholds
+### Enforce coverage thresholds
 
 Configure `coverage.thresholds` in `vitest.config.ts` to fail the run when coverage drops:
 
@@ -43,7 +43,7 @@ export default mergeConfig(baseConfig, {
 });
 ```
 
-### Multiple Entry Points (Tsup)
+### Build multiple entry points with Tsup
 
 For libraries that export sub-modules (e.g. `import { util } from "my-lib/util"`), give Tsup several entry points:
 
@@ -58,9 +58,9 @@ export default defineConfig({
 });
 ```
 
-### Adding Your Own Scripts
+### Add your own scripts
 
-Add scripts alongside the generated ones. npm runs a `pre<script>` hook automatically, which suits code generation before a build:
+Add scripts alongside the generated ones. npm runs a `pre<script>` script automatically before `<script>`, which suits code generation before a build:
 
 ```json
 {
@@ -71,13 +71,13 @@ Add scripts alongside the generated ones. npm runs a `pre<script>` hook automati
 }
 ```
 
-Forge.js never removes scripts it didn't create.
+Forge.js never removes scripts, and only overwrites the ones it manages when you pass `--force`.
 
-## Workflow Patterns
+## Workflow patterns
 
-### Monorepo Execution
+### Run in a monorepo package
 
-Point a workflow at a sub-directory with `working_directory`:
+Point a workflow at a subdirectory with `working_directory`. release-please then versions that package on its own:
 
 ```yaml
 jobs:
@@ -92,7 +92,7 @@ jobs:
       node_version: '22'
 ```
 
-### Testing Across Node Versions
+### Test across Node.js versions
 
 Call `testing.yml` from a matrix to run the quality and test jobs on several Node.js versions:
 
@@ -103,6 +103,9 @@ jobs:
       matrix:
         node: ['22', '24']
     uses: apollogeddon/forgejs/.github/workflows/testing.yml@main
+    permissions:
+      contents: write   # requested by the patch job, even when it is skipped
+      packages: read
     with:
       node_version: ${{ matrix.node }}
       # artifact names must be unique per run, and security patching should only run once
@@ -110,19 +113,25 @@ jobs:
       auto_patch: false
 ```
 
-### Build-Time Environment Variables
+### Set build-time environment variables
 
-Pass `build_env_vars` to write variables into `.env` before the build — useful for public API keys a static site needs at build time:
+Pass `build_env_vars` to write variables into `.env` before the build. Use it for public values a static site needs at build time, such as an API URL. The values end up in the built site, so don't pass secrets this way:
 
 ```yaml
 jobs:
   website:
     uses: apollogeddon/forgejs/.github/workflows/website.yml@main
+    permissions:
+      contents: write
+      packages: read
+      pages: write
+      id-token: write
+      pull-requests: write
     with:
       build_env_vars: "PUBLIC_API_URL=${{ vars.PUBLIC_API_URL }}"
 ```
 
-### Building Docker Images for More Platforms
+### Build Docker images for more platforms
 
 With `--docker`, CI builds `linux/amd64` and `linux/arm64`. Add platforms with the `docker` job's `platforms` input:
 
