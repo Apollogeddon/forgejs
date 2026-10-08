@@ -124,6 +124,8 @@ jobs:
         working-directory: ${{ inputs.working_directory }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@v7
         with:
           name: ${{ inputs.artifact_name }}
@@ -131,10 +133,10 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ inputs.node_version }}
-          cache: 'npm'
-          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
           registry-url: 'https://npm.pkg.github.com'
           scope: "@${{ github.repository_owner }}"
+          # no dependency cache for the release build, as a poisoned cache would be packaged
+          package-manager-cache: false
       - name: Install dependencies
         run: npm ci
         env:

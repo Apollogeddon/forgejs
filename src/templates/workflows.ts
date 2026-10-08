@@ -7,6 +7,11 @@ on:
   pull_request:
     branches: ["main"]
 
+concurrency:
+  group: \${{ github.workflow }}-\${{ github.ref }}
+  # never cancel a run on main mid-release, or the release is created but never published
+  cancel-in-progress: \${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   library:
     uses: apollogeddon/forgejs/.github/workflows/library.yml@main
@@ -14,11 +19,9 @@ jobs:
       contents: write
       pull-requests: write
       packages: write
-      id-token: write
     with:
       node_version: '22'
       auto_patch: true
-    secrets: inherit
 `;
 
 export const serviceWorkflow = `\
@@ -30,6 +33,11 @@ on:
   pull_request:
     branches: ["main"]
 
+concurrency:
+  group: \${{ github.workflow }}-\${{ github.ref }}
+  # never cancel a run on main mid-release, or the release is created but never published
+  cancel-in-progress: \${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   service:
     uses: apollogeddon/forgejs/.github/workflows/service.yml@main
@@ -40,7 +48,6 @@ jobs:
     with:
       node_version: '22'
       auto_patch: true
-    secrets: inherit
 `;
 
 export const websiteWorkflow = `\
@@ -51,6 +58,11 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+
+concurrency:
+  group: \${{ github.workflow }}-\${{ github.ref }}
+  # never cancel a run on main mid-release, or the release is created but never published
+  cancel-in-progress: \${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   website:
@@ -64,7 +76,6 @@ jobs:
     with:
       node_version: '22'
       auto_patch: true
-    secrets: inherit
 `;
 
 export const debianWorkflow = `\
@@ -76,6 +87,11 @@ on:
   pull_request:
     branches: ["main"]
 
+concurrency:
+  group: \${{ github.workflow }}-\${{ github.ref }}
+  # never cancel a run on main mid-release, or the release is created but never published
+  cancel-in-progress: \${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   debian:
     uses: apollogeddon/forgejs/.github/workflows/debian.yml@main
@@ -86,7 +102,6 @@ jobs:
     with:
       node_version: '22'
       auto_patch: true
-    secrets: inherit
 `;
 
 // Disabled standard features become pipeline inputs so CI doesn't run what the project doesn't have.
@@ -114,6 +129,5 @@ export function withDocker(workflow: string): string {
     with:
       push: \${{ github.ref == 'refs/heads/main' && needs.${pipeline}.outputs.new_release_published == 'true' }}
       version: \${{ needs.${pipeline}.outputs.version }}
-    secrets: inherit
 `;
 }

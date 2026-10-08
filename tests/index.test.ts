@@ -51,9 +51,16 @@ function runExpectingFailure(args: string, cwd: string): string {
 const DEFAULT_SCRIPTS = ["watch", "start", "lint", "security", "type", "build", "test", "prepare"];
 
 type GeneratedWorkflow = {
+  concurrency?: { group?: string; "cancel-in-progress"?: string };
   jobs: Record<
     string,
-    { uses?: string; needs?: string; with?: Record<string, unknown>; permissions?: Record<string, string> }
+    {
+      uses?: string;
+      needs?: string;
+      with?: Record<string, unknown>;
+      secrets?: unknown;
+      permissions?: Record<string, string>;
+    }
   >;
 };
 
@@ -315,6 +322,24 @@ describe("CLI Init Command", () => {
       for (const input of Object.keys(job.with ?? {})) {
         expect(declared, `${name} passes undeclared input '${input}' to ${callee}`).toContain(input);
       }
+    }
+  });
+
+  it.each([
+    "--backend",
+    "--library",
+    "--website",
+    "--debian",
+    "--backend --docker",
+  ])("should generate a least-privilege workflow that never cancels main (%s)", (flags) => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${flags}`, { cwd: tempDir });
+    const workflow = readGeneratedWorkflow(tempDir);
+    expect(workflow.concurrency?.["cancel-in-progress"]).toContain("refs/heads/main");
+    for (const [name, job] of Object.entries(workflow.jobs)) {
+      // the called workflows only use GITHUB_TOKEN, which they get without inheriting every secret
+      expect(job.secrets, `${name} passes secrets`).toBeUndefined();
+      // only GitHub Pages needs an OIDC token
+      if (name !== "website") expect(job.permissions?.["id-token"], `${name} asks for id-token`).toBeUndefined();
     }
   });
 

@@ -29,6 +29,10 @@ updates:
           - "minor"
           - "patch"
     # Ensure commit messages follow your convention (e.g., 'chore(deps): ...')
+    # TypeScript is pinned to 6 until tsup supports 7; drop this once it does.
+    ignore:
+      - dependency-name: "typescript"
+        versions: [">=7"]
     commit-message:
       prefix: "fix(deps)"
     # Wait 3 days after a version is published before proposing it, so a
