@@ -1,15 +1,18 @@
 ---
+import type { MarkdownHeading } from "astro";
 import Header from "../components/Header.astro";
 import Sidebar from "../components/Sidebar.astro";
+import Toc from "../components/Toc.astro";
 import Base from "./Base.astro";
 
 interface Props {
   title: string;
   description?: string;
   currentSlug: string;
+  headings?: MarkdownHeading[];
 }
 
-const { title, description, currentSlug } = Astro.props;
+const { title, description, currentSlug, headings = [] } = Astro.props;
 ---
 
 <Base title={`${title} · Forge.js`} description={description}>
@@ -39,6 +42,12 @@ const { title, description, currentSlug } = Astro.props;
       <slot />
     </article>
   </main>
+
+    <aside
+      class="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 overflow-y-auto px-4 pb-12 pt-10 xl:block"
+    >
+      <Toc headings={headings} />
+    </aside>
   </div>
 
 </Base>
