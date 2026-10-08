@@ -115,7 +115,6 @@ jobs:
     if: ${{ !failure() && !cancelled() && (needs.testing.result == 'success' || needs['release-testing'].result == 'success') && inputs.publish && github.ref == 'refs/heads/main' && (needs.version.outputs.new_release_published == 'true' || needs.version.outputs.new_release_published == true) }}
     permissions:
       contents: read
-      id-token: write
       packages: write
     defaults:
       run:
@@ -131,10 +130,11 @@ jobs:
           node-version: ${{ inputs.node_version }}
           registry-url: 'https://npm.pkg.github.com'
           scope: "@${{ github.repository_owner }}"
-          cache: 'npm'
-          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
+          # no dependency cache in a job holding a publish token, as a poisoned cache could ship
+          package-manager-cache: false
+      # without install scripts, so no dependency's script runs while the publish token is set
       - name: Install Dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish to GitHub Packages
