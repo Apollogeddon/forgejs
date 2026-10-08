@@ -85,11 +85,11 @@ jobs:
     uses: apollogeddon/forgejs/.github/workflows/service.yml@main
     permissions:
       contents: write
+      packages: read
       pull-requests: write
     with:
       working_directory: 'packages/api'
       node_version: '22'
-    secrets: inherit
 ```
 
 ### Testing Across Node Versions
@@ -138,5 +138,4 @@ jobs:
       push: ${{ github.ref == 'refs/heads/main' && needs.service.outputs.new_release_published == 'true' }}
       version: ${{ needs.service.outputs.version }}
       platforms: 'linux/amd64,linux/arm64,linux/arm/v7'
-    secrets: inherit
 ```

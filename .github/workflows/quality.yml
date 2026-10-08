@@ -31,6 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: false
           fetch-depth: 0
       - name: Gitleaks Scan
         if: inputs.enable_secrets
@@ -52,6 +53,8 @@ jobs:
         working-directory: ${{ inputs.working_directory }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ inputs.node_version }}
@@ -64,6 +67,6 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Biome Lint
-        run: npx @biomejs/biome check .
+        run: npx @biomejs/biome ci .
       - name: Type Check
         run: npm run type
