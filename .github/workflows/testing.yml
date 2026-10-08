@@ -99,10 +99,10 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Inject Environment Variables
         if: inputs.build_env_vars != ''
-        run: |
-          cat << 'EOF' >> .env
-          ${{ inputs.build_env_vars }}
-          EOF
+        # through the environment, so the value is never parsed as part of the script
+        env:
+          BUILD_ENV_VARS: ${{ inputs.build_env_vars }}
+        run: printf '%s\n' "$BUILD_ENV_VARS" >> .env
       - name: Build
         run: npm run build
       - name: Upload Build Artifact
