@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.1.2](https://github.com/Apollogeddon/forgejs/compare/v3.1.1...v3.1.2) (2026-10-08)
+
+
+### Bug Fixes
+
+* auto-merge Dependabot PRs through the API, so a runner needs no gh CLI ([d185db4](https://github.com/Apollogeddon/forgejs/commit/d185db4feaba5951a1a53dd8dbacf868cb03c2c1))
+* auto-merge Dependabot PRs through the API, so a runner needs no gh CLI ([7340929](https://github.com/Apollogeddon/forgejs/commit/7340929ea8475085624a720acd138724f847f6b4))
+
 ## [3.1.1](https://github.com/Apollogeddon/forgejs/compare/v3.1.0...v3.1.1) (2026-10-08)
 
 
