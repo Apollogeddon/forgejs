@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.1.4](https://github.com/Apollogeddon/forgejs/compare/v3.1.3...v3.1.4) (2026-10-08)
+
+
+### Bug Fixes
+
+* **ci:** leave Dependabot's GitHub Actions updates for a person to merge ([80bd532](https://github.com/Apollogeddon/forgejs/commit/80bd53235737b31726a273b85521df1f5dfbb44c))
+* **ci:** leave Dependabot's GitHub Actions updates for a person to merge ([e506ea7](https://github.com/Apollogeddon/forgejs/commit/e506ea7d30d871d7396c2d9d254a5bb80c9a8906))
+
 ## [3.1.3](https://github.com/Apollogeddon/forgejs/compare/v3.1.2...v3.1.3) (2026-10-08)
 
 
