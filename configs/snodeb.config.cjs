@@ -1,4 +1,14 @@
 const { defineSnodebConfig } = require("snodeb");
+const { name } = require(require("node:path").join(process.cwd(), "package.json"));
+
+// The service runs as its own system user, which the package's postinst creates, never as root.
+// It's named after the package without its scope, as a Debian user name can't hold '@', '/' or '.'.
+const unscoped = name
+  .split("/")
+  .pop()
+  .toLowerCase()
+  .replace(/[^a-z0-9_-]/g, "-");
+const user = (/^[a-z_]/.test(unscoped) ? unscoped : `svc-${unscoped}`).slice(0, 32);
 
 module.exports = defineSnodebConfig({
   architecture: "all",
@@ -10,8 +20,8 @@ module.exports = defineSnodebConfig({
     unPrune: false,
   },
   systemd: {
-    user: "root",
-    group: "node-service",
+    user,
+    group: user,
     entryPoint: "dist/index.js",
   },
 });
