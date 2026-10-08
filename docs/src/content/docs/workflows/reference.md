@@ -102,7 +102,7 @@ Pass `run_tests: false` to skip the test suite. `service.yml`, `library.yml` and
 *Orchestrates publishing to GitHub Packages.*
 
 1. Calls → `testing.yml`, `merge.yml` and `version.yml` as above.
-2. **`publish`** — On a new release, downloads the build artifact and runs `npm publish` to GitHub Packages using `GITHUB_TOKEN`. Disable with `publish: false`. *(Needs: version)*
+2. **`publish`** — On a new release, downloads the build artifact and publishes it to GitHub Packages as is, using `GITHUB_TOKEN`. Nothing is installed and lifecycle scripts (`prepublishOnly`, `prepare`) don't run, so no dependency code runs while the publish token is set; run those checks in your build or tests instead. Disable with `publish: false`. *(Needs: version)*
 
 ## debian.yml
 
