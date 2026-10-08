@@ -1,19 +1,20 @@
-# Security Policy
+# Security policy
 
-## Supported Versions
+## Supported versions
 
 Only the latest published version of `@apollogeddon/forgejs` receives security fixes.
 
-## Reporting a Vulnerability
+## Reporting a vulnerability
 
-Please report security vulnerabilities privately using [GitHub's private vulnerability reporting](https://github.com/Apollogeddon/forgejs/security/advisories/new) rather than opening a public issue.
+Report security vulnerabilities privately through [GitHub's private vulnerability reporting](https://github.com/Apollogeddon/forgejs/security/advisories/new). Don't open a public issue.
 
-You should expect an initial response within a few days. If the issue is confirmed, a fix will be released as a patch version and credited in the advisory unless you request otherwise.
+You can expect an initial response within a few days. If the issue is confirmed, the fix is released as a patch version and credited in the advisory unless you ask otherwise.
 
-## Automated Security Tooling
+## Automated security tooling
 
-This repository runs the following on every change:
+This repository's CI runs on every pull request and again before each release:
 
-- **Gitleaks** — scans for committed secrets
-- **OSV-Scanner** — scans dependencies for known vulnerabilities
-- **Dependabot** — with a 3-day cooldown before new dependency versions are proposed, giving time for a compromised release to be caught and yanked upstream
+- **Gitleaks** scans for committed secrets.
+- **OSV-Scanner** scans dependencies for known vulnerabilities.
+
+**Dependabot** proposes dependency updates weekly, with a 3-day cooldown after a version is published. The cooldown gives time for a compromised release to be caught and yanked upstream before it is proposed here.
