@@ -131,10 +131,10 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ inputs.node_version }}
-          cache: 'npm'
-          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
           registry-url: 'https://npm.pkg.github.com'
           scope: "@${{ github.repository_owner }}"
+          # no dependency cache for the release build, as a poisoned cache would be packaged
+          package-manager-cache: false
       - name: Install dependencies
         run: npm ci
         env:
