@@ -93,3 +93,25 @@ describe("Pipeline outputs used by the generated docker job", () => {
     expect(outputs).toEqual(expect.arrayContaining(["new_release_published", "version"]));
   });
 });
+
+describe("version.yml working_directory", () => {
+  const content = fs.readFileSync(path.join(workflowsDir, "version.yml"), "utf-8");
+  const wf = yaml.load(content) as unknown as Workflow & {
+    jobs: Record<string, { outputs?: Record<string, string>; steps?: Array<{ with?: Record<string, string> }> }>;
+  };
+  const job = wf.jobs["release-please"];
+
+  it("should pass a sub-directory to release-please as the package path", () => {
+    const release = job.steps?.find((step) => step.uses?.startsWith("googleapis/release-please-action"));
+    expect(release?.with?.path).toContain("inputs.working_directory");
+  });
+
+  // release-please prefixes a sub-directory package's outputs with its path
+  it.each(["release_created", "version", "tag_name"])("should read the package's own %s output", (key) => {
+    expect(job.outputs?.[key]).toContain(`format('{0}--${key}', inputs.working_directory)`);
+  });
+
+  it("should not report another package's release as this one's", () => {
+    expect(content).not.toContain("releases_created");
+  });
+});
