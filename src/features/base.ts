@@ -1,5 +1,5 @@
 import * as templates from "../templates/index.js";
-import { createFile, createFileIfMissing, type Feature } from "./types.js";
+import { createFile, createFileIfMissing, type Feature, usesAstro } from "./types.js";
 
 export const BaseFeature: Feature = {
   name: "Base Setup",
@@ -19,7 +19,9 @@ export const BaseFeature: Feature = {
     }
 
     // tsc/tsup/vite all need real source to exist, so scaffold a starter file now.
-    if (cfg.website) {
+    if (cfg.website && usesAstro(packageJson)) {
+      console.log("ℹ️  Astro project detected: keeping its own pages instead of index.html and src/main.ts");
+    } else if (cfg.website) {
       ok = createFileIfMissing(cwd, "index.html", templates.indexHtml(packageJson.name), cfg, fs) && ok;
       ok = createFileIfMissing(cwd, "src/main.ts", templates.mainTs(packageJson.name), cfg, fs) && ok;
     } else {

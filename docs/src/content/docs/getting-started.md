@@ -86,7 +86,9 @@ Only one mode can be active at a time. `--no-testing` and `--no-version` also tu
 
 `--no-all` turns off the standard features, not the mode: without a mode flag the project is still a `--backend` project, with its CI workflow.
 
-`--website` scaffolds a frontend application built with Vite: `index.html`, `src/main.ts` and `vite.config.ts`, with `dev`, `build` and `preview` scripts. Run `npm run dev` to work on it locally. In CI, the `website.yml` workflow builds the site and deploys `dist/` to GitHub Pages. It deploys whatever `npm run build` writes to `dist/`, so a site built with another tool, such as Astro, deploys the same way.
+`--website` scaffolds a frontend application built with Vite: `index.html`, `src/main.ts` and `vite.config.ts`, with `dev`, `build` and `preview` scripts. Run `npm run dev` to work on it locally. In CI, the `website.yml` workflow builds the site and deploys `dist/` to GitHub Pages. It deploys whatever `npm run build` writes to `dist/`, so a site built with another tool deploys the same way.
+
+If `package.json` already depends on `astro`, `--website` leaves the site's own pages and `astro.config.mjs` alone: it skips `index.html`, `src/main.ts` and `vite.config.ts`, and its `dev`, `build`, `preview` and `type` scripts call `astro` instead (`type` runs `astro sync && tsc --noEmit`, so Astro's generated types exist first).
 
 ## Generated scripts
 
@@ -97,14 +99,14 @@ Only one mode can be active at a time. `--no-testing` and `--no-version` also tu
 | `lint` | `biome check --fix` | Linting is on |
 | `security` | `osv-scanner scan -r .` (needs `osv-scanner` on your `PATH`) | Linting is on |
 | `prepare` | `lefthook install` | Linting is on |
-| `type` | `tsc --noEmit` | Always |
+| `type` | `tsc --noEmit` (`astro sync && tsc --noEmit` for Astro sites) | Always |
 | `test` | `vitest run` | Testing is on |
-| `build` | `tsup`, or `vite build` for websites | Always |
+| `build` | `tsup`, or `vite build` for websites (`astro build` for Astro sites) | Always |
 | `start` | `node dist/index.js` | `--backend`, `--library` |
 | `watch` | `tsx watch src/index.ts` | `--backend`, `--library` |
 | `publint` | `publint` | `--library` |
-| `dev` | `vite` | `--website` |
-| `preview` | `vite preview` | `--website` |
+| `dev` | `vite`, or `astro dev` for Astro sites | `--website` |
+| `preview` | `vite preview`, or `astro preview` for Astro sites | `--website` |
 | `docker:build`, `docker:run` | `docker build` and `docker run` for the project image | `--docker` |
 | `build:deb` | `snodeb` | `--debian` |
 
@@ -129,7 +131,7 @@ A default `init` (backend) produces:
 └── vitest.config.ts          # merges the Forge.js Vitest config
 ```
 
-`--website` replaces `tsup.config.ts` with `vite.config.ts` and adds `index.html` and `src/main.ts`. `--docker` adds `Dockerfile` and `.dockerignore`, and `--debian` adds `snodeb.config.cjs`.
+`--website` replaces `tsup.config.ts` with `vite.config.ts` and adds `index.html` and `src/main.ts`, except in an Astro site, which keeps its own. `--docker` adds `Dockerfile` and `.dockerignore`, and `--debian` adds `snodeb.config.cjs`.
 
 ## Next steps
 

@@ -1,12 +1,18 @@
 import * as templates from "../templates/index.js";
-import { createFile, type Feature, removeFile, setScript } from "./types.js";
+import { createFile, type Feature, removeFile, setScript, usesAstro } from "./types.js";
 
 export const BuildFeature: Feature = {
   name: "Build",
   shouldRun: () => true,
   apply: (cwd, cfg, fs, packageJson) => {
     let ok = true;
-    if (cfg.website) {
+    if (cfg.website && usesAstro(packageJson)) {
+      // astro.config.mjs configures Vite itself; astro sync generates the types tsc checks
+      setScript(packageJson, cfg, "dev", "astro dev");
+      setScript(packageJson, cfg, "build", "astro build");
+      setScript(packageJson, cfg, "preview", "astro preview");
+      setScript(packageJson, cfg, "type", "astro sync && tsc --noEmit");
+    } else if (cfg.website) {
       ok = createFile(cwd, "vite.config.ts", templates.viteConfig, cfg, fs);
       setScript(packageJson, cfg, "dev", "vite");
       setScript(packageJson, cfg, "build", "vite build");

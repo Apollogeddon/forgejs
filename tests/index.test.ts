@@ -191,6 +191,21 @@ describe("CLI Init Command", () => {
     expect(packageJson.scripts.build).toBe("vite build");
   });
 
+  it("should leave an Astro site's own pages and config alone with --website", () => {
+    const initialPackageJson = { name: "test", scripts: {}, devDependencies: { astro: "6.4.6" } };
+    fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify(initialPackageJson));
+
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --website`, { cwd: tempDir });
+
+    for (const file of ["index.html", "src/main.ts", "vite.config.ts"]) {
+      expect(fs.existsSync(path.join(tempDir, file))).toBe(false);
+    }
+    const { scripts } = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
+    expect(scripts.dev).toBe("astro dev");
+    expect(scripts.build).toBe("astro build");
+    expect(scripts.type).toBe("astro sync && tsc --noEmit");
+  });
+
   it("should support --library flag to setup library only", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --library`, { cwd: tempDir });
 

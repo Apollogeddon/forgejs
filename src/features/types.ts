@@ -67,6 +67,12 @@ export function createFileIfMissing(
   }
 }
 
+// An Astro site brings its own pages, config and Vite setup, so website mode leaves those to it.
+export function usesAstro(packageJson: PackageJson): boolean {
+  const deps = { ...(packageJson.dependencies as Record<string, string> | undefined), ...packageJson.devDependencies };
+  return deps.astro !== undefined;
+}
+
 export function setScript(packageJson: PackageJson, cfg: InitConfig, key: string, value: string): void {
   if (packageJson.scripts[key] !== undefined && !cfg.force) {
     return;

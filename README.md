@@ -60,7 +60,7 @@ npm install
 | :--- | :--- |
 | `--backend` | Node.js service or application (default) |
 | `--library` | Publishable TypeScript library |
-| `--website` | Frontend website built with Vite |
+| `--website` | Frontend website built with Vite, or an existing Astro site |
 
 `init` then:
 
