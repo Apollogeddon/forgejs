@@ -473,6 +473,15 @@ describe("CLI Init Command", () => {
     expect(updatedPackageJson.scripts.lint).toBe("echo custom-lint");
   });
 
+  it("should add scripts to an existing package.json that has no scripts field", () => {
+    fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify({ name: "test", version: "0.0.0" }));
+
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
+
+    const updatedPackageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
+    expect(updatedPackageJson.scripts.lint).toBeDefined();
+  });
+
   it("should not include the commitlint hook in lefthook.yml when --no-version is passed", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --no-version`, { cwd: tempDir });
     const lefthookConfig = fs.readFileSync(path.join(tempDir, "lefthook.yml"), "utf-8");
