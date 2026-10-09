@@ -425,6 +425,22 @@ describe("CLI Init Command", () => {
     expect(fs.existsSync(path.join(tempDir, "commitlint.config.ts"))).toBe(false);
     // Build/Base features always run regardless of --no-all
     expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
+    // --no-all turns off the standard features, not the default backend mode
+    expect(fs.existsSync(path.join(tempDir, ".github", "workflows", "index.yml"))).toBe(true);
+  });
+
+  it("should only tell the user to install the git hooks when npm install won't", () => {
+    const fresh = execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir, encoding: "utf-8" });
+    expect(fresh).not.toMatch(/lefthook install/);
+
+    const other = fs.mkdtempSync(path.join(os.tmpdir(), "forgejs-prepare-"));
+    try {
+      fs.writeFileSync(path.join(other, "package.json"), JSON.stringify({ name: "x", scripts: { prepare: "husky" } }));
+      const kept = execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: other, encoding: "utf-8" });
+      expect(kept).toMatch(/npx lefthook install/);
+    } finally {
+      fs.rmSync(other, { recursive: true, force: true });
+    }
   });
 
   it("should let an explicit flag re-enable a feature disabled by --no-all", () => {

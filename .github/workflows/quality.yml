@@ -66,7 +66,13 @@ jobs:
         run: npm ci --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # a project scaffolded with --no-linting has no Biome config to lint against
       - name: Biome Lint
-        run: npx @biomejs/biome ci .
+        run: |
+          if [ -f biome.json ] || [ -f biome.jsonc ]; then
+            npx @biomejs/biome ci .
+          else
+            echo "No biome.json, skipping Biome"
+          fi
       - name: Type Check
         run: npm run type
