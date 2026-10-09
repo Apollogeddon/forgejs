@@ -84,7 +84,7 @@ npx @apollogeddon/forgejs init [options]
 
 Only one mode can be active at a time. `--no-testing` and `--no-version` also turn off the matching jobs in the generated CI workflow.
 
-Combine `--no-all` with a mode flag. On its own, `--no-all` also turns off the default `--backend` mode, so no CI workflow is generated.
+`--no-all` turns off the standard features, not the mode: without a mode flag the project is still a `--backend` project, with its CI workflow.
 
 `--website` scaffolds a frontend application built with Vite: `index.html`, `src/main.ts` and `vite.config.ts`, with `dev`, `build` and `preview` scripts. Run `npm run dev` to work on it locally. In CI, the `website.yml` workflow builds the site and deploys `dist/` to GitHub Pages. It deploys whatever `npm run build` writes to `dist/`, so a site built with another tool, such as Astro, deploys the same way.
 

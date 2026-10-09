@@ -105,7 +105,9 @@ export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()): n
   console.log("\nInitialization complete!");
   console.log("Next steps:");
   console.log('1. Run "npm install" to ensure dependencies are linked.');
-  if (cfg.linting) {
+  // npm install runs the "prepare" script, which installs the git hooks, unless the
+  // project already had a prepare script that this run left as it was
+  if (cfg.linting && !packageJson.scripts?.prepare?.includes("lefthook install")) {
     console.log('2. Run "npx lefthook install" to set up git hooks.');
   }
   return 0;
