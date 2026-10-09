@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.2.1](https://github.com/Apollogeddon/forgejs/compare/v3.2.0...v3.2.1) (2026-10-09)
+
+
+### Bug Fixes
+
+* **cli:** keep backend as the default mode with --no-all, and smaller fixes ([feb6002](https://github.com/Apollogeddon/forgejs/commit/feb6002c7860a74602aad6c5ccdf0fc8af926c34))
+* **cli:** keep backend as the default mode with --no-all, and smaller fixes ([02e1791](https://github.com/Apollogeddon/forgejs/commit/02e1791686a1cc4671a17eb77a59711d2dec8151))
+
 ## [3.2.0](https://github.com/Apollogeddon/forgejs/compare/v3.1.4...v3.2.0) (2026-10-09)
 
 
