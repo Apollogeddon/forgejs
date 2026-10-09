@@ -91,7 +91,7 @@ Outputs `new_release_published`, `version` and `tag_name` for the delivery jobs:
 
 *Dependabot auto-merge.*
 
-1. **`auto-merge`**: For pull requests opened by Dependabot, enables GitHub's auto-merge so the PR merges once required checks pass. If the PR can already be merged, it merges it straight away. GitHub Actions updates (branches starting `dependabot/github_actions/`) are skipped and left for a person to merge: they change workflow files, which `GITHUB_TOKEN` can't merge.
+1. **`auto-merge`**: For pull requests opened by Dependabot, enables GitHub's auto-merge so the PR merges once required checks pass. If the PR can already be merged, it merges it straight away. It squash-merges, so release-please lists each update once: a merge commit repeats the pull request's title, and release-please reads that as a second change. Merge your own pull requests the same way, with **Squash and merge**. GitHub Actions updates (branches starting `dependabot/github_actions/`) are skipped and left for a person to merge: they change workflow files, which `GITHUB_TOKEN` can't merge.
 
 ## service.yml
 
