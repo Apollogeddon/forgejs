@@ -1,5 +1,7 @@
 const { defineSnodebConfig } = require("snodeb");
-const { name } = require(require("node:path").join(process.cwd(), "package.json"));
+const path = require("node:path");
+// a package.json without a name falls back to the project directory's name
+const { name = path.basename(process.cwd()) } = require(path.join(process.cwd(), "package.json"));
 
 // The service runs as its own system user, which the package's postinst creates, never as root.
 // It's named after the package without its scope, as a Debian user name can't hold '@', '/' or '.'.

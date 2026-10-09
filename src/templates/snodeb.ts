@@ -1,6 +1,7 @@
 export const snodebConfig = `\
 const { defineSnodebConfig } = require("snodeb");
-const { name } = require("./package.json");
+// a package.json without a name falls back to the project directory's name
+const { name = require("node:path").basename(__dirname) } = require("./package.json");
 
 // The service runs as its own system user, which the package's postinst creates, never as root.
 // It's named after the package without its scope, as a Debian user name can't hold '@', '/' or '.'.

@@ -241,6 +241,20 @@ describe("CLI Init Command", () => {
     expect(config.systemd).toMatchObject({ user, group: user });
   });
 
+  it("should name the debian service user after the directory when package.json has no name", () => {
+    const project = path.join(tempDir, "Billing.API");
+    fs.mkdirSync(project);
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --debian`, { cwd: project });
+    const packageJsonPath = path.join(project, "package.json");
+    const { name: _name, ...packageJson } = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
+    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson));
+    const load = createRequire(path.join(project, "snodeb.config.cjs"));
+    fs.mkdirSync(path.join(project, "node_modules/snodeb"), { recursive: true });
+    fs.writeFileSync(path.join(project, "node_modules/snodeb/index.js"), "exports.defineSnodebConfig = (c) => c;");
+    const config = load("./snodeb.config.cjs");
+    expect(config.systemd).toMatchObject({ user: "billing-api", group: "billing-api" });
+  });
+
   it("should not create files or modify package.json with --dry-run", () => {
     const initialPackageJson = { name: "test", scripts: { test: "echo original" } };
     fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify(initialPackageJson));

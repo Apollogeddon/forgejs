@@ -119,7 +119,8 @@ CI builds the image for every configured platform — see [Job Reference](/forge
 
 ```js
 const { defineSnodebConfig } = require("snodeb");
-const { name } = require("./package.json");
+// a package.json without a name falls back to the project directory's name
+const { name = require("node:path").basename(__dirname) } = require("./package.json");
 
 // The service runs as its own system user, which the package's postinst creates, never as root.
 // It's named after the package without its scope, as a Debian user name can't hold '@', '/' or '.'.
@@ -147,4 +148,4 @@ module.exports = defineSnodebConfig({
 });
 ```
 
-The service never runs as root. It runs as a system user named after the package (without its scope), which the package's `postinst` creates with no home directory or login shell. The installed files stay owned by root, so the service can read its code and `.env` but not change them; give it a directory under `/var/lib` if it needs to write.
+The service never runs as root. It runs as a system user that the package's `postinst` creates with no home directory or login shell. The user is named after the package without its scope, or after the project directory when `package.json` has no `name`. The installed files stay owned by root, so the service can read its code and `.env` but not change them; give it a directory under `/var/lib` if it needs to write.
