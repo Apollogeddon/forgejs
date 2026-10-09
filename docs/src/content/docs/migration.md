@@ -3,63 +3,71 @@ title: Migrating to Forge.js
 description: Remove conflicting tooling and adopt the Forge.js standard configurations.
 ---
 
-Adopting Forge.js reduces configuration overhead but requires the removal of conflicting tooling configurations.
+This guide is for existing projects moving to Forge.js from ESLint, Prettier, Jest or semantic-release. Forge.js replaces those tools, so remove their configuration to avoid conflicts.
 
-## Migration Checklist
+## Migration checklist
 
-### 1. Run Initialization
+### 1. Run init
 
-Execute the init command to generate the new standard configurations.
+Generate the standard configurations. See [Getting started](/forgejs/docs/getting-started) for the install steps and mode flags.
 
 ```bash
 npx @apollogeddon/forgejs init
 ```
 
-### 2. Remove Old Configs
+`init` keeps existing scripts with the same names as its own, such as `lint` or `test`. Pass `--force` to replace them with the Forge.js versions.
 
-Remove configuration files for tools replaced by this library to prevent conflicts.
+### 2. Remove old configs
 
-- **Remove ESLint & Prettier:** `rm .eslintrc* .prettierrc* .eslintignore .prettierignore`
-- **Remove Jest:** `rm jest.config.*`
-- **Remove semantic-release (if used):** `rm .releaserc*` — releases are handled by release-please in CI.
+Remove the configuration files of the tools Forge.js replaces:
 
-### 3. Update Dependencies
+```bash
+# ESLint and Prettier
+rm -f .eslintrc* eslint.config.* .prettierrc* .eslintignore .prettierignore
 
-Uninstall the tools that are now managed by Forge.js.
+# Jest
+rm -f jest.config.*
+
+# semantic-release, if you used it
+rm -f .releaserc*
+```
+
+### 3. Remove old dependencies
+
+Uninstall the tools Forge.js now manages:
 
 ```bash
 npm uninstall eslint prettier jest ts-jest
 ```
 
-### 4. Fix Linting Errors
+### 4. Fix linting errors
 
-Biome enforces stricter rules than some ESLint configurations. Run the fix command to resolve most issues automatically.
+Biome's recommended rules can be stricter than your previous ESLint setup. Apply the automatic fixes, then fix the rest by hand:
 
 ```bash
 npm run lint
 ```
 
-## Tool-Specific Guides
+## Tool-specific notes
 
-### ESLint/Prettier to Biome
+### ESLint and Prettier to Biome
 
-Biome handles both linting and formatting. Configuration is generally not required if extending the default `biome.json`.
+Biome handles both linting and formatting. The generated `biome.json` extends the shared config, so you usually need no further configuration.
 
-> **Tip**
-> For large codebases with many initial errors, incremental adoption is possible via the `--changed` flag in local workflows, although the CI pipeline enforces compliance on the entire project.
+The pre-commit hook only checks staged files, but CI checks the whole project. On a large codebase, fix the existing errors in one pass before relying on CI.
 
 ### Jest to Vitest
 
-Vitest is largely API-compatible with Jest, with specific differences:
+Vitest is largely API-compatible with Jest, with these differences:
 
-1. **Globals:** Forge.js configures Vitest with `globals: false` by default. Import `describe`, `it`, `expect`, etc., directly from `vitest` in test files.
+1. **Globals:** Vitest doesn't provide test globals by default, and the shared config keeps it that way. Import `describe`, `it`, `expect` and the rest from `vitest` in each test file:
 
    ```ts
    import { describe, it, expect } from 'vitest';
    ```
 
-2. **Environment:** For tests involving DOM interactions, ensure a compatible environment (e.g., `happy-dom` or `jsdom`) is configured.
+2. **Environment:** The shared config uses the `node` environment. For tests that need a DOM, install `happy-dom` or `jsdom` and set `test.environment` in `vitest.config.ts`.
 
-### Automated Releases
+### semantic-release to release-please
 
-Forge.js uses **release-please** (via the reusable `version.yml` workflow) for automated versioning — not semantic-release. If your project previously used semantic-release, remove any local `.releaserc` files. Release configuration is handled entirely by the workflow; no local config file is required.
+Forge.js versions releases with release-please, through the reusable `version.yml` workflow. Release configuration lives in the workflow, so the project needs no local config file.
