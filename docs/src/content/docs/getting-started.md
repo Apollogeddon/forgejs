@@ -86,7 +86,7 @@ Only one mode can be active at a time. `--no-testing` and `--no-version` also tu
 
 Combine `--no-all` with a mode flag. On its own, `--no-all` also turns off the default `--backend` mode, so no CI workflow is generated.
 
-`--website` scaffolds a Vite application. For a site built with another tool, such as Astro, the `website.yml` workflow builds and deploys whatever `npm run build` writes to `dist/`.
+`--website` scaffolds a frontend application built with Vite: `index.html`, `src/main.ts` and `vite.config.ts`, with `dev`, `build` and `preview` scripts. Run `npm run dev` to work on it locally. In CI, the `website.yml` workflow builds the site and deploys `dist/` to GitHub Pages. It deploys whatever `npm run build` writes to `dist/`, so a site built with another tool, such as Astro, deploys the same way.
 
 ## Generated scripts
 
