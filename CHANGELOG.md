@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.1.5](https://github.com/Apollogeddon/forgejs/compare/v3.1.4...v3.1.5) (2026-10-09)
+
+
+### Bug Fixes
+
+* **ci:** keep counting releases_created for a root package, where release_created can be unset ([39956f5](https://github.com/Apollogeddon/forgejs/commit/39956f5d6a88fb62a2eb49efca01bc8e0038d4ee))
+* **ci:** read a sub-directory package's own release outputs in version.yml ([722f5a6](https://github.com/Apollogeddon/forgejs/commit/722f5a6b1ed9994f0b75d4cbd1b20453a758ca77))
+* **ci:** read a sub-directory package's own release outputs in version.yml ([afeabaf](https://github.com/Apollogeddon/forgejs/commit/afeabaf48b6ee471cf3ba45a95d907797a5773e8))
+
 ## [3.1.4](https://github.com/Apollogeddon/forgejs/compare/v3.1.3...v3.1.4) (2026-10-08)
 
 
