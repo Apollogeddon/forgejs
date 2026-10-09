@@ -1,4 +1,6 @@
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import * as yaml from "js-yaml";
 import { describe, expect, it } from "vitest";
@@ -117,10 +119,39 @@ describe("version.yml working_directory", () => {
       | { run?: string; env?: Record<string, string> }
       | undefined;
 
-    it("should look for a config in the project's own .github", () => {
-      expect(find()?.env?.DIR).toBe("${{ inputs.working_directory }}");
-      expect(find()?.run).toContain('"$DIR/.github/release.json"');
-      expect(find()?.run).toContain("manifest=$DIR/.github/.release.json");
+    // runs the step in a scratch checkout holding the given files, and returns what it outputs
+    const runFind = (dir: string, files: string[]) => {
+      const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "forgejs-version-"));
+      const output = path.join(cwd, "output");
+      try {
+        for (const file of files) {
+          fs.mkdirSync(path.dirname(path.join(cwd, file)), { recursive: true });
+          fs.writeFileSync(path.join(cwd, file), "{}");
+        }
+        execFileSync("bash", ["-e", "-c", String(find()?.run)], {
+          cwd,
+          env: { ...process.env, DIR: dir, GITHUB_OUTPUT: output },
+        });
+        return fs.existsSync(output) ? fs.readFileSync(output, "utf-8") : "";
+      } finally {
+        fs.rmSync(cwd, { recursive: true, force: true });
+      }
+    };
+
+    // release-please fetches the files through the GitHub API, which rejects a leading ./
+    it.each([
+      [".", ".github"],
+      ["./", ".github"],
+      ["app", "app/.github"],
+      ["./app", "app/.github"],
+    ])("should pass release-please the config for working_directory %s as %s", (dir, github) => {
+      expect(runFind(dir, [`${github}/release.json`])).toBe(
+        `file=${github}/release.json\nmanifest=${github}/.release.json\n`,
+      );
+    });
+
+    it("should pass no config when the project has none", () => {
+      expect(runFind(".", [])).toBe("");
     });
 
     it("should check out only the project's .github to find it", () => {

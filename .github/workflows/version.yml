@@ -56,10 +56,16 @@ jobs:
         id: config
         env:
           DIR: ${{ inputs.working_directory }}
+        # release-please reads them through the GitHub API, which takes paths
+        # from the repository root without a leading ./
         run: |
-          if [ -f "$DIR/.github/release.json" ]; then
-            echo "file=$DIR/.github/release.json" >> "$GITHUB_OUTPUT"
-            echo "manifest=$DIR/.github/.release.json" >> "$GITHUB_OUTPUT"
+          case "$DIR" in
+            . | ./) github=.github ;;
+            *) github="${DIR#./}/.github" ;;
+          esac
+          if [ -f "$github/release.json" ]; then
+            echo "file=$github/release.json" >> "$GITHUB_OUTPUT"
+            echo "manifest=$github/.release.json" >> "$GITHUB_OUTPUT"
           fi
       # with a config, release-please reads the packages and options from it;
       # without one, it releases working_directory as a Node.js package
