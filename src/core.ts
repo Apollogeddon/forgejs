@@ -48,6 +48,8 @@ export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()): n
       };
     } else {
       packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
+      // a package.json needn't have a scripts field, but every feature adds to it
+      packageJson.scripts ??= {};
     }
   } catch (error) {
     console.error(
