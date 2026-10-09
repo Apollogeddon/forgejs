@@ -1,27 +1,31 @@
 ---
 title: Configuration
-description: Extend Forge.js tool configurations for project-specific overrides.
+description: How the generated configs extend the Forge.js base configs, and how to override them.
 ---
 
-Forge.js uses a layered configuration model: each tool's project-level config extends a base config shipped inside the `@apollogeddon/forgejs` package, so you override only what your project needs.
+This page explains how the config files `init` generates relate to the base configs in `@apollogeddon/forgejs`, and where to put project-specific settings.
 
-## Shared Configs
+Forge.js uses layered configuration: each tool's project-level config extends a base config shipped in the package, so you override only what your project needs.
+
+## Shared configs
 
 The base configs are published through the package's `exports`, and `init` adds `@apollogeddon/forgejs` as a `devDependency` so they resolve after `npm install`.
 
 | Base config | Extended by |
 | :--- | :--- |
-| `@apollogeddon/forgejs/configs/biome.json` | `biome.json` |
+| `node_modules/@apollogeddon/forgejs/configs/biome.json` | `biome.json` |
 | `@apollogeddon/forgejs/configs/tsconfig.json` | `tsconfig.json` |
 | `@apollogeddon/forgejs/vitest.config.cjs` | `vitest.config.ts` |
 | `@apollogeddon/forgejs/tsup.config.cjs` | `tsup.config.ts` |
 | `@apollogeddon/forgejs/commitlint.config.cjs` | `commitlint.config.ts` |
 
-Upgrading `@apollogeddon/forgejs` updates every base config at once — no files to refresh.
+Biome resolves `extends` as a file path, so `biome.json` references the copy in `node_modules`. The others use the package's `exports`.
 
-## Quality & Testing
+Upgrading `@apollogeddon/forgejs` updates every base config at once, with no files to refresh.
 
-### Biome — Linting & Formatting
+## Quality and testing
+
+### Biome: linting and formatting
 
 The generated `biome.json` extends the shared config:
 
@@ -38,7 +42,7 @@ Add project-specific settings alongside `extends`; they take precedence over the
 
 The generated `tsconfig.json` extends the shared TypeScript config, so every project compiles with the same strictness settings. Add `compilerOptions` to override individual settings.
 
-### Vitest — Testing
+### Vitest: testing
 
 The generated `vitest.config.ts` merges the base configuration:
 
@@ -53,25 +57,25 @@ export default mergeConfig(baseConfig, {
 });
 ```
 
-### Lefthook — Git Hooks
+### Lefthook: Git hooks
 
-`lefthook.yml` runs Biome and Publint before each commit, and commitlint on the commit message:
+`lefthook.yml` runs Biome and Publint before each commit, and commitlint on each commit message:
 
 | Hook | Stage |
 | :--- | :--- |
 | `biome check` on staged files | pre-commit |
 | `publint` | pre-commit |
-| `commitlint --edit` | commit-msg — only with versioning on |
+| `commitlint --edit` | commit-msg, only with versioning on |
 
-Lefthook installs itself through the `prepare` script on `npm install`. To customise hooks, edit `lefthook.yml` directly.
+Lefthook installs the hooks through the `prepare` script when you run `npm install`. To customise them, edit `lefthook.yml`.
 
-### Commitlint — Commit Messages
+### commitlint: commit messages
 
 With versioning on, the generated `commitlint.config.ts` extends the shared Conventional Commits configuration:
 
 ```ts
-import baseConfig from "@apollogeddon/forgejs/commitlint.config.cjs";
-import type { UserConfig } from "@commitlint/types";
+import baseConfig from '@apollogeddon/forgejs/commitlint.config.cjs';
+import type { UserConfig } from '@commitlint/types';
 
 const Configuration: UserConfig = {
   extends: baseConfig.extends,
@@ -81,11 +85,11 @@ const Configuration: UserConfig = {
 export default Configuration;
 ```
 
-## Build & Release
+## Build and release
 
-### Tsup — TypeScript Bundler
+### Tsup: TypeScript bundler
 
-Backends and libraries bundle with Tsup. The generated `tsup.config.ts` spreads the base configuration:
+Backends and libraries bundle with Tsup. The base config builds `src/index.ts` to ESM for Node.js 22, with type declarations and source maps. The generated `tsup.config.ts` spreads it:
 
 ```ts
 import baseConfig from "@apollogeddon/forgejs/tsup.config.cjs";
@@ -96,13 +100,13 @@ export default defineConfig({
 });
 ```
 
-### Vite — Websites
+### Vite: websites
 
 `--website` generates a `vite.config.ts` that builds to `dist/`, the directory the website workflow deploys to GitHub Pages. It sets `base: "./"` so asset URLs are relative and the site works under a GitHub Pages project path (`https://<owner>.github.io/<repo>/`).
 
-### release-please — Versioning
+### release-please: versioning
 
-Releases are driven by the reusable `version.yml` workflow using release-please with the `node` release type. No local config file is needed; version numbers and changelogs come from Conventional Commits.
+The reusable `version.yml` workflow runs release-please with the `node` release type. It needs no local config file: version numbers and changelogs come from your Conventional Commits.
 
 ### Docker
 
@@ -111,11 +115,11 @@ Releases are driven by the reusable `version.yml` workflow using release-please 
 - **Backend:** compiles once on the build host, installs production dependencies per target platform, and runs `node dist/index.js` on `node:22-slim` as the non-root `node` user.
 - **Website:** builds the static site once on the build host and serves it with `nginx:stable-alpine` on port 80.
 
-CI builds the image for every configured platform — see [Job Reference](/forgejs/docs/workflows/reference#dockeryml).
+CI builds the image for every configured platform. See [docker.yml](/forgejs/docs/workflows/reference#dockeryml) in the job reference.
 
-### Snodeb — Debian Packaging
+### Snodeb: Debian packaging
 
-`--debian` generates a `snodeb.config.cjs` (CommonJS, as Snodeb requires). Customise it after running `init --debian`:
+`--debian` generates a `snodeb.config.cjs` (CommonJS, as Snodeb requires). Edit it to suit your service; this is the generated default:
 
 ```js
 const { defineSnodebConfig } = require("snodeb");
