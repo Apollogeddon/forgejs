@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.2.2](https://github.com/Apollogeddon/forgejs/compare/v3.2.1...v3.2.2) (2026-10-09)
+
+
+### Bug Fixes
+
+* don't crash on a package.json with no scripts field ([84bc210](https://github.com/Apollogeddon/forgejs/commit/84bc210aa41b6e83d00398650b383a0340ca6ee0))
+* don't crash on a package.json with no scripts field ([a988774](https://github.com/Apollogeddon/forgejs/commit/a9887741a03c4d147adf2428fbbfed5bac404877))
+
 ## [3.2.1](https://github.com/Apollogeddon/forgejs/compare/v3.2.0...v3.2.1) (2026-10-09)
 
 
