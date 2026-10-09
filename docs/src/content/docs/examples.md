@@ -77,7 +77,7 @@ Forge.js never removes scripts it didn't create.
 
 ### Monorepo Execution
 
-Point a workflow at a sub-directory with `working_directory`:
+Point a workflow at a sub-directory with `working_directory`, given relative to the repository root without a leading `./` or trailing `/`. `version.yml` releases that package on its own: release-please only counts commits under the directory, and tags its releases with the package's name (`api-v1.2.3`):
 
 ```yaml
 jobs:
