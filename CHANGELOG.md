@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.2.0](https://github.com/Apollogeddon/forgejs/compare/v3.1.4...v3.2.0) (2026-10-09)
+
+
+### Features
+
+* **ci:** run release-please from a project's own release config when it has one ([3a44f5f](https://github.com/Apollogeddon/forgejs/commit/3a44f5fbadecbf3e2655c951078a3baff885cade))
+* **ci:** run release-please from a project's own release config when it has one ([9ba5307](https://github.com/Apollogeddon/forgejs/commit/9ba530748a40acf49a50bf3520786af6535979ec))
+
+
+### Bug Fixes
+
+* **ci:** keep counting releases_created for a root package, where release_created can be unset ([9ee9f45](https://github.com/Apollogeddon/forgejs/commit/9ee9f4575a2abec6efac2d701de2a817a623046f))
+* **ci:** pass release-please the config path without a leading ./ ([322b74c](https://github.com/Apollogeddon/forgejs/commit/322b74c114aef68533a1885df7f396fbd8de5f3d))
+* **ci:** pass release-please the config path without a leading ./ ([205fea2](https://github.com/Apollogeddon/forgejs/commit/205fea2d7d6121f3b4fa18afc3345f267e8ba64e))
+* **ci:** read a sub-directory package's own release outputs in version.yml ([c90afe7](https://github.com/Apollogeddon/forgejs/commit/c90afe740d693e946a40b35dce91abbbf9e71fa8))
+* **ci:** read a sub-directory package's own release outputs in version.yml ([efe4c36](https://github.com/Apollogeddon/forgejs/commit/efe4c363d54043a04a42faa3dbf18e4e18517e81))
+
 ## [3.1.4](https://github.com/Apollogeddon/forgejs/compare/v3.1.3...v3.1.4) (2026-10-08)
 
 
