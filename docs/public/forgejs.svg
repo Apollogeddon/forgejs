@@ -1,16 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <title>ForgeJS</title>
   <defs>
-    <!-- Blue → red → magenta: red is the site's brand colour -->
+    <!-- Red, the site's brand colour: red-400 → red-600 → red-800 -->
     <linearGradient id="ag" x1="256" y1="115" x2="256" y2="444" gradientUnits="userSpaceOnUse">
-      <stop offset="0%"   stop-color="#4F7FFF"/>
-      <stop offset="55%"  stop-color="#EF4444"/>
-      <stop offset="100%" stop-color="#C026D3"/>
+      <stop offset="0%"   stop-color="#F87171"/>
+      <stop offset="55%"  stop-color="#DC2626"/>
+      <stop offset="100%" stop-color="#991B1B"/>
     </linearGradient>
-    <!-- Flame: sky-blue → pink -->
+    <!-- Flame: red-50 → red-300 -->
     <linearGradient id="fg" x1="271" y1="115" x2="271" y2="263" gradientUnits="userSpaceOnUse">
-      <stop offset="0%"   stop-color="#BAE6FD"/>
-      <stop offset="100%" stop-color="#F0ABFC"/>
+      <stop offset="0%"   stop-color="#FEF2F2"/>
+      <stop offset="100%" stop-color="#FCA5A5"/>
     </linearGradient>
     <clipPath id="tableClip">
       <rect x="128.688" y="115.594" width="285" height="147.75"/>
@@ -19,7 +19,7 @@
 
   <!--
     Path from game-icons.net (CC Attribution).
-    Original fill replaced with blue→red→magenta gradient.
+    Original fill replaced with a red gradient.
     Compound path: table body · horn · heel · waist section · base.
   -->
   <path
