@@ -77,7 +77,7 @@ Forge.js never removes scripts, and only overwrites the ones it manages when you
 
 ### Run in a monorepo package
 
-Point a workflow at a subdirectory with `working_directory`. release-please then versions that package on its own:
+Point a workflow at a subdirectory with `working_directory`, given relative to the repository root without a leading `./` or trailing `/`. `version.yml` releases that package on its own: release-please only counts commits under the directory, and tags its releases with the package's name (`api-v1.2.3`):
 
 ```yaml
 jobs:
