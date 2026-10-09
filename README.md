@@ -7,9 +7,9 @@
   <h3 align="center">Forge.js</h3>
 
   <p align="center">
-    Shared tooling configuration and CI/CD workflows for TypeScript and Node.js projects
+    Reusable GitHub Actions workflows and tooling configurations for TypeScript and Node.js projects
     <br />
-    <a href="https://apollogeddon.github.io/forgejs"><strong>Explore the docs</strong></a>
+    <a href="https://apollogeddon.github.io/forgejs"><strong>Read the docs</strong></a>
     <br />
     <br />
     <a href="https://apollogeddon.github.io/forgejs/docs/getting-started">Getting started</a>
@@ -22,7 +22,7 @@
 
 <br />
 
-Forge.js is a project-scaffolding CLI for TypeScript and Node.js. Its `init` command sets up a backend service, a publishable library or a Vite website with a standard toolchain (Biome, Vitest, Tsup or Vite, Lefthook, commitlint) and a GitHub Actions pipeline built from reusable workflows. The generated configs extend base configs shipped in the package, so you upgrade every project's tooling by upgrading one dependency.
+Forge.js (`@apollogeddon/forgejs`) is a project-scaffolding CLI for TypeScript and Node.js. Its `init` command sets up a backend, library or website with a standard toolchain (Biome, Vitest, Tsup or Vite, Lefthook, commitlint, release-please) and a GitHub Actions pipeline built from reusable workflows. It keeps your Biome, TypeScript and Vitest setup in one place: the generated configs extend base configs shipped in the package, so upgrading one dependency upgrades every project.
 
 ## Requirements
 
@@ -70,7 +70,7 @@ npm install
 
 Existing files and scripts are kept unless you pass `--force`. Preview changes with `--dry-run`. See [Getting started](https://apollogeddon.github.io/forgejs/docs/getting-started) for every flag and script.
 
-## Toolchain
+## The toolchain
 
 | Category | Tool |
 | :--- | :--- |
@@ -85,16 +85,26 @@ Existing files and scripts are kept unless you pass `--force`. Preview changes w
 | Containers (`--docker`) | Multi-platform [Docker Buildx](https://docs.docker.com/build/) images, pushed to GitHub Container Registry on release |
 | Debian packages (`--debian`) | [Snodeb](https://www.npmjs.com/package/snodeb) |
 
-Biome, Vitest, Tsup, Vite, Lefthook, commitlint, Publint and Snodeb are dependencies of `@apollogeddon/forgejs`, so their versions are pinned and tested together, and upgrading Forge.js upgrades them. OSV-Scanner is not an npm package: CI downloads it, and the local `npm run security` script needs `osv-scanner` on your `PATH`.
+OSV-Scanner is not an npm package: CI downloads it, and the local `npm run security` script needs `osv-scanner` on your `PATH`.
+
+## Keeping projects up to date
+
+Biome, Vitest, Tsup, Vite, Lefthook, commitlint, Publint and Snodeb are dependencies of `@apollogeddon/forgejs`, so their versions are pinned and tested together. The generated `biome.json`, `tsconfig.json` and other configs extend the base configs shipped in `@apollogeddon/forgejs/configs/`, so upgrading the package upgrades the tools and their configuration in one step:
+
+```bash
+npm install --save-dev @apollogeddon/forgejs@latest
+```
 
 ## Documentation
 
 The full documentation is at [apollogeddon.github.io/forgejs](https://apollogeddon.github.io/forgejs):
 
-- [Getting started](https://apollogeddon.github.io/forgejs/docs/getting-started): CLI flags, generated scripts and project layout
-- [Configuration](https://apollogeddon.github.io/forgejs/docs/configuration): extending the shared configs
-- [Workflows](https://apollogeddon.github.io/forgejs/docs/workflows/overview): the reusable GitHub Actions workflows and their inputs
+- [Getting started](https://apollogeddon.github.io/forgejs/docs/getting-started): requirements, CLI flags and generated scripts.
+- [Configuration](https://apollogeddon.github.io/forgejs/docs/configuration): the files Forge.js writes and how to change them.
+- [Examples](https://apollogeddon.github.io/forgejs/docs/examples): common configuration and workflow recipes.
+- [Workflows](https://apollogeddon.github.io/forgejs/docs/workflows/overview): the reusable GitHub Actions workflows and their inputs.
+- [Migration](https://apollogeddon.github.io/forgejs/docs/migration): adopting Forge.js in a project that already has tooling.
 
 ## License
 
-[MIT](LICENSE)
+Forge.js is released under the [MIT License](LICENSE).
