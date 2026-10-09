@@ -111,7 +111,10 @@ describe("version.yml working_directory", () => {
     expect(job.outputs?.[key]).toContain(`format('{0}--${key}', inputs.working_directory)`);
   });
 
+  // releases_created is true when any package is released, so it only counts for the root package
   it("should not report another package's release as this one's", () => {
-    expect(content).not.toContain("releases_created");
+    const published = String(wf.on?.workflow_call?.outputs?.new_release_published?.value);
+    expect(published).toContain("inputs.working_directory == '.' && (jobs.release-please.outputs.releases_created");
+    expect(published.match(/releases_created/g)).toHaveLength(2);
   });
 });
