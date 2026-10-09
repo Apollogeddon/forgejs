@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <title>ForgeJS</title>
   <defs>
-    <!-- Blue → violet → magenta, matching the original logo palette -->
+    <!-- Blue → red → magenta: red is the site's brand colour -->
     <linearGradient id="ag" x1="256" y1="115" x2="256" y2="444" gradientUnits="userSpaceOnUse">
       <stop offset="0%"   stop-color="#4F7FFF"/>
-      <stop offset="55%"  stop-color="#8B5CF6"/>
+      <stop offset="55%"  stop-color="#EF4444"/>
       <stop offset="100%" stop-color="#C026D3"/>
     </linearGradient>
     <!-- Flame: sky-blue → pink -->
@@ -19,7 +19,7 @@
 
   <!--
     Path from game-icons.net (CC Attribution).
-    Original fill replaced with blue→magenta gradient.
+    Original fill replaced with blue→red→magenta gradient.
     Compound path: table body · horn · heel · waist section · base.
   -->
   <path
