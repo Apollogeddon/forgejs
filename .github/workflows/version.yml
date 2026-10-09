@@ -47,10 +47,28 @@ jobs:
       version: ${{ inputs.working_directory != '.' && steps.release.outputs[format('{0}--version', inputs.working_directory)] || steps.release.outputs.version }}
       tag_name: ${{ inputs.working_directory != '.' && steps.release.outputs[format('{0}--tag_name', inputs.working_directory)] || steps.release.outputs.tag_name }}
     steps:
+      # a project can keep a release-please config in <working_directory>/.github
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: ${{ inputs.working_directory }}/.github
+      - name: Find the release-please config
+        id: config
+        env:
+          DIR: ${{ inputs.working_directory }}
+        run: |
+          if [ -f "$DIR/.github/release.json" ]; then
+            echo "file=$DIR/.github/release.json" >> "$GITHUB_OUTPUT"
+            echo "manifest=$DIR/.github/.release.json" >> "$GITHUB_OUTPUT"
+          fi
+      # with a config, release-please reads the packages and options from it;
+      # without one, it releases working_directory as a Node.js package
       - uses: googleapis/release-please-action@v5
         id: release
         with:
-          release-type: node
-          # empty means the repository root
-          path: ${{ inputs.working_directory != '.' && inputs.working_directory || '' }}
+          release-type: ${{ steps.config.outputs.file == '' && 'node' || '' }}
+          config-file: ${{ steps.config.outputs.file }}
+          manifest-file: ${{ steps.config.outputs.manifest }}
+          # empty means the repository root; a config keys its packages by path instead
+          path: ${{ steps.config.outputs.file == '' && inputs.working_directory != '.' && inputs.working_directory || '' }}
           token: ${{ secrets.GITHUB_TOKEN }}

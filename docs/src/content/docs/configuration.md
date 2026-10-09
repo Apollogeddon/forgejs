@@ -108,6 +108,27 @@ export default defineConfig({
 
 The reusable `version.yml` workflow runs release-please with the `node` release type. It needs no local config file: version numbers and changelogs come from your Conventional Commits.
 
+To set release-please options, add a config and manifest to the project's `.github` directory (under `working_directory`, if set). `version.yml` then runs release-please from them instead of the `node` defaults. The config keys the package by its path from the repository root, `.` for a project at the root:
+
+```json title=".github/release.json"
+{
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "include-component-in-tag": false
+    }
+  }
+}
+```
+
+```json title=".github/.release.json"
+{
+  ".": "1.4.2"
+}
+```
+
+Set the manifest to the current released version. See release-please's [config options](https://github.com/googleapis/release-please/blob/main/docs/manifest-releaser.md) for the rest.
+
 ### Docker
 
 `--docker` adds a multi-stage `Dockerfile`:

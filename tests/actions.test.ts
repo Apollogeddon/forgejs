@@ -97,7 +97,7 @@ describe("Pipeline outputs used by the generated docker job", () => {
 describe("version.yml working_directory", () => {
   const content = fs.readFileSync(path.join(workflowsDir, "version.yml"), "utf-8");
   const wf = yaml.load(content) as unknown as Workflow & {
-    jobs: Record<string, { outputs?: Record<string, string>; steps?: Array<{ with?: Record<string, string> }> }>;
+    jobs: Record<string, { outputs?: Record<string, string>; steps?: Array<{ uses?: string; with?: Record<string, string> }> }>;
   };
   const job = wf.jobs["release-please"];
 
@@ -109,6 +109,34 @@ describe("version.yml working_directory", () => {
   // release-please prefixes a sub-directory package's outputs with its path
   it.each(["release_created", "version", "tag_name"])("should read the package's own %s output", (key) => {
     expect(job.outputs?.[key]).toContain(`format('{0}--${key}', inputs.working_directory)`);
+  });
+
+  describe("release-please config", () => {
+    const release = () => job.steps?.find((step) => step.uses?.startsWith("googleapis/release-please-action"));
+    const find = () => job.steps?.find((step) => (step as { id?: string }).id === "config") as
+      | { run?: string; env?: Record<string, string> }
+      | undefined;
+
+    it("should look for a config in the project's own .github", () => {
+      expect(find()?.env?.DIR).toBe("${{ inputs.working_directory }}");
+      expect(find()?.run).toContain('"$DIR/.github/release.json"');
+      expect(find()?.run).toContain("manifest=$DIR/.github/.release.json");
+    });
+
+    it("should check out only the project's .github to find it", () => {
+      const checkout = job.steps?.find((step) => step.uses?.startsWith("actions/checkout")) as
+        | { with?: Record<string, unknown> }
+        | undefined;
+      expect(checkout?.with?.["sparse-checkout"]).toBe("${{ inputs.working_directory }}/.github");
+      expect(checkout?.with?.["persist-credentials"]).toBe(false);
+    });
+
+    it("should release a Node.js package only when there is no config", () => {
+      expect(release()?.with?.["release-type"]).toBe("${{ steps.config.outputs.file == '' && 'node' || '' }}");
+      expect(release()?.with?.["config-file"]).toBe("${{ steps.config.outputs.file }}");
+      expect(release()?.with?.["manifest-file"]).toBe("${{ steps.config.outputs.manifest }}");
+      expect(release()?.with?.path).toContain("steps.config.outputs.file == ''");
+    });
   });
 
   // releases_created is true when any package is released, so it only counts for the root package
