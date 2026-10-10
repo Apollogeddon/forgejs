@@ -99,7 +99,7 @@ Only one mode can be active at a time. `--no-testing` and `--no-version` also tu
 | `prepare` | `lefthook install` | Linting is on |
 | `type` | `tsc --noEmit` | Always |
 | `test` | `vitest run` | Testing is on |
-| `build` | `tsup`, or `vite build` for websites | Always |
+| `build` | `tsdown`, or `vite build` for websites | Always |
 | `start` | `node dist/index.js` | `--backend`, `--library` |
 | `watch` | `tsx watch src/index.ts` | `--backend`, `--library` |
 | `publint` | `publint` | `--library` |
@@ -128,11 +128,11 @@ A default `init` (backend) produces:
 ├── lefthook.yml
 ├── package.json              # type: module, scripts, @apollogeddon/forgejs devDependency
 ├── tsconfig.json             # extends the Forge.js tsconfig
-├── tsup.config.ts            # extends the Forge.js Tsup config
+├── tsdown.config.ts          # extends the Forge.js tsdown config
 └── vitest.config.ts          # merges the Forge.js Vitest config
 ```
 
-`--website` replaces `tsup.config.ts` with `vite.config.ts` and adds `index.html` and `src/main.ts`. `--docker` adds `Dockerfile` and `.dockerignore`, and `--debian` adds `snodeb.config.cjs`.
+`--website` replaces `tsdown.config.ts` with `vite.config.ts` and adds `index.html` and `src/main.ts`. `--docker` adds `Dockerfile` and `.dockerignore`, and `--debian` adds `snodeb.config.cjs`.
 
 ## Next steps
 

@@ -19,7 +19,7 @@ export const BaseFeature: Feature = {
       console.log(`✅ Set 'private': true in package.json (${cfg.website ? "website" : "service"} mode)`);
     }
 
-    // tsc/tsup/vite all need real source to exist, so scaffold a starter file now.
+    // tsc/tsdown/vite all need real source to exist, so scaffold a starter file now.
     if (cfg.website) {
       ok = createFileIfMissing(cwd, "index.html", templates.indexHtml(packageJson.name), cfg, fs) && ok;
       ok = createFileIfMissing(cwd, "src/main.ts", templates.mainTs(packageJson.name), cfg, fs) && ok;

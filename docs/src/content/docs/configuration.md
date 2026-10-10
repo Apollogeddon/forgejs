@@ -16,7 +16,7 @@ The base configs are published through the package's `exports`, and `init` adds 
 | `node_modules/@apollogeddon/forgejs/configs/biome.json` | `biome.json` |
 | `@apollogeddon/forgejs/configs/tsconfig.json` | `tsconfig.json` |
 | `@apollogeddon/forgejs/vitest.config.cjs` | `vitest.config.ts` |
-| `@apollogeddon/forgejs/tsup.config.cjs` | `tsup.config.ts` |
+| `@apollogeddon/forgejs/tsdown.config.cjs` | `tsdown.config.ts` |
 | `@apollogeddon/forgejs/commitlint.config.cjs` | `commitlint.config.ts` |
 
 Biome resolves `extends` as a file path, so `biome.json` references the copy in `node_modules`. The others use the package's `exports`.
@@ -87,13 +87,13 @@ export default Configuration;
 
 ## Build and release
 
-### Tsup: TypeScript bundler
+### tsdown: TypeScript bundler
 
-Backends and libraries bundle with Tsup. The base config builds `src/index.ts` to ESM for Node.js 22, with type declarations and source maps. The generated `tsup.config.ts` spreads it:
+Backends and libraries bundle with tsdown. The base config builds `src/index.ts` to ESM for Node.js 22, with type declarations and source maps, keeping the `.js` and `.d.ts` extensions that `main`, `types` and `bin` point to. The generated `tsdown.config.ts` spreads it:
 
 ```ts
-import baseConfig from "@apollogeddon/forgejs/tsup.config.cjs";
-import { defineConfig } from "tsup";
+import baseConfig from "@apollogeddon/forgejs/tsdown.config.cjs";
+import { defineConfig } from "tsdown";
 
 export default defineConfig({
   ...baseConfig,
