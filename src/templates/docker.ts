@@ -22,7 +22,8 @@ WORKDIR /usr/src/app
 ${npmrc}
 COPY package.json package-lock.json ./
 RUN npm pkg delete scripts.prepare
-RUN ${npmSecret} npm ci --omit=dev
+# npm 11 leaves no node_modules when there are no runtime dependencies, which the COPY below needs
+RUN ${npmSecret} npm ci --omit=dev && mkdir -p node_modules
 
 # Same base as deps so native add-ons find the libraries they were built against
 FROM node:${NODE_VERSION}-slim
