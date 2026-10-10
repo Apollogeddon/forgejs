@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.1.0](https://github.com/Apollogeddon/forgejs/compare/v4.0.0...v4.1.0) (2026-10-10)
+
+
+### Features
+
+* **ci:** request a review on Dependabot's and release-please's pull requests ([b3c0b0f](https://github.com/Apollogeddon/forgejs/commit/b3c0b0f74a344623c8b3b817a7cdde03f608d0fc))
+* **ci:** request a review on Dependabot's and release-please's pull requests ([efee7ad](https://github.com/Apollogeddon/forgejs/commit/efee7ad2a8b35464c66dd657a03000a6b3bf4fae))
+
 ## [4.0.0](https://github.com/Apollogeddon/forgejs/compare/v3.3.1...v4.0.0) (2026-10-10)
 
 
