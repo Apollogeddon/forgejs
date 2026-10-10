@@ -7,6 +7,7 @@ export const BaseFeature: Feature = {
   apply: (cwd, cfg, fs, packageJson) => {
     const tsconfig = cfg.website ? templates.websiteTsconfigConfig : templates.tsconfigConfig;
     let ok = createFile(cwd, "tsconfig.json", tsconfig, cfg, fs);
+    ok = createFile(cwd, ".editorconfig", templates.editorconfig, cfg, fs) && ok;
 
     if (packageJson.type !== "module") {
       packageJson.type = "module";

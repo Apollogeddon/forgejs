@@ -161,3 +161,15 @@ module.exports = defineSnodebConfig({
   },
 });
 ```
+
+## Repository files
+
+`init` also writes three files for the repository itself. Like the configs, an existing file is kept unless you pass `--force`.
+
+| File | What it does |
+| :--- | :--- |
+| `.editorconfig` | LF line endings, UTF-8, 2-space indent and 120 columns, matching the Biome config |
+| `.github/dependabot.yml` | Weekly npm and GitHub Actions updates, plus Docker with `--docker`. Minor and patch updates are grouped into one pull request, and each update waits 3 days after it's published before it's proposed, so a compromised release has time to be caught upstream. The workflow's auto-merge job merges them once CI passes. |
+| `.github/CODEOWNERS` | `* @owner`, so every pull request someone else opens, Dependabot's and release-please's included, requests your review and shows in your review requests. It doesn't block merging. |
+
+The `CODEOWNERS` owner is the GitHub account in `package.json`'s `repository` field or, failing that, the `origin` remote. A project with neither gets no `CODEOWNERS`; run `init` again once it has a GitHub remote.

@@ -117,7 +117,10 @@ A default `init` (backend) produces:
 ```text
 .
 ├── .github/
+│   ├── CODEOWNERS            # requests your review on others' pull requests
+│   ├── dependabot.yml        # weekly updates with a 3-day cooldown
 │   └── workflows/index.yml   # CI/CD calling the reusable workflows
+├── .editorconfig
 ├── src/
 │   └── index.ts
 ├── biome.json                # extends the Forge.js Biome config
