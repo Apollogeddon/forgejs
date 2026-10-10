@@ -144,6 +144,17 @@ CI builds the image for every configured platform. See [docker.yml](/forgejs/doc
 
 ```js
 const { defineSnodebConfig } = require("snodeb");
+// a package.json without a name falls back to the project directory's name
+const { name = require("node:path").basename(__dirname) } = require("./package.json");
+
+// The service runs as its own system user, which the package's postinst creates, never as root.
+// It's named after the package without its scope, as a Debian user name can't hold '@', '/' or '.'.
+const unscoped = name
+  .split("/")
+  .pop()
+  .toLowerCase()
+  .replace(/[^a-z0-9_-]/g, "-");
+const user = (/^[a-z_]/.test(unscoped) ? unscoped : `svc-${unscoped}`).slice(0, 32);
 
 module.exports = defineSnodebConfig({
   architecture: "all",
@@ -155,12 +166,14 @@ module.exports = defineSnodebConfig({
     unPrune: false,
   },
   systemd: {
-    user: "root",
-    group: "node-service",
+    user,
+    group: user,
     entryPoint: "dist/index.js",
   },
 });
 ```
+
+The service never runs as root. It runs as a system user that the package's `postinst` creates with no home directory or login shell. The user is named after the package without its scope, or after the project directory when `package.json` has no `name`. The installed files stay owned by root, so the service can read its code and `.env` but not change them; give it a directory under `/var/lib` if it needs to write.
 
 ## Repository files
 

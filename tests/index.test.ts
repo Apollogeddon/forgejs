@@ -238,6 +238,37 @@ describe("CLI Init Command", () => {
     expect(packageJson.scripts.build).toBe("tsdown");
   });
 
+  it.each([
+    ["billing-api", "billing-api"],
+    ["@acme/My.Service", "my-service"],
+    ["1st-api", "svc-1st-api"],
+  ])("should run the %s debian service as its own user, never root", (name, user) => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --debian`, { cwd: tempDir });
+    const packageJsonPath = path.join(tempDir, "package.json");
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
+    fs.writeFileSync(packageJsonPath, JSON.stringify({ ...packageJson, name }));
+    // snodeb is only installed by the integration test, so stub it to read back the config
+    const load = createRequire(path.join(tempDir, "snodeb.config.cjs"));
+    fs.mkdirSync(path.join(tempDir, "node_modules/snodeb"), { recursive: true });
+    fs.writeFileSync(path.join(tempDir, "node_modules/snodeb/index.js"), "exports.defineSnodebConfig = (c) => c;");
+    const config = load("./snodeb.config.cjs");
+    expect(config.systemd).toMatchObject({ user, group: user });
+  });
+
+  it("should name the debian service user after the directory when package.json has no name", () => {
+    const project = path.join(tempDir, "Billing.API");
+    fs.mkdirSync(project);
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --debian`, { cwd: project });
+    const packageJsonPath = path.join(project, "package.json");
+    const { name: _name, ...packageJson } = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
+    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson));
+    const load = createRequire(path.join(project, "snodeb.config.cjs"));
+    fs.mkdirSync(path.join(project, "node_modules/snodeb"), { recursive: true });
+    fs.writeFileSync(path.join(project, "node_modules/snodeb/index.js"), "exports.defineSnodebConfig = (c) => c;");
+    const config = load("./snodeb.config.cjs");
+    expect(config.systemd).toMatchObject({ user: "billing-api", group: "billing-api" });
+  });
+
   it("should not create files or modify package.json with --dry-run", () => {
     const initialPackageJson = { name: "test", scripts: { test: "echo original" } };
     fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify(initialPackageJson));
