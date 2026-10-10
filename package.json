@@ -1,6 +1,6 @@
 {
   "name": "@apollogeddon/forgejs",
-  "version": "3.2.3",
+  "version": "3.3.0",
   "description": "Reusable GitHub Actions workflows and tooling configurations for TypeScript and Node.js projects",
   "author": "apollogeddon",
   "license": "MIT",
