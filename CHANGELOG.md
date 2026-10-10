@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.2.3](https://github.com/Apollogeddon/forgejs/compare/v3.2.2...v3.2.3) (2026-10-10)
+
+
+### Bug Fixes
+
+* **ci:** merge Dependabot PRs to branches without protection rules ([b7c9d56](https://github.com/Apollogeddon/forgejs/commit/b7c9d56d210e4f0dbb3129f45b2bcdfc35c97324))
+* **ci:** merge Dependabot PRs to branches without protection rules ([46102eb](https://github.com/Apollogeddon/forgejs/commit/46102ebe35c698ba90966af29d721e94391c616c))
+* **deps:** bump js-yaml from 5.4.2 to 5.4.3 in the js-yaml group ([#206](https://github.com/Apollogeddon/forgejs/issues/206)) ([d0431d1](https://github.com/Apollogeddon/forgejs/commit/d0431d1c65e6ed71969afced3147268461347dd7))
+* **deps:** bump rollup from 4.46.2 to 4.64.3 ([#210](https://github.com/Apollogeddon/forgejs/issues/210)) ([a79bdc9](https://github.com/Apollogeddon/forgejs/commit/a79bdc98f7b9eb45998a206c1653a5fb8bafe9d1))
+* **deps:** bump the npm_and_yarn group across 1 directory with 6 updates ([#211](https://github.com/Apollogeddon/forgejs/issues/211)) ([aeb429d](https://github.com/Apollogeddon/forgejs/commit/aeb429d53de070e7664fa2959c2e0755bb2ca4ca))
+* **deps:** bump vite from 8.3.2 to 8.3.3 in the dependencies group ([#207](https://github.com/Apollogeddon/forgejs/issues/207)) ([54982ba](https://github.com/Apollogeddon/forgejs/commit/54982baca2d9ae0dd1798783e3dd57867e9326cd))
+
 ## [3.2.2](https://github.com/Apollogeddon/forgejs/compare/v3.2.1...v3.2.2) (2026-10-09)
 
 
