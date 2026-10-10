@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.3.0](https://github.com/Apollogeddon/forgejs/compare/v3.2.3...v3.3.0) (2026-10-10)
+
+
+### Features
+
+* write repo files on init, and merge Dependabot PRs where auto-merge isn't offered ([#215](https://github.com/Apollogeddon/forgejs/issues/215)) ([88f74dc](https://github.com/Apollogeddon/forgejs/commit/88f74dc06b6bf12bf2b1966871b24a14e627b90f))
+
+
+### Bug Fixes
+
+* **deps:** patch vulnerabilities via osv-scanner ([69d2f2b](https://github.com/Apollogeddon/forgejs/commit/69d2f2b6df67a4d3308ccb43090953176e29de3b))
+
 ## [3.2.3](https://github.com/Apollogeddon/forgejs/compare/v3.2.2...v3.2.3) (2026-10-10)
 
 
