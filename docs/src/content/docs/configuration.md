@@ -179,6 +179,8 @@ registries:
   npm-github:
     type: npm-registry
     url: https://npm.pkg.github.com
+    # Without a committed .npmrc, Dependabot needs the scope this registry serves.
+    scope: "@apollogeddon"
     token: ${{ secrets.PACKAGES_TOKEN }}
 
 updates:
