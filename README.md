@@ -64,7 +64,7 @@ npm install
 
 `init` then:
 
-- Creates, depending on the mode and flags, `tsconfig.json`, `biome.json`, `vitest.config.ts`, `lefthook.yml`, `commitlint.config.ts`, a build config (`tsup.config.ts` or `vite.config.ts`) and a `.github/workflows/index.yml` that calls the reusable workflows.
+- Creates, depending on the mode and flags, `tsconfig.json`, `biome.json`, `vitest.config.ts`, `lefthook.yml`, `commitlint.config.ts`, a build config (`tsup.config.ts` or `vite.config.ts`), a `.github/workflows/index.yml` that calls the reusable workflows, and the repository files `.editorconfig`, `.github/dependabot.yml` and `.github/CODEOWNERS`.
 - Adds scripts such as `lint`, `type`, `test` and `build` to `package.json`, sets `"type": "module"`, and adds `@apollogeddon/forgejs` as a `devDependency`.
 - Creates a starter `src/index.ts` (or `index.html` and `src/main.ts` for websites) if none exists.
 

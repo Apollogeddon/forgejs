@@ -487,4 +487,45 @@ describe("CLI Init Command", () => {
     const lefthookConfig = fs.readFileSync(path.join(tempDir, "lefthook.yml"), "utf-8");
     expect(lefthookConfig).not.toContain("commitlint");
   });
+
+  it("should write .editorconfig and a Dependabot config with a cooldown", () => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
+
+    expect(fs.readFileSync(path.join(tempDir, ".editorconfig"), "utf-8")).toContain("root = true");
+
+    const dependabot = yaml.load(fs.readFileSync(path.join(tempDir, ".github/dependabot.yml"), "utf-8")) as {
+      updates: { "package-ecosystem": string; cooldown: { "default-days": number } }[];
+    };
+    expect(dependabot.updates.map((u) => u["package-ecosystem"])).toEqual(["npm", "github-actions"]);
+    for (const update of dependabot.updates) {
+      expect(update.cooldown["default-days"]).toBe(3);
+    }
+  });
+
+  it("should add Docker to the Dependabot config with --docker", () => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --docker`, { cwd: tempDir });
+    const dependabot = yaml.load(fs.readFileSync(path.join(tempDir, ".github/dependabot.yml"), "utf-8")) as {
+      updates: { "package-ecosystem": string }[];
+    };
+    expect(dependabot.updates.map((u) => u["package-ecosystem"])).toContain("docker");
+  });
+
+  it("should name the GitHub remote's owner in CODEOWNERS, and skip it without one", () => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
+    expect(fs.existsSync(path.join(tempDir, ".github/CODEOWNERS"))).toBe(false);
+
+    execSync("git init -q", { cwd: tempDir });
+    execSync("git remote add origin git@github.com:acme/widget.git", { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
+    expect(fs.readFileSync(path.join(tempDir, ".github/CODEOWNERS"), "utf-8")).toContain("* @acme");
+  });
+
+  it("should prefer package.json's repository for the CODEOWNERS owner", () => {
+    fs.writeFileSync(
+      path.join(tempDir, "package.json"),
+      JSON.stringify({ name: "widget", repository: { type: "git", url: "git+https://github.com/octo-org/widget.git" } }),
+    );
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
+    expect(fs.readFileSync(path.join(tempDir, ".github/CODEOWNERS"), "utf-8")).toContain("* @octo-org");
+  });
 }, 120000);

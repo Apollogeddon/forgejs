@@ -2,6 +2,7 @@ export * from "./biome.js";
 export * from "./commitlint.js";
 export * from "./docker.js";
 export * from "./lefthook.js";
+export * from "./repository.js";
 export * from "./snodeb.js";
 export * from "./starter.js";
 export * from "./tsconfig.js";
