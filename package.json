@@ -17,7 +17,7 @@
   },
   "sideEffects": false,
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   },
   "exports": {
     "./configs/biome.json": "./configs/biome.json",

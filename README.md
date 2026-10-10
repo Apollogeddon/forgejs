@@ -26,7 +26,7 @@ Forge.js (`@apollogeddon/forgejs`) is a project-scaffolding CLI for TypeScript a
 
 ## Requirements
 
-- Node.js 22 or later
+- Node.js 24 or later
 - Git, for the generated Lefthook hooks
 - A GitHub token with the `read:packages` scope: the package is published to GitHub Packages, not the public npm registry
 

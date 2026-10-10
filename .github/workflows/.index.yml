@@ -60,7 +60,6 @@ jobs:
       test_on_push: false
       # a release PR only bumps the version and changelog
       test_release_prs: false
-      node_version: '22'
       working_directory: '.'
     permissions:
       contents: write
@@ -73,7 +72,6 @@ jobs:
     uses: ./.github/workflows/website.yml
     with:
       test_release_prs: false
-      node_version: '22'
       working_directory: 'docs'
       enable_secrets: false
       run_tests: false

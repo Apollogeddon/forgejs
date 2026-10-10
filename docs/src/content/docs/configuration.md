@@ -89,7 +89,7 @@ export default Configuration;
 
 ### tsdown: TypeScript bundler
 
-Backends and libraries bundle with tsdown. The base config builds `src/index.ts` to ESM for Node.js 22, with type declarations and source maps, keeping the `.js` and `.d.ts` extensions that `main`, `types` and `bin` point to. The generated `tsdown.config.ts` spreads it:
+Backends and libraries bundle with tsdown. The base config builds `src/index.ts` to ESM for Node.js 24, with type declarations and source maps, keeping the `.js` and `.d.ts` extensions that `main`, `types` and `bin` point to. The generated `tsdown.config.ts` spreads it:
 
 ```ts
 import baseConfig from "@apollogeddon/forgejs/tsdown.config.cjs";
@@ -133,7 +133,7 @@ Set the manifest to the current released version. See release-please's [config o
 
 `--docker` adds a multi-stage `Dockerfile`:
 
-- **Backend:** compiles once on the build host, installs production dependencies per target platform, and runs `node dist/index.js` on `node:22-slim` as the non-root `node` user.
+- **Backend:** compiles once on the build host, installs production dependencies per target platform, and runs `node dist/index.js` on `node:24-slim` as the non-root `node` user.
 - **Website:** builds the static site once on the build host and serves it with `nginx:stable-alpine` on port 80.
 
 CI builds the image for every configured platform. See [docker.yml](/forgejs/docs/workflows/reference#dockeryml) in the job reference.
@@ -161,6 +161,18 @@ module.exports = defineSnodebConfig({
   },
 });
 ```
+
+## Node.js version
+
+A project's Node.js version lives in `.nvmrc`, which `init` writes with `24` and nvm, fnm and `actions/setup-node` all read. `init` also sets `engines.node` to `>=24` in `package.json`, unless the project already has one.
+
+Every workflow job that sets up Node.js picks the version in this order:
+
+1. The `node_version` input, when the caller sets one.
+2. The project's `.nvmrc`.
+3. Node.js 24, forgejs's default, when the project has neither.
+
+So moving a project to another version is one edit to `.nvmrc`. The generated Dockerfile's `node:24-slim` images are the one other place to change.
 
 ## Repository files
 
