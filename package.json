@@ -29,9 +29,9 @@
       "types": "./configs/snodeb.config.d.ts",
       "import": "./configs/snodeb.config.cjs"
     },
-    "./tsup.config.cjs": {
-      "types": "./configs/tsup.config.d.ts",
-      "import": "./configs/tsup.config.cjs"
+    "./tsdown.config.cjs": {
+      "types": "./configs/tsdown.config.d.ts",
+      "import": "./configs/tsdown.config.cjs"
     },
     "./vitest.config.cjs": {
       "types": "./configs/vitest.config.d.ts",
@@ -50,7 +50,7 @@
     "start": "tsx src/index.ts",
     "lint": "biome check --fix",
     "type": "tsc --noEmit",
-    "build": "tsup --config configs/tsup.config.cjs",
+    "build": "tsdown",
     "test": "vitest run --config configs/vitest.config.cjs",
     "test:unit": "vitest run --config configs/vitest.config.cjs --exclude tests/integration.test.ts --reporter=dot --coverage.enabled=false",
     "publint": "publint",
@@ -66,7 +66,7 @@
     "lefthook": "2.1.17",
     "publint": "0.3.25",
     "snodeb": "1.1.4",
-    "tsup": "8.5.1",
+    "tsdown": "0.23.0",
     "tsx": "4.23.15",
     "typescript": "6.0.3",
     "vite": "8.3.3",

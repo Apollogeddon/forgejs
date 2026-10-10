@@ -43,18 +43,17 @@ export default mergeConfig(baseConfig, {
 });
 ```
 
-### Build multiple entry points with Tsup
+### Build multiple entry points with tsdown
 
-For libraries that export sub-modules (e.g. `import { util } from "my-lib/util"`), give Tsup several entry points:
+For libraries that export sub-modules (e.g. `import { util } from "my-lib/util"`), give tsdown several entry points:
 
 ```ts
-import baseConfig from "@apollogeddon/forgejs/tsup.config.cjs";
-import { defineConfig } from "tsup";
+import baseConfig from "@apollogeddon/forgejs/tsdown.config.cjs";
+import { defineConfig } from "tsdown";
 
 export default defineConfig({
   ...baseConfig,
   entry: ["src/index.ts", "src/utils.ts", "src/components/index.ts"],
-  splitting: true,
 });
 ```
 
@@ -66,7 +65,7 @@ Add scripts alongside the generated ones. npm runs a `pre<script>` script automa
 {
   "scripts": {
     "prebuild": "prisma generate",
-    "build": "tsup"
+    "build": "tsdown"
   }
 }
 ```

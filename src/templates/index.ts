@@ -6,7 +6,7 @@ export * from "./repository.js";
 export * from "./snodeb.js";
 export * from "./starter.js";
 export * from "./tsconfig.js";
-export * from "./tsup.js";
+export * from "./tsdown.js";
 export * from "./vite.js";
 export * from "./vitest.js";
 export * from "./workflows.js";

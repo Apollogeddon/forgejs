@@ -22,7 +22,7 @@
 
 <br />
 
-Forge.js (`@apollogeddon/forgejs`) is a project-scaffolding CLI for TypeScript and Node.js. Its `init` command sets up a backend, library or website with a standard toolchain (Biome, Vitest, Tsup or Vite, Lefthook, commitlint, release-please) and a GitHub Actions pipeline built from reusable workflows. It keeps your Biome, TypeScript and Vitest setup in one place: the generated configs extend base configs shipped in the package, so upgrading one dependency upgrades every project.
+Forge.js (`@apollogeddon/forgejs`) is a project-scaffolding CLI for TypeScript and Node.js. Its `init` command sets up a backend, library or website with a standard toolchain (Biome, Vitest, tsdown or Vite, Lefthook, commitlint, release-please) and a GitHub Actions pipeline built from reusable workflows. It keeps your Biome, TypeScript and Vitest setup in one place: the generated configs extend base configs shipped in the package, so upgrading one dependency upgrades every project.
 
 ## Requirements
 
@@ -64,7 +64,7 @@ npm install
 
 `init` then:
 
-- Creates, depending on the mode and flags, `tsconfig.json`, `biome.json`, `vitest.config.ts`, `lefthook.yml`, `commitlint.config.ts`, a build config (`tsup.config.ts` or `vite.config.ts`), a `.github/workflows/index.yml` that calls the reusable workflows, and the repository files `.editorconfig`, `.github/dependabot.yml` and `.github/CODEOWNERS`.
+- Creates, depending on the mode and flags, `tsconfig.json`, `biome.json`, `vitest.config.ts`, `lefthook.yml`, `commitlint.config.ts`, a build config (`tsdown.config.ts` or `vite.config.ts`), a `.github/workflows/index.yml` that calls the reusable workflows, and the repository files `.editorconfig`, `.github/dependabot.yml` and `.github/CODEOWNERS`.
 - Adds scripts such as `lint`, `type`, `test` and `build` to `package.json`, sets `"type": "module"`, and adds `@apollogeddon/forgejs` as a `devDependency`.
 - Creates a starter `src/index.ts` (or `index.html` and `src/main.ts` for websites) if none exists.
 
@@ -78,7 +78,7 @@ Existing files and scripts are kept unless you pass `--force`. Preview changes w
 | Dependency scanning | [OSV-Scanner](https://osv.dev/) |
 | Secret scanning (CI) | [Gitleaks](https://github.com/gitleaks/gitleaks) |
 | Testing | [Vitest](https://vitest.dev/) |
-| Bundling | [Tsup](https://tsup.egoist.dev/) for backends and libraries, [Vite](https://vite.dev/) for websites |
+| Bundling | [tsdown](https://tsdown.dev/) for backends and libraries, [Vite](https://vite.dev/) for websites |
 | Git hooks | [Lefthook](https://github.com/evilmartians/lefthook) |
 | Commit messages | [commitlint](https://commitlint.js.org/) with Conventional Commits |
 | Releases | [release-please](https://github.com/googleapis/release-please) |
@@ -89,7 +89,7 @@ OSV-Scanner is not an npm package: CI downloads it, and the local `npm run secur
 
 ## Keeping projects up to date
 
-Biome, Vitest, Tsup, Vite, Lefthook, commitlint, Publint and Snodeb are dependencies of `@apollogeddon/forgejs`, so their versions are pinned and tested together. The generated `biome.json`, `tsconfig.json` and other configs extend the base configs shipped in `@apollogeddon/forgejs/configs/`, so upgrading the package upgrades the tools and their configuration in one step:
+Biome, Vitest, tsdown, Vite, Lefthook, commitlint, Publint and Snodeb are dependencies of `@apollogeddon/forgejs`, so their versions are pinned and tested together. The generated `biome.json`, `tsconfig.json` and other configs extend the base configs shipped in `@apollogeddon/forgejs/configs/`, so upgrading the package upgrades the tools and their configuration in one step:
 
 ```bash
 npm install --save-dev @apollogeddon/forgejs@latest

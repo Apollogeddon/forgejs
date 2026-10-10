@@ -29,7 +29,7 @@ updates:
           - "minor"
           - "patch"
     # Ensure commit messages follow your convention (e.g., 'chore(deps): ...')
-    # TypeScript is pinned to 6 until tsup supports 7; drop this once it does.
+    # TypeScript is pinned to 6 until 7 is tested here; tsdown already supports it.
     ignore:
       - dependency-name: "typescript"
         versions: [">=7"]

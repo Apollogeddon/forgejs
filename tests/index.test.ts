@@ -95,7 +95,7 @@ describe("CLI Init Command", () => {
       "vitest.config.ts",
       "tsconfig.json",
       "commitlint.config.ts",
-      "tsup.config.ts",
+      "tsdown.config.ts",
       "lefthook.yml",
     ];
 
@@ -184,17 +184,31 @@ describe("CLI Init Command", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --website`, { cwd: tempDir });
 
     expect(fs.existsSync(path.join(tempDir, "vite.config.ts"))).toBe(true);
-    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, "tsdown.config.ts"))).toBe(false);
 
     const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
     expect(packageJson.scripts.dev).toBe("vite");
     expect(packageJson.scripts.build).toBe("vite build");
   });
 
+  it("should move a tsup project to tsdown only with --force", () => {
+    fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify({ name: "test", scripts: { build: "tsup" } }));
+    fs.writeFileSync(path.join(tempDir, "tsup.config.ts"), "export default {};\n");
+
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --library`, { cwd: tempDir });
+    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
+    expect(JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8")).scripts.build).toBe("tsup");
+
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --library --force`, { cwd: tempDir });
+    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, "tsdown.config.ts"))).toBe(true);
+    expect(JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8")).scripts.build).toBe("tsdown");
+  });
+
   it("should support --library flag to setup library only", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --library`, { cwd: tempDir });
 
-    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, "tsdown.config.ts"))).toBe(true);
 
     expect(fs.existsSync(path.join(tempDir, "vitest.config.ts"))).toBe(true);
 
@@ -217,11 +231,11 @@ describe("CLI Init Command", () => {
 
     expect(fs.existsSync(path.join(tempDir, "snodeb.config.cjs"))).toBe(true);
 
-    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, "tsdown.config.ts"))).toBe(true);
 
     const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
     expect(packageJson.scripts["build:deb"]).toBe("snodeb");
-    expect(packageJson.scripts.build).toBe("tsup");
+    expect(packageJson.scripts.build).toBe("tsdown");
   });
 
   it("should not create files or modify package.json with --dry-run", () => {
@@ -250,7 +264,7 @@ describe("CLI Init Command", () => {
 
     const updatedPackageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
 
-    expect(updatedPackageJson.scripts.build).toBe("tsup");
+    expect(updatedPackageJson.scripts.build).toBe("tsdown");
     expect(updatedPackageJson.scripts.custom).toBe("echo custom");
   });
 
@@ -385,7 +399,7 @@ describe("CLI Init Command", () => {
       "vitest.config.ts",
       "tsconfig.json",
       "commitlint.config.ts",
-      "tsup.config.ts",
+      "tsdown.config.ts",
       "lefthook.yml",
     ]) {
       expect(fs.existsSync(path.join(tempDir, file))).toBe(true);
@@ -424,7 +438,7 @@ describe("CLI Init Command", () => {
     expect(fs.existsSync(path.join(tempDir, "biome.json"))).toBe(false);
     expect(fs.existsSync(path.join(tempDir, "commitlint.config.ts"))).toBe(false);
     // Build/Base features always run regardless of --no-all
-    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, "tsdown.config.ts"))).toBe(true);
     // --no-all turns off the standard features, not the default backend mode
     expect(fs.existsSync(path.join(tempDir, ".github", "workflows", "index.yml"))).toBe(true);
   });
