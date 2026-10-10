@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.0.0](https://github.com/Apollogeddon/forgejs/compare/v3.3.1...v4.0.0) (2026-10-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* the base config is now @apollogeddon/forgejs/tsdown.config.cjs and the build script is tsdown. Rename tsup.config.ts to tsdown.config.ts, import from tsdown and the new config, and set the build script to tsdown; init --force does this.
+
+### Features
+
+* bundle with tsdown instead of tsup ([03b5cc5](https://github.com/Apollogeddon/forgejs/commit/03b5cc54a0f3e52d0ce872c7fb55f450e406cd50))
+
 ## [3.3.1](https://github.com/Apollogeddon/forgejs/compare/v3.3.0...v3.3.1) (2026-10-10)
 
 
