@@ -1,0 +1,27 @@
+---
+import type { MarkdownHeading } from "astro";
+
+interface Props {
+  headings: MarkdownHeading[];
+}
+
+// Sections and their subsections, like the sidebar's own nesting
+const headings = Astro.props.headings.filter((h) => h.depth === 2 || h.depth === 3);
+---
+
+{
+  headings.length > 0 && (
+    <nav aria-label="On this page">
+      <p class="mb-3 text-sm font-semibold text-zinc-100">On this page</p>
+      <ul class="space-y-2 text-sm">
+        {headings.map((h) => (
+          <li class:list={[h.depth === 3 && "pl-4"]}>
+            <a href={`#${h.slug}`} class="text-zinc-400 transition-colors hover:text-zinc-100">
+              {h.text}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}

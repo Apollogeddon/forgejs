@@ -6,25 +6,36 @@ import Base from "../layouts/Base.astro";
 const githubUrl = "https://github.com/apollogeddon/forgejs";
 const year = new Date().getFullYear();
 
+// Lucide icons (ISC licence), the same ones the other forge sites use
+const icons: Record<string, string> = {
+  settings:
+    '<path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/>',
+  workflow:
+    '<rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/>',
+  rocket:
+    '<path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09"/><path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05"/>',
+  tag: '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
+};
+
 const features = [
   {
-    title: "Standardised Tooling",
-    body: "Default configurations for Biome, Vitest, and Tsup enforce consistency across every project from day one.",
+    title: "Standardised tooling",
+    body: "Shared Biome, TypeScript and Vitest configs give every project the same checks from day one, and updates keep them current.",
     icon: "settings",
   },
   {
-    title: "Reusable Workflows",
-    body: "Modular GitHub Actions workflows for testing, building, and releasing — no manual YAML authoring required.",
+    title: "Reusable workflows",
+    body: "GitHub Actions workflows for testing, building, releasing and deploying. `init` writes the workflow that calls them.",
     icon: "workflow",
   },
   {
-    title: "Project Scaffolding",
-    body: "Bootstrap a complete repository instantly with a single npx command. No boilerplate to copy-paste.",
+    title: "Project scaffolding",
+    body: "`init` sets up a backend, library or website, with optional Docker and Debian packaging and no boilerplate to copy.",
     icon: "rocket",
   },
   {
-    title: "Automated Releases",
-    body: "release-please pipelines handle versioning, changelogs, and publishing deterministically from commit history.",
+    title: "Automated releases",
+    body: "release-please derives versions and changelogs from Conventional Commits, and the pipeline publishes each release.",
     icon: "tag",
   },
 ];
@@ -33,34 +44,34 @@ const steps = [
   {
     n: "01",
     title: "Install",
-    body: "Add Forge.js as a development dependency.",
+    body: "Install Forge.js from GitHub Packages as a development dependency.",
     code: `npm install --save-dev ${pkg.name}`,
   },
   {
     n: "02",
     title: "Initialise",
-    body: "Run the CLI to scaffold configs and inject standard scripts.",
+    body: "Run the CLI to scaffold configs, scripts and the CI workflow.",
     code: `npx ${pkg.name} init`,
   },
   {
     n: "03",
     title: "Extend",
-    body: "Inherit best practices by extending the shared Biome config.",
+    body: "The generated configs extend the shared ones. Add project-specific settings alongside.",
     code: `// biome.json
 {
-  "extends": ["node_modules/${pkg.name}/biome.json"]
+  "extends": ["node_modules/${pkg.name}/configs/biome.json"]
 }`,
   },
 ];
 
 const tools = [
   { name: "Biome", lang: "Rust", replaces: "ESLint, Prettier" },
-  { name: "Tsup", lang: "Go", replaces: "Webpack, Rollup, Babel" },
   { name: "Vitest", lang: "JS", replaces: "Jest, Mocha" },
+  { name: "Publint", lang: "JS", replaces: "manual export checks" },
   { name: "Lefthook", lang: "Go", replaces: "Husky, lint-staged" },
-  { name: "release-please", lang: "JS", replaces: "Manual tagging" },
-  { name: "Commitlint", lang: "JS", replaces: "Manual commit review" },
-  { name: "Publint", lang: "JS", replaces: "Manual export checks" },
+  { name: "release-please", lang: "JS", replaces: "manual tagging" },
+  { name: "Commitlint", lang: "JS", replaces: "manual commit review" },
+  { name: "tsdown", lang: "Rust", replaces: "Webpack, Rollup, Babel" },
   { name: "Snodeb", lang: "JS", replaces: "pkg, nexe" },
 ];
 
@@ -80,7 +91,7 @@ const langChip: Record<string, string> = {
   <!-- ── Hero ────────────────────────────────────────────────────────────── -->
   <section class="relative overflow-hidden">
     <div
-      class="pointer-events-none absolute -top-32 left-1/2 h-[560px] w-[560px] -translate-x-1/2 rounded-full bg-violet-500/20 opacity-30 blur-[130px]"
+      class="pointer-events-none absolute -top-8 left-1/2 h-[560px] w-[560px] -translate-x-1/2 rounded-full bg-red-500/40 opacity-50 blur-[130px]"
       aria-hidden="true"
     >
     </div>
@@ -91,9 +102,9 @@ const langChip: Record<string, string> = {
       <span
         class="inline-flex items-center gap-2 rounded-full border border-zinc-700/60 bg-zinc-900/70 px-3 py-1 text-xs font-medium text-zinc-300"
       >
-        <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-violet-400"
+        <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400"
         ></span>
-        v{pkg.version} · {pkg.name}
+        Node.js 22 · npm · forgejs
       </span>
 
       <h1
@@ -103,17 +114,16 @@ const langChip: Record<string, string> = {
       </h1>
 
       <p class="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-zinc-400">
-        Reusable GitHub Actions workflows and tooling configurations for
-        TypeScript and Node.js. Centralise your Biome, TypeScript and Vitest setup and scaffold projects
-        with a single command.
+        Reusable GitHub Actions workflows and tooling configurations for TypeScript and Node.js. Keep your Biome,
+        TypeScript and Vitest setup in one place, and scaffold projects with one command.
       </p>
 
       <div class="mt-9 flex flex-wrap items-center justify-center gap-3">
         <a
           href={`${import.meta.env.BASE_URL}docs/getting-started`}
-          class="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-violet-500"
+          class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700"
         >
-          Get Started
+          Get started
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="15"
@@ -167,14 +177,14 @@ const langChip: Record<string, string> = {
           class="overflow-x-auto px-5 py-5 font-mono text-sm leading-7"><code><span class="text-zinc-500 select-none">$ </span><span class="text-zinc-100">npm install --save-dev {pkg.name}</span>
 <span class="text-zinc-500 select-none">$ </span><span class="text-zinc-100">npx {pkg.name} init</span>
 <span class="text-green-400">✓ Configuration files created</span>
-<span class="text-green-400">✓ Package scripts injected</span>
+<span class="text-green-400">✓ Package scripts added</span>
 <span class="text-amber-400">  Forge.js ready.</span></code></pre>
       </div>
     </div>
   </section>
 
   <!-- ── Features ─────────────────────────────────────────────────────────── -->
-  <section class="border-t border-zinc-800/60 bg-zinc-900/20">
+  <section>
     <div class="mx-auto max-w-5xl px-4 py-20 sm:px-6">
       <h2
         class="text-center text-3xl font-bold tracking-tight text-zinc-50"
@@ -182,44 +192,29 @@ const langChip: Record<string, string> = {
         Why Forge.js
       </h2>
       <p class="mx-auto mt-3 max-w-xl text-center text-zinc-400">
-        Everything a modern Node.js project needs to ship with confidence.
+        The tooling and CI/CD a Node.js project needs, in one tool.
       </p>
 
       <div class="mt-12 grid gap-5 sm:grid-cols-2">
         {
           features.map((f) => (
             <div class="rounded-xl border border-zinc-800 bg-zinc-900 p-6 transition-colors hover:border-zinc-700">
-              <div class="flex h-11 w-11 items-center justify-center rounded-lg border border-violet-500/20 bg-violet-500/10 text-violet-400">
-                {f.icon === "settings" && (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                  </svg>
-                )}
-                {f.icon === "workflow" && (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="6" height="6" rx="1" />
-                    <rect x="15" y="15" width="6" height="6" rx="1" />
-                    <path d="M9 6h6a3 3 0 0 1 3 3v6" />
-                  </svg>
-                )}
-                {f.icon === "rocket" && (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
-                    <path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
-                    <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
-                    <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
-                  </svg>
-                )}
-                {f.icon === "tag" && (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-                    <line x1="7" y1="7" x2="7.01" y2="7" />
-                  </svg>
-                )}
+              <div class="flex h-11 w-11 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10 text-red-400">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  set:html={icons[f.icon]}
+                />
               </div>
               <h3 class="mt-5 text-base font-semibold text-zinc-50">{f.title}</h3>
-              <p class="mt-2 text-sm leading-relaxed text-zinc-400">{f.body}</p>
+              <p class="mt-2 text-sm leading-relaxed text-zinc-400" set:html={f.body.replace(/`([^`]+)`/g, '<code class="rounded-md border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-[0.85em] text-red-300">$1</code>')} />
             </div>
           ))
         }
@@ -228,12 +223,12 @@ const langChip: Record<string, string> = {
   </section>
 
   <!-- ── Quick Start ──────────────────────────────────────────────────────── -->
-  <section class="border-t border-zinc-800/60">
+  <section>
     <div class="mx-auto max-w-5xl px-4 py-20 sm:px-6">
       <h2
         class="text-center text-3xl font-bold tracking-tight text-zinc-50"
       >
-        Quick Start
+        Quick start
       </h2>
       <p class="mx-auto mt-3 max-w-xl text-center text-zinc-400">
         From empty repo to a standardised toolchain in three steps.
@@ -243,7 +238,7 @@ const langChip: Record<string, string> = {
         {
           steps.map((s) => (
             <div class="flex flex-col gap-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 sm:flex-row sm:items-start">
-              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-violet-500/30 bg-violet-500/10 font-mono text-xs font-bold text-violet-400">
+              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-500/30 bg-red-500/10 font-mono text-xs font-bold text-red-400">
                 {s.n}
               </div>
               <div class="min-w-0 flex-1">
@@ -259,7 +254,7 @@ const langChip: Record<string, string> = {
       <div class="mt-10 text-center">
         <a
           href={`${import.meta.env.BASE_URL}docs/getting-started`}
-          class="inline-flex items-center gap-2 text-sm font-medium text-violet-400 transition-colors hover:text-violet-300"
+          class="inline-flex items-center gap-2 text-sm font-medium text-red-400 transition-colors hover:text-red-300"
         >
           Full documentation
           <svg
@@ -282,16 +277,15 @@ const langChip: Record<string, string> = {
   </section>
 
   <!-- ── Toolchain ────────────────────────────────────────────────────────── -->
-  <section class="border-t border-zinc-800/60 bg-zinc-900/20">
+  <section>
     <div class="mx-auto max-w-5xl px-4 py-20 sm:px-6">
       <h2
         class="text-center text-3xl font-bold tracking-tight text-zinc-50"
       >
-        The Toolchain
+        The toolchain
       </h2>
       <p class="mx-auto mt-3 max-w-xl text-center text-zinc-400">
-        Compiled-first tools selected for speed and a single-dependency
-        architecture.
+        Fast tools, pinned by Forge.js and run through npm scripts.
       </p>
 
       <div class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

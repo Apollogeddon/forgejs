@@ -1,23 +1,25 @@
 ---
-title: Job Reference
+title: Job reference
 description: Job-by-job breakdown of each reusable workflow.
 ---
 
-## Pipeline Overview
+This page describes the jobs in each reusable workflow and the inputs specific to it. For the generated `index.yml` and the inputs every pipeline shares, see the [workflows overview](/forgejs/docs/workflows/overview).
+
+## Pipeline stages
 
 Every pipeline follows the same three stages:
 
-1. **Quality & testing** — `testing.yml` runs `quality.yml`, the test suite and the build.
-2. **Versioning** — `version.yml` runs release-please on the main branch.
-3. **Delivery** — `library.yml` (GitHub Packages), `debian.yml` (Linux), `website.yml` (GitHub Pages) or `docker.yml` (GHCR) publishes the result.
+1. **Quality and testing:** `testing.yml` runs `quality.yml`, the test suite and the build.
+2. **Versioning:** `version.yml` runs release-please on the main branch.
+3. **Delivery:** `library.yml` (GitHub Packages), `debian.yml` (`.deb` package), `website.yml` (GitHub Pages) or `docker.yml` (GHCR) publishes the result.
 
-Dependabot pull requests are auto-merged by `merge.yml` once testing passes.
+`merge.yml` auto-merges Dependabot pull requests once testing passes, except GitHub Actions updates. `review.yml` requests a review on Dependabot's and release-please's pull requests, so they reach your review requests in a private repository too.
 
 `service.yml`, `website.yml` and `debian.yml` expose `version.yml`'s `new_release_published`, `version` and `tag_name` as outputs, which the generated `docker` job uses to decide when to push.
 
 ## Choosing runners
 
-Every workflow takes a `runs_on` input, default `ubuntu-latest`, and passes it down to each workflow it calls, so every job runs on that runner label. Set it per repository to use self-hosted runners, e.g. from a repository variable: `runs_on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}`.
+Every workflow takes a `runs_on` input, default `ubuntu-latest`, and passes it down to each workflow it calls, so every job runs on that runner label. To use self-hosted runners, set it per repository, for example from a repository variable: `runs_on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}`.
 
 `docker.yml`'s per-platform builds and its manifest merge use GitHub-hosted runners: the builds because they need native Arm machines, the merge because it needs a Docker daemon. With `buildkit_endpoint` set, it builds every platform in one job on `runs_on` instead, against a remote BuildKit, so self-hosted runners without a Docker daemon can build and push multi-platform images.
 
@@ -41,6 +43,10 @@ concurrency:
 jobs:
   service:
     uses: apollogeddon/forgejs/.github/workflows/service.yml@main
+    permissions:
+      contents: write
+      packages: read
+      pull-requests: write
     with:
       test_on_push: false        # pushes to main only run release-please
       # test_release_prs: false  # also skip release-please's release PRs
@@ -61,64 +67,81 @@ In that mode release-please tags the release before the push's checks run. If th
 
 *Security and static analysis.*
 
-1. **`secure`** — Gitleaks secret scan (skip with `enable_secrets: false`) and an OSV-Scanner dependency scan.
-2. **`linting`** — `npm ci`, then Biome and TypeScript type checking.
+1. **`secure`**: Gitleaks secret scan (skip with `enable_secrets: false`) and an OSV-Scanner dependency scan. The OSV-Scanner scan reports findings in the log but doesn't fail the job.
+2. **`linting`**: `npm ci`, then `biome ci` and `npm run type`.
 
 ## testing.yml
 
 *The full QA suite.*
 
 1. Calls → `quality.yml`.
-2. **`testing`** — Runs the Vitest suite (skip with `run_tests: false`) and uploads the coverage report as `coverage-<artifact_name>`. *(Needs: quality)*
-3. **`build`** — Writes `build_env_vars` to `.env`, runs the build, and uploads the result as the `artifact_name` artifact. *(Needs: quality, testing)*
-4. **`patch`** — On `main` with `auto_patch` enabled, runs `osv-scanner fix` against `package-lock.json` and commits any security patches. *(Needs: quality, testing, build)*
+2. **`testing`**: Runs the Vitest suite (skip with `run_tests: false`) and uploads the coverage report as `coverage-<artifact_name>`. *(Needs: quality)*
+3. **`build`**: Writes `build_env_vars` to `.env`, runs the build, and uploads the result as the `artifact_name` artifact. *(Needs: quality; runs alongside testing)*
+4. **`patch`**: On `main` with `auto_patch` enabled, runs `osv-scanner fix` against `package-lock.json` and commits any security patches. *(Needs: quality, testing, build)*
 
 ## version.yml
 
 *Manages the release lifecycle.*
 
-1. **`release-please`** — On the main branch, opens or updates the release PR from Conventional Commits, and creates the tag and GitHub release when it merges. A `working_directory` other than `.` becomes release-please's `path`, so a package in a monorepo is versioned on its own.
+1. **`release-please`**: On the main branch, opens or updates the release PR from Conventional Commits, and creates the tag and GitHub release when it merges. A `working_directory` other than `.` becomes release-please's `path`, so a package in a monorepo is versioned on its own, tagged with its `package.json` name (`api-v1.2.3`). If the project has a `.github/release.json` and `.github/.release.json` under `working_directory`, release-please runs from them instead (see [release-please: versioning](/forgejs/docs/configuration#release-please-versioning)). The job checks out only that `.github` directory to look for them.
 
-Outputs `new_release_published`, `version` and `tag_name` for the delivery jobs.
+2. **`review`**: When release-please opened or updated a release PR, calls → `review.yml` to request a review on it. *(Needs: release-please)*
+
+Outputs `new_release_published`, `version` and `tag_name` for the delivery jobs: those of the `working_directory` package, not of any other package released in the same run.
 
 ## merge.yml
 
 *Dependabot auto-merge.*
 
-1. **`auto-merge`** — For pull requests opened by Dependabot, enables GitHub's auto-merge so the PR merges once required checks pass.
+1. **`auto-merge`**: For pull requests opened by Dependabot, enables GitHub's auto-merge so the PR merges once required checks pass. If the PR can already be merged, it merges it straight away. It squash-merges, so release-please lists each update once: a merge commit repeats the pull request's title, and release-please reads that as a second change. Merge your own pull requests the same way, with **Squash and merge**. GitHub Actions updates (branches starting `dependabot/github_actions/`) are skipped and left for a person to merge: they change workflow files, which `GITHUB_TOKEN` can't merge.
+
+## review.yml
+
+*Review requests on bots' pull requests.*
+
+1. **`request`**: Requests a review on a pull request from `reviewers`, or from the repository's owner when `reviewers` is empty and the owner is a user (an organisation names its reviewers through the input). GitHub only requests code owners' reviews in a private repository on a paid plan, so without this, Dependabot's and release-please's pull requests in a private repository on GitHub Free never reach your review requests. A failed request logs a warning and never fails the pipeline.
+
+The pipeline workflows call it on Dependabot's pull requests as they open, before the checks, so a failing update reaches you too; `version.yml` calls it on the release PR. Dependabot updates that `merge.yml` merges still leave your review requests once merged.
+
+| Input | Default | Description |
+| :--- | :--- | :--- |
+| `pull_request` | `''` | The pull request to request a review on; empty means the one that triggered the run |
+| `reviewers` | `''` | Comma-separated logins to request; empty means the repository's owner |
 
 ## service.yml
 
 *Orchestrates the full pipeline for backend projects.*
 
 1. Calls → `testing.yml` to validate and build the project.
-2. Calls → `merge.yml` to auto-merge Dependabot PRs once testing passes. *(Needs: testing)*
-3. Calls → `version.yml` to trigger a release on the main branch. Skip with `enable_versioning: false`. *(Needs: testing)*
+2. Calls → `review.yml` on Dependabot's pull requests, to request your review.
+3. Calls → `merge.yml` to auto-merge Dependabot PRs once testing passes. *(Needs: testing)*
+4. Calls → `version.yml` to trigger a release on the main branch. Skip with `enable_versioning: false`. *(Needs: testing)*
 
-Pass `run_tests: false` to skip the test suite. `service.yml`, `library.yml` and `debian.yml` all accept `run_tests` and `enable_versioning`, and `init` sets them for `--no-testing` and `--no-version`.
+Pass `run_tests: false` to skip the test suite. Every pipeline workflow accepts `run_tests` and `enable_versioning`, and `init` sets them for `--no-testing` and `--no-version`.
 
 ## library.yml
 
 *Orchestrates publishing to GitHub Packages.*
 
-1. Calls → `testing.yml`, `merge.yml` and `version.yml` as above.
-2. **`publish`** — On a new release, downloads the build artifact and publishes it to GitHub Packages as is, using `GITHUB_TOKEN`. Nothing is installed and lifecycle scripts (`prepublishOnly`, `prepare`) don't run, so no dependency code runs while the publish token is set; run those checks in your build or tests instead. Disable with `publish: false`. *(Needs: version)*
+1. Calls → `testing.yml`, `review.yml`, `merge.yml` and `version.yml` as above.
+2. **`publish`**: On a new release, downloads the build artifact and publishes it to GitHub Packages as is, using `GITHUB_TOKEN`. Nothing is installed and lifecycle scripts (`prepublishOnly`, `prepare`) don't run, so no dependency code runs while the publish token is set; run those checks in your build or tests instead. Disable with `publish: false`. *(Needs: version)*
 
 ## debian.yml
 
 *Orchestrates Debian packaging.*
 
-1. Calls → `testing.yml`, `merge.yml`, `version.yml`, as `service.yml` does.
-2. **`build`** — On a new release, downloads the build artifact, packages it with Snodeb (copying `.env.production` to `.env` if present), and uploads the `.deb` as the `debian-package` artifact. *(Needs: version)*
+1. Calls → `testing.yml`, `review.yml`, `merge.yml` and `version.yml`, as `service.yml` does.
+2. **`build`**: On a new release, downloads the build artifact, packages it with Snodeb (copying `.env.production` to `.env` if present), and uploads the `.deb` as the `debian-package` artifact. *(Needs: version)*
 
 ## website.yml
 
 *Orchestrates the full pipeline for website projects and deploys to GitHub Pages.*
 
 1. Calls → `testing.yml` to validate and build the site. Pass `run_tests: false` for sites without tests.
-2. Calls → `merge.yml` to auto-merge Dependabot PRs once testing passes. Disable with `auto_merge: false`. *(Needs: testing)*
-3. Calls → `version.yml` to check if a new release was published. Skip with `enable_versioning: false`. *(Needs: testing)*
-4. **`deploy`** — Downloads the build artifact and deploys it to GitHub Pages. Runs on the main branch only and, when versioning is enabled, only when a new release is published. *(Needs: testing, version)*
+2. Calls → `review.yml` on Dependabot's pull requests, to request your review.
+3. Calls → `merge.yml` to auto-merge Dependabot PRs once testing passes. Disable with `auto_merge: false`. *(Needs: testing)*
+4. Calls → `version.yml` to check whether a new release was published. Skip with `enable_versioning: false`. *(Needs: testing)*
+5. **`deploy`**: Downloads the build artifact and deploys it to GitHub Pages. Runs on the main branch only and, when versioning is enabled, only when a new release is published. *(Needs: testing, version)*
 
 `website.yml` was a deploy-only step before v3. Callers that ran `testing.yml` themselves and passed in a prebuilt artifact should now call `website.yml` alone.
 
@@ -128,9 +151,9 @@ Pass `run_tests: false` to skip the test suite. `service.yml`, `library.yml` and
 
 `init --docker` adds it to your `index.yml` as its own `docker` job after your pipeline job, so projects without Docker don't carry it. It builds on every run and pushes when the pipeline reports a new release. The job needs `packages: write` to push.
 
-1. **`prepare`** — Resolves the image name (`ghcr.io/<owner>/<repo>`, lowercased) and turns `platforms` into a build matrix.
-2. **`build`** — Builds each platform on its own runner. `linux/amd64` and `linux/arm64` build natively (`ubuntu-24.04-arm`); every other platform is emulated with QEMU. On pull requests the image is built but not pushed, so a broken Dockerfile fails the PR's checks. Make the `docker` job a required status check to stop Dependabot auto-merge on a failing build.
-3. **`merge`** — On a new release, combines the per-platform images into one multi-platform manifest tagged `X.Y.Z`, `X.Y`, `X`, `sha-<commit>` and `latest`, with provenance and SBOM attestations. *(Needs: build)*
+1. **`prepare`**: Resolves the image name (`ghcr.io/<owner>/<repo>`, lowercased) and turns `platforms` into a build matrix.
+2. **`build`**: Builds each platform on its own runner. `linux/amd64` and `linux/arm64` build natively (`ubuntu-24.04-arm`); every other platform is emulated with QEMU. On pull requests the image is built but not pushed, so a broken Dockerfile fails the PR's checks. Make the `docker` job a required status check to stop Dependabot auto-merge on a failing build.
+3. **`merge`**: When `push` is `true`, combines the per-platform images into one multi-platform manifest tagged `X.Y.Z`, `X.Y`, `X` (omitted for `0.x` versions), `sha-<commit>` and `latest`, with provenance and SBOM attestations. *(Needs: build)*
 
 With `buildkit_endpoint` set, **`build-remote`** replaces `build` and `merge`: one job on `runs_on` builds every platform on that BuildKit, emulating the ones its host can't run natively, and on a release pushes the same tags and attestations itself. The BuildKit host needs QEMU registered for foreign platforms (`binfmt_misc`), and its emulated builds run several times slower than native ones. Pushed images build without the cache, as a shared BuildKit's cache could hold layers another repository's job planted.
 

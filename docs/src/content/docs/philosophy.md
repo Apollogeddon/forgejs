@@ -1,37 +1,37 @@
 ---
-title: Philosophy & Stack
+title: Philosophy and stack
 description: Why Forge.js prioritises compiled tools and centralised configuration.
 ---
 
-Forge.js implements an opinionated toolchain designed to prioritise execution speed and configuration simplicity.
+This page explains why Forge.js chose its toolchain and why it centralises configuration. Forge.js is opinionated: it favours fast tools and one shared set of configs over per-project choice.
 
-## High-Performance Tooling
+## Fast tooling
 
-The project prioritises tools written in compiled languages (Rust, Go) over pure JavaScript implementations to minimise CI execution time and local feedback loops.
+Forge.js prefers tools written in compiled languages (Rust, Go) over pure JavaScript implementations, to shorten CI runs and local feedback loops.
 
-- **Biome:** Written in Rust, Biome combines linting, formatting, and import organisation into a single pass. This replaces the traditional ESLint/Prettier stack, reducing dependency overhead and execution time.
-- **Tsup & Esbuild:** Tsup leverages `esbuild` (written in Go) for TypeScript transpilation, offering significantly faster build times compared to Rollup or Webpack-based solutions.
-- **Lefthook:** Written in Go, Lefthook executes Git hooks in parallel. It introduces minimal latency to git operations compared to Node.js-based alternatives.
+- **Biome:** Written in Rust, Biome lints, formats and organises imports in a single pass. It replaces ESLint and Prettier with one dependency.
+- **tsdown and Rolldown:** tsdown bundles with Rolldown (written in Rust), which builds faster than Rollup- or Webpack-based setups.
+- **Lefthook:** Written in Go, Lefthook runs Git hook commands in parallel and adds little latency to Git operations compared with Node.js-based alternatives.
 
-## Standardisation as a Service
+## Centralised configuration
 
-Forge.js abstracts configuration to prevent "drift" across repositories. The goal is to ensure that improvements to the build system propagate to all consumers via a single dependency update.
+Forge.js keeps configuration in one package to prevent drift between repositories. An improvement to the shared configs reaches every project through a single dependency update.
 
-- **Unified Toolchain:** By centralising the Biome, TypeScript, Vitest, Tsup, commitlint and Lefthook configurations, the library enforces consistent standards across an organization.
-- **Vitest:** Selected for its native ESM support and integration with the Vite ecosystem, removing the need for complex transform configurations often required by Jest.
-- **release-please:** Automates the release lifecycle. Version numbers and changelogs are derived deterministically from commit history, removing manual intervention from the release process.
-- **Centralised CI/CD:** Reusable GitHub Actions workflows ensure consistent security audits, quality gates, and deployment patterns across all projects.
-- **Verified end to end:** Every mode is scaffolded, installed with npm and run through its full generated script list before a new version is released.
+- **One toolchain:** The Biome, TypeScript, Vitest, tsdown and commitlint configs are shared base configs, and every project gets the same Lefthook hooks, so standards stay consistent across an organisation.
+- **Vitest:** Chosen for its native ESM support and Vite integration, which avoid the transform configuration Jest often needs.
+- **release-please:** Automates releases. Version numbers and changelogs come from the commit history, with no manual steps.
+- **Shared CI/CD:** Reusable GitHub Actions workflows give every project the same security scans, quality checks and deployment steps.
+- **Tested end to end:** Before each version is published, CI scaffolds a backend, a library and a website, installs them with npm, and runs their generated scripts.
 
-## The Toolchain
+## The toolchain
 
-| Tool | Why? | Replaces |
+| Tool | Why | Replaces |
 | :--- | :--- | :--- |
 | **Biome** | Execution speed and single-dependency architecture. | ESLint, Prettier |
-| **Tsup** | Zero-config bundling for TypeScript using esbuild. | Webpack, Rollup, Babel, TSC (emit) |
+| **tsdown** | Zero-config bundling for TypeScript using Rolldown. | Webpack, Rollup, Babel, TSC (emit) |
 | **Vitest** | Native ESM support and shared configuration with Vite. | Jest, Mocha |
 | **Lefthook** | Parallel execution and low overhead (Go-based). | Husky, lint-staged |
 | **release-please** | Deterministic versioning and changelog generation. | Manual tagging, manual changelogs |
-| **Commitlint** | Enforces structured commit history for automation. | Manual review of commit messages |
+| **commitlint** | Enforces structured commit history for automation. | Manual review of commit messages |
 | **Publint** | Validates package exports for compatibility. | Manual verification of entry points |
-| **Snodeb** | Native Debian packaging for Node.js. | pkg, nexe (for system distribution) |
+| **Snodeb** | Debian packaging for Node.js services. | pkg, nexe (for system distribution) |

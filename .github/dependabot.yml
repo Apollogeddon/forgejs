@@ -3,7 +3,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     # Limit open PRs to prevent flooding
     open-pull-requests-limit: 10
     groups:
@@ -29,7 +29,7 @@ updates:
           - "minor"
           - "patch"
     # Ensure commit messages follow your convention (e.g., 'chore(deps): ...')
-    # TypeScript is pinned to 6 until tsup supports 7; drop this once it does.
+    # TypeScript is pinned to 6 until 7 is tested here; tsdown already supports it.
     ignore:
       - dependency-name: "typescript"
         versions: [">=7"]
@@ -43,7 +43,11 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+    groups:
+      actions:
+        patterns:
+          - "*"
     commit-message:
       prefix: "chore(ci)"
     ignore:

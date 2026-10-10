@@ -62,8 +62,9 @@ const hasModeFlag = modes.some((mode) => values[mode as keyof typeof values]);
 // Standard features default on unless --no-all is passed
 const enableByDefault = !values["no-all"] && values.all !== false;
 
-// If no mode flag is provided, backend is the default
-const isBackend = !!(values.backend || (!hasModeFlag && enableByDefault));
+// If no mode flag is provided, backend is the default, with --no-all too: that turns
+// the standard features off, not the mode
+const isBackend = !!(values.backend || !hasModeFlag);
 const isLibrary = !!values.library;
 const isWebsite = !!values.website;
 
@@ -121,7 +122,7 @@ Usage: npx @apollogeddon/forgejs init [options]
 Modes (Default is --backend):
   --backend   Setup for Node.js backend/service [Default]
   --library   Setup for TypeScript library
-  --website   Setup for Frontend website (Vite/Astro)
+  --website   Setup for Frontend website (Vite)
 
 Standard Features (Enabled by default; disable with --no-<feature> or --no-all):
   --testing   Setup Testing (vitest)

@@ -13,13 +13,37 @@ jobs:
   auto-merge:
     runs-on: ${{ inputs.runs_on }}
     timeout-minutes: 10
-    if: github.actor == 'dependabot[bot]'
+    # Not for GitHub Actions updates: they change workflow files, which GITHUB_TOKEN may never
+    # merge, so those pull requests wait for a person to merge them
+    if: github.actor == 'dependabot[bot]' && !startsWith(github.head_ref, 'dependabot/github_actions/')
     permissions:
       contents: write
       pull-requests: write
     steps:
+      # Through the API rather than the gh CLI, which a self-hosted runner may not have
       - name: Enable auto-merge for Dependabot PRs
-        run: gh pr merge --auto --merge "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            try {
+              await github.graphql(
+                `mutation ($id: ID!) {
+                  enablePullRequestAutoMerge(input: { pullRequestId: $id, mergeMethod: SQUASH }) { clientMutationId }
+                }`,
+                { id: pr.node_id },
+              );
+              core.info(`Auto-merge enabled for #${pr.number}`);
+            } catch (error) {
+              // GitHub won't enable auto-merge on a PR it could merge now: one whose checks all
+              // passed (clean) or that only waits on checks it doesn't require (unstable), or on
+              // any PR to a branch with no protection rules, as nothing would hold it back. Nor
+              // where the plan doesn't offer auto-merge, as on a free account's private repository.
+              // Merge it now instead, as gh pr merge --auto does; this job runs after testing
+              // passed, so no check is skipped
+              const mergeable =
+                /is in (clean|unstable|has[ _]hooks) status|protected branch rules not configured|auto merge is not allowed/i;
+              if (!mergeable.test(error.message)) throw error;
+              await github.rest.pulls.merge({ ...context.repo, pull_number: pr.number, merge_method: 'squash' });
+              core.info(`Merged #${pr.number}`);
+            }

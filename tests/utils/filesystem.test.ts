@@ -88,7 +88,7 @@ describe("CLI Init with MockFileSystem", () => {
     expect(mockFs.existsSync(mockFs.join(cwd, "tsconfig.json"))).toBe(true);
     expect(mockFs.existsSync(mockFs.join(cwd, "lefthook.yml"))).toBe(true);
 
-    expect(mockFs.existsSync(mockFs.join(cwd, "tsup.config.ts"))).toBe(true);
+    expect(mockFs.existsSync(mockFs.join(cwd, "tsdown.config.ts"))).toBe(true);
 
     expect(mockFs.existsSync(mockFs.join(cwd, "vitest.config.ts"))).toBe(true);
 

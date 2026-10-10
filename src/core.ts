@@ -5,7 +5,7 @@ import type { InitConfig, PackageJson } from "./types.js";
 import type { IFileSystem } from "./utils/filesystem.js";
 import { NodeFileSystem } from "./utils/filesystem.js";
 
-// core.ts and the tsup bundle output are both one directory below repo root, so
+// core.ts and the tsdown bundle output are both one directory below repo root, so
 // "../package.json" resolves in both - don't move this into a deeper-nested file.
 const require = createRequire(import.meta.url);
 const ownPackageJson = require("../package.json") as { name: string; version: string };
@@ -48,6 +48,8 @@ export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()): n
       };
     } else {
       packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
+      // a package.json needn't have a scripts field, but every feature adds to it
+      packageJson.scripts ??= {};
     }
   } catch (error) {
     console.error(
@@ -57,7 +59,7 @@ export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()): n
     return 1;
   }
 
-  // Generated scripts (biome, tsup, vitest, ...) resolve via npm hoisting once
+  // Generated scripts (biome, tsdown, vitest, ...) resolve via npm hoisting once
   // forgejs is a devDependency here - without this line, none of them work.
   setDependency(packageJson, cfg, ownPackageJson.name, `^${ownPackageJson.version}`);
 
@@ -105,7 +107,9 @@ export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()): n
   console.log("\nInitialization complete!");
   console.log("Next steps:");
   console.log('1. Run "npm install" to ensure dependencies are linked.');
-  if (cfg.linting) {
+  // npm install runs the "prepare" script, which installs the git hooks, unless the
+  // project already had a prepare script that this run left as it was
+  if (cfg.linting && !packageJson.scripts?.prepare?.includes("lefthook install")) {
     console.log('2. Run "npx lefthook install" to set up git hooks.');
   }
   return 0;

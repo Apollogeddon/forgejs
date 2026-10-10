@@ -95,7 +95,7 @@ describe("CLI Init Command", () => {
       "vitest.config.ts",
       "tsconfig.json",
       "commitlint.config.ts",
-      "tsup.config.ts",
+      "tsdown.config.ts",
       "lefthook.yml",
     ];
 
@@ -184,17 +184,31 @@ describe("CLI Init Command", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --website`, { cwd: tempDir });
 
     expect(fs.existsSync(path.join(tempDir, "vite.config.ts"))).toBe(true);
-    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, "tsdown.config.ts"))).toBe(false);
 
     const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
     expect(packageJson.scripts.dev).toBe("vite");
     expect(packageJson.scripts.build).toBe("vite build");
   });
 
+  it("should move a tsup project to tsdown only with --force", () => {
+    fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify({ name: "test", scripts: { build: "tsup" } }));
+    fs.writeFileSync(path.join(tempDir, "tsup.config.ts"), "export default {};\n");
+
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --library`, { cwd: tempDir });
+    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
+    expect(JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8")).scripts.build).toBe("tsup");
+
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --library --force`, { cwd: tempDir });
+    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, "tsdown.config.ts"))).toBe(true);
+    expect(JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8")).scripts.build).toBe("tsdown");
+  });
+
   it("should support --library flag to setup library only", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --library`, { cwd: tempDir });
 
-    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, "tsdown.config.ts"))).toBe(true);
 
     expect(fs.existsSync(path.join(tempDir, "vitest.config.ts"))).toBe(true);
 
@@ -217,11 +231,11 @@ describe("CLI Init Command", () => {
 
     expect(fs.existsSync(path.join(tempDir, "snodeb.config.cjs"))).toBe(true);
 
-    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, "tsdown.config.ts"))).toBe(true);
 
     const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
     expect(packageJson.scripts["build:deb"]).toBe("snodeb");
-    expect(packageJson.scripts.build).toBe("tsup");
+    expect(packageJson.scripts.build).toBe("tsdown");
   });
 
   it.each([
@@ -281,7 +295,7 @@ describe("CLI Init Command", () => {
 
     const updatedPackageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
 
-    expect(updatedPackageJson.scripts.build).toBe("tsup");
+    expect(updatedPackageJson.scripts.build).toBe("tsdown");
     expect(updatedPackageJson.scripts.custom).toBe("echo custom");
   });
 
@@ -416,7 +430,7 @@ describe("CLI Init Command", () => {
       "vitest.config.ts",
       "tsconfig.json",
       "commitlint.config.ts",
-      "tsup.config.ts",
+      "tsdown.config.ts",
       "lefthook.yml",
     ]) {
       expect(fs.existsSync(path.join(tempDir, file))).toBe(true);
@@ -455,7 +469,23 @@ describe("CLI Init Command", () => {
     expect(fs.existsSync(path.join(tempDir, "biome.json"))).toBe(false);
     expect(fs.existsSync(path.join(tempDir, "commitlint.config.ts"))).toBe(false);
     // Build/Base features always run regardless of --no-all
-    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, "tsdown.config.ts"))).toBe(true);
+    // --no-all turns off the standard features, not the default backend mode
+    expect(fs.existsSync(path.join(tempDir, ".github", "workflows", "index.yml"))).toBe(true);
+  });
+
+  it("should only tell the user to install the git hooks when npm install won't", () => {
+    const fresh = execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir, encoding: "utf-8" });
+    expect(fresh).not.toMatch(/lefthook install/);
+
+    const other = fs.mkdtempSync(path.join(os.tmpdir(), "forgejs-prepare-"));
+    try {
+      fs.writeFileSync(path.join(other, "package.json"), JSON.stringify({ name: "x", scripts: { prepare: "husky" } }));
+      const kept = execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: other, encoding: "utf-8" });
+      expect(kept).toMatch(/npx lefthook install/);
+    } finally {
+      fs.rmSync(other, { recursive: true, force: true });
+    }
   });
 
   it("should let an explicit flag re-enable a feature disabled by --no-all", () => {
@@ -488,9 +518,59 @@ describe("CLI Init Command", () => {
     expect(updatedPackageJson.scripts.lint).toBe("echo custom-lint");
   });
 
+  it("should add scripts to an existing package.json that has no scripts field", () => {
+    fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify({ name: "test", version: "0.0.0" }));
+
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
+
+    const updatedPackageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
+    expect(updatedPackageJson.scripts.lint).toBeDefined();
+  });
+
   it("should not include the commitlint hook in lefthook.yml when --no-version is passed", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --no-version`, { cwd: tempDir });
     const lefthookConfig = fs.readFileSync(path.join(tempDir, "lefthook.yml"), "utf-8");
     expect(lefthookConfig).not.toContain("commitlint");
+  });
+
+  it("should write .editorconfig and a Dependabot config with a cooldown", () => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
+
+    expect(fs.readFileSync(path.join(tempDir, ".editorconfig"), "utf-8")).toContain("root = true");
+
+    const dependabot = yaml.load(fs.readFileSync(path.join(tempDir, ".github/dependabot.yml"), "utf-8")) as {
+      updates: { "package-ecosystem": string; cooldown: { "default-days": number } }[];
+    };
+    expect(dependabot.updates.map((u) => u["package-ecosystem"])).toEqual(["npm", "github-actions"]);
+    for (const update of dependabot.updates) {
+      expect(update.cooldown["default-days"]).toBe(3);
+    }
+  });
+
+  it("should add Docker to the Dependabot config with --docker", () => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --docker`, { cwd: tempDir });
+    const dependabot = yaml.load(fs.readFileSync(path.join(tempDir, ".github/dependabot.yml"), "utf-8")) as {
+      updates: { "package-ecosystem": string }[];
+    };
+    expect(dependabot.updates.map((u) => u["package-ecosystem"])).toContain("docker");
+  });
+
+  it("should name the GitHub remote's owner in CODEOWNERS, and skip it without one", () => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
+    expect(fs.existsSync(path.join(tempDir, ".github/CODEOWNERS"))).toBe(false);
+
+    execSync("git init -q", { cwd: tempDir });
+    execSync("git remote add origin git@github.com:acme/widget.git", { cwd: tempDir });
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
+    expect(fs.readFileSync(path.join(tempDir, ".github/CODEOWNERS"), "utf-8")).toContain("* @acme");
+  });
+
+  it("should prefer package.json's repository for the CODEOWNERS owner", () => {
+    fs.writeFileSync(
+      path.join(tempDir, "package.json"),
+      JSON.stringify({ name: "widget", repository: { type: "git", url: "git+https://github.com/octo-org/widget.git" } }),
+    );
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
+    expect(fs.readFileSync(path.join(tempDir, ".github/CODEOWNERS"), "utf-8")).toContain("* @octo-org");
   });
 }, 120000);

@@ -20,9 +20,9 @@ const groups: NavGroup[] = [
   {
     label: "Overview",
     items: [
-      { label: "Getting Started", slug: "getting-started" },
+      { label: "Getting started", slug: "getting-started" },
       { label: "Configuration", slug: "configuration" },
-      { label: "Philosophy & Stack", slug: "philosophy" },
+      { label: "Philosophy and stack", slug: "philosophy" },
       { label: "Contributing", slug: "contributing" },
       { label: "Migration", slug: "migration" },
     ],
@@ -36,7 +36,7 @@ const groups: NavGroup[] = [
         slug: "workflows/overview",
         children: [
           { label: "Overview", slug: "workflows/overview" },
-          { label: "Job Reference", slug: "workflows/reference" },
+          { label: "Job reference", slug: "workflows/reference" },
         ],
       },
     ],
@@ -45,7 +45,7 @@ const groups: NavGroup[] = [
 
 const active = (slug: string) => slug === currentSlug;
 const base = "block rounded-md px-3 py-1.5 text-sm transition-colors";
-const on = "bg-violet-500/10 font-semibold text-violet-400";
+const on = "bg-red-500/10 font-semibold text-red-400";
 const off = "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100";
 ---
 

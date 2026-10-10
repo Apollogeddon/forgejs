@@ -1,5 +1,124 @@
 # Changelog
 
+## [4.1.0](https://github.com/Apollogeddon/forgejs/compare/v4.0.0...v4.1.0) (2026-10-10)
+
+
+### Features
+
+* **ci:** request a review on Dependabot's and release-please's pull requests ([b3c0b0f](https://github.com/Apollogeddon/forgejs/commit/b3c0b0f74a344623c8b3b817a7cdde03f608d0fc))
+* **ci:** request a review on Dependabot's and release-please's pull requests ([efee7ad](https://github.com/Apollogeddon/forgejs/commit/efee7ad2a8b35464c66dd657a03000a6b3bf4fae))
+
+## [4.0.0](https://github.com/Apollogeddon/forgejs/compare/v3.3.1...v4.0.0) (2026-10-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* the base config is now @apollogeddon/forgejs/tsdown.config.cjs and the build script is tsdown. Rename tsup.config.ts to tsdown.config.ts, import from tsdown and the new config, and set the build script to tsdown; init --force does this.
+
+### Features
+
+* bundle with tsdown instead of tsup ([03b5cc5](https://github.com/Apollogeddon/forgejs/commit/03b5cc54a0f3e52d0ce872c7fb55f450e406cd50))
+
+## [3.3.1](https://github.com/Apollogeddon/forgejs/compare/v3.3.0...v3.3.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **deps:** override esbuild and the docs' blocked security updates ([#218](https://github.com/Apollogeddon/forgejs/issues/218)) ([926722f](https://github.com/Apollogeddon/forgejs/commit/926722fb594227fff630a5802f7b98a1fb6a4f58))
+
+## [3.3.0](https://github.com/Apollogeddon/forgejs/compare/v3.2.3...v3.3.0) (2026-10-10)
+
+
+### Features
+
+* write repo files on init, and merge Dependabot PRs where auto-merge isn't offered ([#215](https://github.com/Apollogeddon/forgejs/issues/215)) ([88f74dc](https://github.com/Apollogeddon/forgejs/commit/88f74dc06b6bf12bf2b1966871b24a14e627b90f))
+
+
+### Bug Fixes
+
+* **deps:** patch vulnerabilities via osv-scanner ([69d2f2b](https://github.com/Apollogeddon/forgejs/commit/69d2f2b6df67a4d3308ccb43090953176e29de3b))
+
+## [3.2.3](https://github.com/Apollogeddon/forgejs/compare/v3.2.2...v3.2.3) (2026-10-10)
+
+
+### Bug Fixes
+
+* **ci:** merge Dependabot PRs to branches without protection rules ([b7c9d56](https://github.com/Apollogeddon/forgejs/commit/b7c9d56d210e4f0dbb3129f45b2bcdfc35c97324))
+* **ci:** merge Dependabot PRs to branches without protection rules ([46102eb](https://github.com/Apollogeddon/forgejs/commit/46102ebe35c698ba90966af29d721e94391c616c))
+* **deps:** bump js-yaml from 5.4.2 to 5.4.3 in the js-yaml group ([#206](https://github.com/Apollogeddon/forgejs/issues/206)) ([d0431d1](https://github.com/Apollogeddon/forgejs/commit/d0431d1c65e6ed71969afced3147268461347dd7))
+* **deps:** bump rollup from 4.46.2 to 4.64.3 ([#210](https://github.com/Apollogeddon/forgejs/issues/210)) ([a79bdc9](https://github.com/Apollogeddon/forgejs/commit/a79bdc98f7b9eb45998a206c1653a5fb8bafe9d1))
+* **deps:** bump the npm_and_yarn group across 1 directory with 6 updates ([#211](https://github.com/Apollogeddon/forgejs/issues/211)) ([aeb429d](https://github.com/Apollogeddon/forgejs/commit/aeb429d53de070e7664fa2959c2e0755bb2ca4ca))
+* **deps:** bump vite from 8.3.2 to 8.3.3 in the dependencies group ([#207](https://github.com/Apollogeddon/forgejs/issues/207)) ([54982ba](https://github.com/Apollogeddon/forgejs/commit/54982baca2d9ae0dd1798783e3dd57867e9326cd))
+
+## [3.2.2](https://github.com/Apollogeddon/forgejs/compare/v3.2.1...v3.2.2) (2026-10-09)
+
+
+### Bug Fixes
+
+* don't crash on a package.json with no scripts field ([84bc210](https://github.com/Apollogeddon/forgejs/commit/84bc210aa41b6e83d00398650b383a0340ca6ee0))
+* don't crash on a package.json with no scripts field ([a988774](https://github.com/Apollogeddon/forgejs/commit/a9887741a03c4d147adf2428fbbfed5bac404877))
+
+## [3.2.1](https://github.com/Apollogeddon/forgejs/compare/v3.2.0...v3.2.1) (2026-10-09)
+
+
+### Bug Fixes
+
+* **cli:** keep backend as the default mode with --no-all, and smaller fixes ([feb6002](https://github.com/Apollogeddon/forgejs/commit/feb6002c7860a74602aad6c5ccdf0fc8af926c34))
+* **cli:** keep backend as the default mode with --no-all, and smaller fixes ([02e1791](https://github.com/Apollogeddon/forgejs/commit/02e1791686a1cc4671a17eb77a59711d2dec8151))
+
+## [3.2.0](https://github.com/Apollogeddon/forgejs/compare/v3.1.4...v3.2.0) (2026-10-09)
+
+
+### Features
+
+* **ci:** run release-please from a project's own release config when it has one ([9ba5307](https://github.com/Apollogeddon/forgejs/commit/9ba530748a40acf49a50bf3520786af6535979ec))
+
+
+### Bug Fixes
+
+* **ci:** keep counting releases_created for a root package, where release_created can be unset ([9ee9f45](https://github.com/Apollogeddon/forgejs/commit/9ee9f4575a2abec6efac2d701de2a817a623046f))
+* **ci:** pass release-please the config path without a leading ./ ([205fea2](https://github.com/Apollogeddon/forgejs/commit/205fea2d7d6121f3b4fa18afc3345f267e8ba64e))
+* **ci:** read a sub-directory package's own release outputs in version.yml ([efe4c36](https://github.com/Apollogeddon/forgejs/commit/efe4c363d54043a04a42faa3dbf18e4e18517e81))
+
+## [3.1.4](https://github.com/Apollogeddon/forgejs/compare/v3.1.3...v3.1.4) (2026-10-08)
+
+
+### Bug Fixes
+
+* **ci:** leave Dependabot's GitHub Actions updates for a person to merge ([e506ea7](https://github.com/Apollogeddon/forgejs/commit/e506ea7d30d871d7396c2d9d254a5bb80c9a8906))
+
+## [3.1.3](https://github.com/Apollogeddon/forgejs/compare/v3.1.2...v3.1.3) (2026-10-08)
+
+
+### Bug Fixes
+
+* auto-merge a Dependabot PR that only waits on checks nobody requires ([d79a5bd](https://github.com/Apollogeddon/forgejs/commit/d79a5bde56d440b3e8525d3e6cdf7996afb90750))
+* **deps:** bump lefthook from 2.1.16 to 2.1.17 in the dependencies group ([48bc64f](https://github.com/Apollogeddon/forgejs/commit/48bc64f4bcc9cf65068986806a3e2a9dea9c2266))
+
+## [3.1.2](https://github.com/Apollogeddon/forgejs/compare/v3.1.1...v3.1.2) (2026-10-08)
+
+
+### Bug Fixes
+
+* auto-merge Dependabot PRs through the API, so a runner needs no gh CLI ([7340929](https://github.com/Apollogeddon/forgejs/commit/7340929ea8475085624a720acd138724f847f6b4))
+
+## [3.1.1](https://github.com/Apollogeddon/forgejs/compare/v3.1.0...v3.1.1) (2026-10-08)
+
+
+### Bug Fixes
+
+* **ci:** add timeouts to the release-please and pages deploy jobs ([0e027bd](https://github.com/Apollogeddon/forgejs/commit/0e027bd1222280460911a34fc001d458ce640bb4))
+* **ci:** don't leave the token in .git/config for jobs that never push ([e521ef9](https://github.com/Apollogeddon/forgejs/commit/e521ef979a13e507ed33052860576a63e7b80518))
+* **ci:** harden the reusable workflows and the generated ci ([57cc810](https://github.com/Apollogeddon/forgejs/commit/57cc810e429980effde0625b916f78c60bd99f59))
+* **ci:** lint with biome ci, which never writes and annotates the pr ([580cd5f](https://github.com/Apollogeddon/forgejs/commit/580cd5f20defa2bfff7e58a6827b869648c5f863))
+* **ci:** pass build_env_vars through the environment, never into the script ([35d6a3a](https://github.com/Apollogeddon/forgejs/commit/35d6a3a4d095a89b81f83bb0b3c158153442d74a))
+* **ci:** publish the tested artifact without installing or running scripts ([1dad31e](https://github.com/Apollogeddon/forgejs/commit/1dad31e0c85e1f348b7972b2cc3f62f7c15448e3))
+* **ci:** publish without the npm cache, install scripts or an unused id-token ([b5d91f8](https://github.com/Apollogeddon/forgejs/commit/b5d91f853565e7f60e0ec6f447e8ff09b5494204))
+* **deps:** bump the dependencies group across 1 directory with 5 updates ([1149b3a](https://github.com/Apollogeddon/forgejs/commit/1149b3aa4bf46dfb0c1d3cedce5f21507a13508b))
+* **deps:** bump the vitest group with 2 updates ([1b19b09](https://github.com/Apollogeddon/forgejs/commit/1b19b093d7ef084fea40b7ca6cfb960d951e949e))
+* **deps:** patch vulnerabilities via osv-scanner ([a9290fa](https://github.com/Apollogeddon/forgejs/commit/a9290fa9391cc8d89b8848e4f95fe4ba725e7e60))
+* generate ci with a concurrency rule and without secrets: inherit or an unused id-token ([555abd7](https://github.com/Apollogeddon/forgejs/commit/555abd79499cca6f53e6b91046fcbca6293ca1fc))
+
 ## [3.1.0](https://github.com/Apollogeddon/forgejs/compare/v3.0.0...v3.1.0) (2026-10-05)
 
 
@@ -13,7 +132,6 @@
 
 ### Bug Fixes
 
-* **deps:** bump lefthook from 2.1.14 to 2.1.15 in the dependencies group ([1a95016](https://github.com/Apollogeddon/forgejs/commit/1a95016ef92ffd7839408e33861690afc656a1b1))
 * **deps:** bump lefthook from 2.1.14 to 2.1.15 in the dependencies group ([edb1248](https://github.com/Apollogeddon/forgejs/commit/edb1248a9b4b91696c9fc159eafc18f0580e43af))
 * keep docker.yml's merge job on github-hosted runners, as it needs a docker daemon ([bddcb54](https://github.com/Apollogeddon/forgejs/commit/bddcb54cef9d35423b2cf9ad816569214ce6a0bb))
 
@@ -37,15 +155,10 @@
 * add own package as devDependency so scaffolded tools actually install ([ae49832](https://github.com/Apollogeddon/forgejs/commit/ae49832057fd6723f45317acb05affdf00f9356e))
 * **ci:** add run_tests and enable_versioning inputs and fix caching and release issues ([e9b2207](https://github.com/Apollogeddon/forgejs/commit/e9b220798041b5b44e88a3fe3cb148523fbf31f3))
 * **ci:** gate auto-merge on testing in service and debian workflows ([1a6f359](https://github.com/Apollogeddon/forgejs/commit/1a6f359da597735238a9d1fdc5c20d2795e817e4))
-* **deps:** bump js-yaml from 5.2.1 to 5.4.2 in the dependencies group ([748e72f](https://github.com/Apollogeddon/forgejs/commit/748e72f75f7c5315f211ff814d8f6744914b6ccf))
 * **deps:** bump js-yaml from 5.2.1 to 5.4.2 in the dependencies group ([327df2b](https://github.com/Apollogeddon/forgejs/commit/327df2bdd25e99dde5b285c8b180187dfa1a54e5))
-* **deps:** bump the dependencies group with 2 updates ([91235af](https://github.com/Apollogeddon/forgejs/commit/91235af0d4b827ef7b3e79f0f3f424c555aee028))
 * **deps:** bump the dependencies group with 2 updates ([77ea092](https://github.com/Apollogeddon/forgejs/commit/77ea092a09202b494f720a71c299d6854ec75ed6))
-* **deps:** bump the vitest group across 1 directory with 2 updates ([cc62c76](https://github.com/Apollogeddon/forgejs/commit/cc62c7637d64b45fcf9596b8702ff80aafa0d7e8))
 * **deps:** bump the vitest group across 1 directory with 2 updates ([c49c6fc](https://github.com/Apollogeddon/forgejs/commit/c49c6fc78d834ff6e14e9b4842de8617444da69d))
-* **deps:** bump the vitest group with 2 updates ([8d5eac6](https://github.com/Apollogeddon/forgejs/commit/8d5eac6485827b1bec0b6712963df4b373b18f05))
 * **deps:** bump the vitest group with 2 updates ([8653a16](https://github.com/Apollogeddon/forgejs/commit/8653a16da4e5a63f8a43c3cc874be567a36f2925))
-* **deps:** bump typescript from 6.0.3 to 7.0.2 ([5e627c8](https://github.com/Apollogeddon/forgejs/commit/5e627c81086862586f9a471775cf016789ee248e))
 * **deps:** bump typescript from 6.0.3 to 7.0.2 ([228d1b8](https://github.com/Apollogeddon/forgejs/commit/228d1b89800f13fc662a9d03f5360f5de6d3b660))
 * **deps:** patch vulnerabilities via osv-scanner ([cf97525](https://github.com/Apollogeddon/forgejs/commit/cf9752523eda186ef276abdcced0c38278e83664))
 * **deps:** pin typescript to 6.0.3 until tsup supports TS 7 ([f3f950d](https://github.com/Apollogeddon/forgejs/commit/f3f950d978540e5a6305df2910f7c89725c72a92))
@@ -79,15 +192,10 @@
 
 ### Bug Fixes
 
-* **deps:** bump @types/node from 25.9.3 to 26.0.0 ([6eb4f77](https://github.com/Apollogeddon/forgejs/commit/6eb4f7767508104ebdf5a0bfe8c618417ff83f5d))
 * **deps:** bump @types/node from 25.9.3 to 26.0.0 ([c635c57](https://github.com/Apollogeddon/forgejs/commit/c635c57462c63efed29b590b36f49ac20d433130))
-* **deps:** bump the dependencies group across 1 directory with 5 updates ([20af995](https://github.com/Apollogeddon/forgejs/commit/20af995c8ce71b8131fe344f2fb5246e63579a16))
 * **deps:** bump the dependencies group across 1 directory with 5 updates ([7d2677c](https://github.com/Apollogeddon/forgejs/commit/7d2677cf0352fe4af7570c7996c2b40df8a68abf))
-* **deps:** bump the dependencies group across 1 directory with 8 updates ([2d4250e](https://github.com/Apollogeddon/forgejs/commit/2d4250e3a2cdfc0132c97e578a772d490933bce3))
 * **deps:** bump the dependencies group across 1 directory with 8 updates ([1eeea96](https://github.com/Apollogeddon/forgejs/commit/1eeea9667648e13474e66269a86918bc91233b8f))
-* **deps:** bump the dependencies group with 2 updates ([e305efb](https://github.com/Apollogeddon/forgejs/commit/e305efb19157249de4bbdde65b407e15599dc29f))
 * **deps:** bump the dependencies group with 2 updates ([e7358f2](https://github.com/Apollogeddon/forgejs/commit/e7358f23876e9eee4aed4c8b37765db6b517d0de))
-* **deps:** bump the dependencies group with 4 updates ([d18aece](https://github.com/Apollogeddon/forgejs/commit/d18aece31c7b887c76b24a74e6bd14ff43f4a984))
 * **deps:** bump the dependencies group with 4 updates ([5c18622](https://github.com/Apollogeddon/forgejs/commit/5c1862208d19c911ad932f4a06ca143d2b1bff67))
 * **deps:** patch vulnerabilities via osv-scanner ([9fd7f3b](https://github.com/Apollogeddon/forgejs/commit/9fd7f3bfe7480fae5d362d5fc989496f27c4e84a))
 * ignore lifecycle scripts on the patch job's post-fix npm install ([450f31c](https://github.com/Apollogeddon/forgejs/commit/450f31c57dddf2daef5cabe9ef1f64c5a3d57122))
@@ -119,11 +227,8 @@
 ### Bug Fixes
 
 * **biome:** correct linter rules configuration ([29d53f6](https://github.com/Apollogeddon/forgejs/commit/29d53f6245a34bed44f24610800b21df3f3a9c04))
-* **deps:** bump the dependencies group across 1 directory with 2 updates ([b99d2b2](https://github.com/Apollogeddon/forgejs/commit/b99d2b287f45aa494e582447b227fcdf7248369a))
 * **deps:** bump the dependencies group across 1 directory with 2 updates ([0242b76](https://github.com/Apollogeddon/forgejs/commit/0242b765a12aafefbc5766978f97deda0d50a3e0))
-* **deps:** bump the dependencies group across 1 directory with 4 updates ([ce679dc](https://github.com/Apollogeddon/forgejs/commit/ce679dc4f5cfc5ad3a0e50031790f9f4e583b50a))
 * **deps:** bump the dependencies group across 1 directory with 4 updates ([d810a2d](https://github.com/Apollogeddon/forgejs/commit/d810a2da5192f1ceafb6d2e3387424ce561616b7))
-* **deps:** bump the dependencies group with 5 updates ([45d56b8](https://github.com/Apollogeddon/forgejs/commit/45d56b81b7fc5fe0d71fc321f7a63674396e7a66))
 * **deps:** bump the dependencies group with 5 updates ([ace0f91](https://github.com/Apollogeddon/forgejs/commit/ace0f9193b31be01c8b17c2bef88d1d70f975c5a))
 * **workflows:** update permissions to allow write access ([f938195](https://github.com/Apollogeddon/forgejs/commit/f938195cb55702d9a15f9e253febc8a4e2d8e593))
 
