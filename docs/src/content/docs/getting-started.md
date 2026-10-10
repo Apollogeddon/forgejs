@@ -7,7 +7,7 @@ Forge.js sets up TypeScript and Node.js projects with a standard toolchain and a
 
 ## Requirements
 
-- Node.js 22 or later.
+- Node.js 24 or later.
 - Git, for the generated Lefthook hooks.
 - A GitHub token with the `read:packages` scope. `@apollogeddon/forgejs` is published to GitHub Packages, not the public npm registry.
 

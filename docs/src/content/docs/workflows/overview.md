@@ -49,7 +49,6 @@ jobs:
       packages: read
       pull-requests: write
     with:
-      node_version: '22'
       auto_patch: true
 ```
 
@@ -64,7 +63,6 @@ jobs:
       pull-requests: write
       packages: write
     with:
-      node_version: '22'
       auto_patch: true
 ```
 
@@ -81,7 +79,6 @@ jobs:
       id-token: write
       pull-requests: write
     with:
-      node_version: '22'
       auto_patch: true
 ```
 
@@ -111,7 +108,7 @@ The pipeline workflows (`service.yml`, `library.yml`, `debian.yml` and `website.
 | Input | Default | Description |
 | :--- | :--- | :--- |
 | `runs_on` | `'ubuntu-latest'` | Runner label for every job; see [Choosing runners](/forgejs/docs/workflows/reference#choosing-runners) |
-| `node_version` | `'22'` | Node.js version for every job |
+| `node_version` | `''` | Node.js version for every job. Empty reads the project's `.nvmrc`, and without one uses Node.js 24; see [Node.js version](/forgejs/docs/configuration#nodejs-version) |
 | `working_directory` | `'.'` | Directory containing `package.json` |
 | `enable_secrets` | `true` | Run the Gitleaks secret scan |
 | `artifact_name` | `'dist'` | Name of the build artifact passed between jobs (not `service.yml`) |

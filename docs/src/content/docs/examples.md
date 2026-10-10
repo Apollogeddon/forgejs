@@ -88,7 +88,6 @@ jobs:
       pull-requests: write
     with:
       working_directory: 'packages/api'
-      node_version: '22'
 ```
 
 ### Test across Node.js versions

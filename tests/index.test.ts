@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import * as yaml from "js-yaml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { NODE_VERSION } from "../src/versions.js";
 
 const CLI_SCRIPT = path.resolve(__dirname, "../src/index.ts");
 // Generated index.yml calls these reusable workflows at @main; this repo is what @main serves
@@ -175,8 +176,8 @@ describe("CLI Init Command", () => {
 
     const dockerfile = fs.readFileSync(path.join(tempDir, "Dockerfile"), "utf-8");
     // compiled once on the build host, but production deps installed per target platform
-    expect(dockerfile).toMatch(/^FROM --platform=\$BUILDPLATFORM node:22-slim AS build$/m);
-    expect(dockerfile).toMatch(/^FROM node:22-slim AS deps$/m);
+    expect(dockerfile).toContain(`FROM --platform=$BUILDPLATFORM node:${NODE_VERSION}-slim AS build\n`);
+    expect(dockerfile).toContain(`FROM node:${NODE_VERSION}-slim AS deps\n`);
     expect(dockerfile).toContain("USER node");
   });
 
@@ -500,6 +501,24 @@ describe("CLI Init Command", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --no-version`, { cwd: tempDir });
     const lefthookConfig = fs.readFileSync(path.join(tempDir, "lefthook.yml"), "utf-8");
     expect(lefthookConfig).not.toContain("commitlint");
+  });
+
+  // .nvmrc is where the Node.js version lives: CI reads it, so the generated index.yml sets none
+  it("should pin the project's Node.js version in .nvmrc and engines", () => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
+
+    expect(fs.readFileSync(path.join(tempDir, ".nvmrc"), "utf-8")).toBe(`${NODE_VERSION}\n`);
+    const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
+    expect(packageJson.engines.node).toBe(`>=${NODE_VERSION}`);
+    expect(fs.readFileSync(path.join(tempDir, ".github/workflows/index.yml"), "utf-8")).not.toContain("node_version");
+  });
+
+  it("should keep a project's own engines.node without --force", () => {
+    const packageJsonPath = path.join(tempDir, "package.json");
+    fs.writeFileSync(packageJsonPath, JSON.stringify({ name: "legacy", engines: { node: ">=20" } }));
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
+
+    expect(JSON.parse(fs.readFileSync(packageJsonPath, "utf-8")).engines.node).toBe(">=20");
   });
 
   it("should write .editorconfig and a Dependabot config with a cooldown", () => {

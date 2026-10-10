@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import * as yaml from "js-yaml";
 import { describe, expect, it } from "vitest";
+import { NODE_VERSION } from "../src/versions.js";
 
 const workflowsDir = path.join(process.cwd(), ".github", "workflows");
 
@@ -209,4 +210,33 @@ describe("Review requests on bots' pull requests", () => {
     expect(script).toContain("catch (error)");
     expect(script).toContain("core.warning");
   });
+});
+
+describe("Node.js version resolution", () => {
+  const workflowFiles = fs.readdirSync(workflowsDir).filter((file) => file.endsWith(".yml") && !file.startsWith("."));
+
+  // the input wins, then the project's .nvmrc, then forgejs's default, which must match what init pins
+  for (const file of workflowFiles) {
+    const content = fs.readFileSync(path.join(workflowsDir, file), "utf-8");
+    if (!content.includes("actions/setup-node")) continue;
+
+    it(`should resolve the version before every setup-node in ${file}`, () => {
+      const setups = content.match(/uses: actions\/setup-node@\S+\n\s+with:\n\s+node-version: (.+)/g) ?? [];
+      expect(setups.length).toBeGreaterThan(0);
+      for (const setup of setups) expect(setup).toContain("${{ steps.node.outputs.version }}");
+      const resolves = content.match(/else version=(\S+)/g) ?? [];
+      expect(resolves).toHaveLength(setups.length);
+      for (const resolve of resolves) expect(resolve).toBe(`else version=${NODE_VERSION}`);
+      expect(content).toContain("elif [ -f .nvmrc ]");
+    });
+  }
+
+  for (const file of workflowFiles) {
+    const inputs = (yaml.load(fs.readFileSync(path.join(workflowsDir, file), "utf-8")) as Workflow).on?.workflow_call
+      ?.inputs as Record<string, { default?: unknown }> | undefined;
+    if (!inputs?.node_version) continue;
+    it(`should leave node_version empty by default in ${file}`, () => {
+      expect(inputs.node_version.default).toBe("");
+    });
+  }
 });

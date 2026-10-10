@@ -11,7 +11,8 @@ on:
       node_version:
         required: false
         type: string
-        default: '22'
+        description: "Node.js version; empty reads the project's .nvmrc, else Node 24"
+        default: ''
       working_directory:
         required: false
         type: string
