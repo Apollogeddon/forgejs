@@ -46,6 +46,11 @@ on:
         required: false
         type: string
         default: ''
+      reviewers:
+        description: "Comma-separated logins to request a review of Dependabot's and release-please's pull requests from; empty means the repository's owner"
+        required: false
+        type: string
+        default: ''
     outputs:
       new_release_published:
         description: "Whether a new release was published"
@@ -58,6 +63,17 @@ on:
         value: ${{ jobs.version.outputs.tag_name }}
 
 jobs:
+  # Dependabot's pull requests ask for a review as they open, before the checks, so a failing
+  # update reaches the reviewer too
+  review:
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
+    uses: ./.github/workflows/review.yml
+    with:
+      runs_on: ${{ inputs.runs_on }}
+      reviewers: ${{ inputs.reviewers }}
+    permissions:
+      pull-requests: write
+
   auto-merge:
     uses: ./.github/workflows/merge.yml
     with:
@@ -90,3 +106,4 @@ jobs:
       runs_on: ${{ inputs.runs_on }}
       node_version: ${{ inputs.node_version }}
       working_directory: ${{ inputs.working_directory }}
+      reviewers: ${{ inputs.reviewers }}

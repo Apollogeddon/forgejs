@@ -13,7 +13,7 @@ Every pipeline follows the same three stages:
 2. **Versioning:** `version.yml` runs release-please on the main branch.
 3. **Delivery:** `library.yml` (GitHub Packages), `debian.yml` (`.deb` package), `website.yml` (GitHub Pages) or `docker.yml` (GHCR) publishes the result.
 
-`merge.yml` auto-merges Dependabot pull requests once testing passes, except GitHub Actions updates.
+`merge.yml` auto-merges Dependabot pull requests once testing passes, except GitHub Actions updates. `review.yml` requests a review on Dependabot's and release-please's pull requests, so they reach your review requests in a private repository too.
 
 `service.yml`, `website.yml` and `debian.yml` expose `version.yml`'s `new_release_published`, `version` and `tag_name` as outputs, which the generated `docker` job uses to decide when to push.
 
@@ -85,6 +85,8 @@ In that mode release-please tags the release before the push's checks run. If th
 
 1. **`release-please`**: On the main branch, opens or updates the release PR from Conventional Commits, and creates the tag and GitHub release when it merges. A `working_directory` other than `.` becomes release-please's `path`, so a package in a monorepo is versioned on its own, tagged with its `package.json` name (`api-v1.2.3`). If the project has a `.github/release.json` and `.github/.release.json` under `working_directory`, release-please runs from them instead (see [release-please: versioning](/forgejs/docs/configuration#release-please-versioning)). The job checks out only that `.github` directory to look for them.
 
+2. **`review`**: When release-please opened or updated a release PR, calls → `review.yml` to request a review on it. *(Needs: release-please)*
+
 Outputs `new_release_published`, `version` and `tag_name` for the delivery jobs: those of the `working_directory` package, not of any other package released in the same run.
 
 ## merge.yml
@@ -93,13 +95,27 @@ Outputs `new_release_published`, `version` and `tag_name` for the delivery jobs:
 
 1. **`auto-merge`**: For pull requests opened by Dependabot, enables GitHub's auto-merge so the PR merges once required checks pass. If the PR can already be merged, it merges it straight away. It squash-merges, so release-please lists each update once: a merge commit repeats the pull request's title, and release-please reads that as a second change. Merge your own pull requests the same way, with **Squash and merge**. GitHub Actions updates (branches starting `dependabot/github_actions/`) are skipped and left for a person to merge: they change workflow files, which `GITHUB_TOKEN` can't merge.
 
+## review.yml
+
+*Review requests on bots' pull requests.*
+
+1. **`request`**: Requests a review on a pull request from `reviewers`, or from the repository's owner when `reviewers` is empty and the owner is a user (an organisation names its reviewers through the input). GitHub only requests code owners' reviews in a private repository on a paid plan, so without this, Dependabot's and release-please's pull requests in a private repository on GitHub Free never reach your review requests. A failed request logs a warning and never fails the pipeline.
+
+The pipeline workflows call it on Dependabot's pull requests as they open, before the checks, so a failing update reaches you too; `version.yml` calls it on the release PR. Dependabot updates that `merge.yml` merges still leave your review requests once merged.
+
+| Input | Default | Description |
+| :--- | :--- | :--- |
+| `pull_request` | `''` | The pull request to request a review on; empty means the one that triggered the run |
+| `reviewers` | `''` | Comma-separated logins to request; empty means the repository's owner |
+
 ## service.yml
 
 *Orchestrates the full pipeline for backend projects.*
 
 1. Calls → `testing.yml` to validate and build the project.
-2. Calls → `merge.yml` to auto-merge Dependabot PRs once testing passes. *(Needs: testing)*
-3. Calls → `version.yml` to trigger a release on the main branch. Skip with `enable_versioning: false`. *(Needs: testing)*
+2. Calls → `review.yml` on Dependabot's pull requests, to request your review.
+3. Calls → `merge.yml` to auto-merge Dependabot PRs once testing passes. *(Needs: testing)*
+4. Calls → `version.yml` to trigger a release on the main branch. Skip with `enable_versioning: false`. *(Needs: testing)*
 
 Pass `run_tests: false` to skip the test suite. Every pipeline workflow accepts `run_tests` and `enable_versioning`, and `init` sets them for `--no-testing` and `--no-version`.
 
@@ -107,14 +123,14 @@ Pass `run_tests: false` to skip the test suite. Every pipeline workflow accepts 
 
 *Orchestrates publishing to GitHub Packages.*
 
-1. Calls → `testing.yml`, `merge.yml` and `version.yml` as above.
+1. Calls → `testing.yml`, `review.yml`, `merge.yml` and `version.yml` as above.
 2. **`publish`**: On a new release, downloads the build artifact and publishes it to GitHub Packages as is, using `GITHUB_TOKEN`. Nothing is installed and lifecycle scripts (`prepublishOnly`, `prepare`) don't run, so no dependency code runs while the publish token is set; run those checks in your build or tests instead. Disable with `publish: false`. *(Needs: version)*
 
 ## debian.yml
 
 *Orchestrates Debian packaging.*
 
-1. Calls → `testing.yml`, `merge.yml`, `version.yml`, as `service.yml` does.
+1. Calls → `testing.yml`, `review.yml`, `merge.yml` and `version.yml`, as `service.yml` does.
 2. **`build`**: On a new release, downloads the build artifact, packages it with Snodeb (copying `.env.production` to `.env` if present), and uploads the `.deb` as the `debian-package` artifact. *(Needs: version)*
 
 ## website.yml
@@ -122,9 +138,10 @@ Pass `run_tests: false` to skip the test suite. Every pipeline workflow accepts 
 *Orchestrates the full pipeline for website projects and deploys to GitHub Pages.*
 
 1. Calls → `testing.yml` to validate and build the site. Pass `run_tests: false` for sites without tests.
-2. Calls → `merge.yml` to auto-merge Dependabot PRs once testing passes. Disable with `auto_merge: false`. *(Needs: testing)*
-3. Calls → `version.yml` to check whether a new release was published. Skip with `enable_versioning: false`. *(Needs: testing)*
-4. **`deploy`**: Downloads the build artifact and deploys it to GitHub Pages. Runs on the main branch only and, when versioning is enabled, only when a new release is published. *(Needs: testing, version)*
+2. Calls → `review.yml` on Dependabot's pull requests, to request your review.
+3. Calls → `merge.yml` to auto-merge Dependabot PRs once testing passes. Disable with `auto_merge: false`. *(Needs: testing)*
+4. Calls → `version.yml` to check whether a new release was published. Skip with `enable_versioning: false`. *(Needs: testing)*
+5. **`deploy`**: Downloads the build artifact and deploys it to GitHub Pages. Runs on the main branch only and, when versioning is enabled, only when a new release is published. *(Needs: testing, version)*
 
 `website.yml` was a deploy-only step before v3. Callers that ran `testing.yml` themselves and passed in a prebuilt artifact should now call `website.yml` alone.
 

@@ -16,6 +16,11 @@ on:
         required: false
         type: string
         default: '.'
+      reviewers:
+        description: "Comma-separated logins to request a review of the release pull request from; empty means the repository's owner"
+        required: false
+        type: string
+        default: ''
     outputs:
       new_release_published:
         description: "Whether a new release was published"
@@ -46,6 +51,8 @@ jobs:
       releases_created: ${{ steps.release.outputs.releases_created }}
       version: ${{ inputs.working_directory != '.' && steps.release.outputs[format('{0}--version', inputs.working_directory)] || steps.release.outputs.version }}
       tag_name: ${{ inputs.working_directory != '.' && steps.release.outputs[format('{0}--tag_name', inputs.working_directory)] || steps.release.outputs.tag_name }}
+      # the release pull request release-please opened or updated, if any
+      pr_number: ${{ steps.release.outputs.pr && fromJSON(steps.release.outputs.pr).number || '' }}
     steps:
       # a project can keep a release-please config in <working_directory>/.github
       - uses: actions/checkout@v7
@@ -78,3 +85,14 @@ jobs:
           # empty means the repository root; a config keys its packages by path instead
           path: ${{ steps.config.outputs.file == '' && inputs.working_directory != '.' && inputs.working_directory || '' }}
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  review:
+    needs: [release-please]
+    if: needs.release-please.outputs.pr_number != ''
+    uses: ./.github/workflows/review.yml
+    with:
+      runs_on: ${{ inputs.runs_on }}
+      pull_request: ${{ needs.release-please.outputs.pr_number }}
+      reviewers: ${{ inputs.reviewers }}
+    permissions:
+      pull-requests: write
