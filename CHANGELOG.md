@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.1](https://github.com/Apollogeddon/forgejs/compare/v3.3.0...v3.3.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **deps:** override esbuild and the docs' blocked security updates ([#218](https://github.com/Apollogeddon/forgejs/issues/218)) ([926722f](https://github.com/Apollogeddon/forgejs/commit/926722fb594227fff630a5802f7b98a1fb6a4f58))
+
 ## [3.3.0](https://github.com/Apollogeddon/forgejs/compare/v3.2.3...v3.3.0) (2026-10-10)
 
 
