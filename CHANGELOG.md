@@ -1,5 +1,21 @@
 # Changelog
 
+## [5.0.0](https://github.com/Apollogeddon/forgejs/compare/v4.1.0...v5.0.0) (2026-10-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* forgejs needs Node.js 24, and its tsdown config targets it. A project with no .nvmrc and no node_version input now runs on Node.js 24 instead of 22.
+
+### Features
+
+* read the Node.js version from .nvmrc, falling back to Node.js 24 ([2a48263](https://github.com/Apollogeddon/forgejs/commit/2a482635f0e656173bc170889cb97779aef4291c))
+
+
+### Bug Fixes
+
+* **docker:** keep an empty node_modules when a backend has no runtime dependencies ([1034452](https://github.com/Apollogeddon/forgejs/commit/10344528878f6ddd5157a0753563304d710a69e7))
+
 ## [4.1.0](https://github.com/Apollogeddon/forgejs/compare/v4.0.0...v4.1.0) (2026-10-10)
 
 
