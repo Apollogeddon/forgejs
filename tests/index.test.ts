@@ -191,6 +191,20 @@ describe("CLI Init Command", () => {
     expect(packageJson.scripts.build).toBe("vite build");
   });
 
+  it("should move a tsup project to tsdown only with --force", () => {
+    fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify({ name: "test", scripts: { build: "tsup" } }));
+    fs.writeFileSync(path.join(tempDir, "tsup.config.ts"), "export default {};\n");
+
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --library`, { cwd: tempDir });
+    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(true);
+    expect(JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8")).scripts.build).toBe("tsup");
+
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --library --force`, { cwd: tempDir });
+    expect(fs.existsSync(path.join(tempDir, "tsup.config.ts"))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, "tsdown.config.ts"))).toBe(true);
+    expect(JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8")).scripts.build).toBe("tsdown");
+  });
+
   it("should support --library flag to setup library only", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --library`, { cwd: tempDir });
 
