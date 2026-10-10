@@ -13,6 +13,7 @@ Forge.js ships reusable GitHub Actions workflows that give every project the sam
 | `testing.yml` | Full QA suite: quality, Vitest, the build artifact, and automatic security patching on `main` |
 | `version.yml` | Automated versioning and GitHub releases via release-please |
 | `merge.yml` | Auto-merges Dependabot pull requests once checks pass, except GitHub Actions updates |
+| `review.yml` | Requests a review on Dependabot's and release-please's pull requests, which `CODEOWNERS` doesn't do in a private repository on GitHub Free |
 | `service.yml` | Pipeline for backends: testing, auto-merge, versioning |
 | `library.yml` | Pipeline for libraries: testing, auto-merge, versioning, then publishing to GitHub Packages |
 | `debian.yml` | Pipeline for Debian-packaged backends: testing, auto-merge, versioning, then the `.deb` build |
@@ -120,6 +121,7 @@ The pipeline workflows (`service.yml`, `library.yml`, `debian.yml` and `website.
 | `enable_versioning` | `true` | Run release-please; `init --no-version` sets it to `false` |
 | `test_on_push` | `true` | Run the checks on pushes too; see [Checking once per change](/forgejs/docs/workflows/reference#checking-once-per-change) |
 | `test_release_prs` | `true` | Run the checks on release-please's release pull requests |
+| `reviewers` | `''` | Comma-separated logins to request a review of Dependabot's and release-please's pull requests from; empty means the repository's owner. See [`review.yml`](/forgejs/docs/workflows/reference#reviewyml) |
 
 ## Secrets
 

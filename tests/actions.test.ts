@@ -177,3 +177,36 @@ describe("version.yml working_directory", () => {
     expect(published.match(/releases_created/g)).toHaveLength(2);
   });
 });
+
+describe("Review requests on bots' pull requests", () => {
+  const load = (file: string) =>
+    yaml.load(fs.readFileSync(path.join(workflowsDir, file), "utf-8")) as unknown as Workflow & {
+      jobs: Record<string, { needs?: string[] }>;
+    };
+
+  // CODEOWNERS requests nothing in a private repository on a free plan, so each pipeline asks itself
+  for (const file of ["library.yml", "service.yml", "website.yml", "debian.yml"]) {
+    it(`should request a review on Dependabot's pull requests in ${file}, before the checks`, () => {
+      const review = load(file).jobs.review;
+      expect(review?.uses).toBe("./.github/workflows/review.yml");
+      expect(review?.if).toContain("github.event.pull_request.user.login == 'dependabot[bot]'");
+      expect(review?.needs).toBeUndefined();
+      expect(review?.with?.reviewers).toBe("${{ inputs.reviewers }}");
+      expect(load(file).jobs.version?.with?.reviewers).toBe("${{ inputs.reviewers }}");
+    });
+  }
+
+  it("should request a review on the release pull request release-please opened", () => {
+    const review = load("version.yml").jobs.review;
+    expect(review?.needs).toEqual(["release-please"]);
+    expect(review?.with?.pull_request).toBe("${{ needs.release-please.outputs.pr_number }}");
+  });
+
+  it("should never fail the pipeline over a review request", () => {
+    const script = String(
+      (load("review.yml").jobs.request?.steps?.[0] as { with?: { script?: string } } | undefined)?.with?.script,
+    );
+    expect(script).toContain("catch (error)");
+    expect(script).toContain("core.warning");
+  });
+});
