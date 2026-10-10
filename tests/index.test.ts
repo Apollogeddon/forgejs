@@ -535,6 +535,22 @@ describe("CLI Init Command", () => {
     }
   });
 
+  it("should propose our own packages daily, in their own group and without the cooldown", () => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
+    const dependabot = yaml.load(fs.readFileSync(path.join(tempDir, ".github/dependabot.yml"), "utf-8")) as {
+      updates: {
+        "package-ecosystem": string;
+        schedule: { interval: string };
+        groups: Record<string, { patterns: string[] }>;
+        cooldown: { exclude?: string[] };
+      }[];
+    };
+    const npm = dependabot.updates.find((u) => u["package-ecosystem"] === "npm");
+    expect(npm?.schedule.interval).toBe("daily");
+    expect(npm?.groups.apollogeddon.patterns).toEqual(["@apollogeddon/*"]);
+    expect(npm?.cooldown.exclude).toEqual(["@apollogeddon/*"]);
+  });
+
   it("should add Docker to the Dependabot config with --docker", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --docker`, { cwd: tempDir });
     const dependabot = yaml.load(fs.readFileSync(path.join(tempDir, ".github/dependabot.yml"), "utf-8")) as {

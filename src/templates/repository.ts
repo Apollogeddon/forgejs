@@ -15,6 +15,10 @@ max_line_length = 120
 trim_trailing_whitespace = false
 `;
 
+// The packages published alongside forgejs: proposed daily, in a group of their own, and
+// with no cooldown, as their releases aren't a third party's.
+export const OWN_PACKAGES = "@apollogeddon/*";
+
 interface Ecosystem {
   name: string;
   prefix: string;
@@ -22,15 +26,17 @@ interface Ecosystem {
   // only these update types are grouped; others get a pull request each
   updateTypes?: string[];
   ignore?: string[];
+  own?: string;
 }
 
-const ecosystem = ({ name, prefix, group, updateTypes = [], ignore = [] }: Ecosystem) =>
+const ecosystem = ({ name, prefix, group, updateTypes = [], ignore = [], own }: Ecosystem) =>
   [
     `  - package-ecosystem: "${name}"`,
     `    directory: "/"`,
     `    schedule:`,
-    `      interval: "weekly"`,
+    `      interval: "${own ? "daily" : "weekly"}"`,
     `    groups:`,
+    ...(own ? [`      apollogeddon:`, `        patterns:`, `          - "${own}"`] : []),
     `      ${group}:`,
     `        patterns:`,
     `          - "*"`,
@@ -40,11 +46,12 @@ const ecosystem = ({ name, prefix, group, updateTypes = [], ignore = [] }: Ecosy
     ...(ignore.length ? [`    ignore:`, ...ignore.map((d) => `      - dependency-name: "${d}"`)] : []),
     `    cooldown:`,
     `      default-days: 3`,
+    ...(own ? [`      exclude:`, `        - "${own}"`] : []),
   ].join("\n");
 
 export function dependabotConfig(docker: boolean): string {
   const ecosystems: Ecosystem[] = [
-    { name: "npm", prefix: "fix(deps)", group: "dependencies", updateTypes: ["minor", "patch"] },
+    { name: "npm", prefix: "fix(deps)", group: "dependencies", updateTypes: ["minor", "patch"], own: OWN_PACKAGES },
     // the reusable workflows are called at @main, which has no versions to propose
     { name: "github-actions", prefix: "chore(ci)", group: "actions", ignore: ["apollogeddon/forgejs"] },
   ];
@@ -53,7 +60,8 @@ export function dependabotConfig(docker: boolean): string {
   }
   return `version: 2
 # Every update waits 3 days after a version is published before it's proposed, so a
-# compromised release has time to be caught and yanked upstream first.
+# compromised release has time to be caught and yanked upstream first; our own packages
+# don't wait, as we published them.
 updates:
 ${ecosystems.map(ecosystem).join("\n\n")}
 `;

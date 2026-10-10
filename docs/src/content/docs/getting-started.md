@@ -118,7 +118,7 @@ A default `init` (backend) produces:
 .
 ├── .github/
 │   ├── CODEOWNERS            # requests your review on others' pull requests
-│   ├── dependabot.yml        # weekly updates with a 3-day cooldown
+│   ├── dependabot.yml        # weekly updates with a 3-day cooldown; our own packages daily
 │   └── workflows/index.yml   # CI/CD calling the reusable workflows
 ├── .editorconfig
 ├── src/

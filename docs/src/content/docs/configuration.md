@@ -181,7 +181,7 @@ So moving a project to another version is one edit to `.nvmrc`. The generated Do
 | File | What it does |
 | :--- | :--- |
 | `.editorconfig` | LF line endings, UTF-8, 2-space indent and 120 columns, matching the Biome config |
-| `.github/dependabot.yml` | Weekly npm and GitHub Actions updates, plus Docker with `--docker`. Minor and patch updates are grouped into one pull request, and each update waits 3 days after it's published before it's proposed, so a compromised release has time to be caught upstream. The workflow's auto-merge job merges them once CI passes. |
+| `.github/dependabot.yml` | Weekly npm and GitHub Actions updates, plus Docker with `--docker`. Minor and patch updates are grouped into one pull request, and each update waits 3 days after it's published before it's proposed, so a compromised release has time to be caught upstream. `@apollogeddon/*` packages are proposed daily, in a group of their own and without the wait, so a forgejs or library release reaches the project within a day. The workflow's auto-merge job merges them once CI passes. |
 | `.github/CODEOWNERS` | `* @owner`, so every pull request someone else opens, Dependabot's and release-please's included, requests your review and shows in your review requests. It doesn't block merging. |
 
 In a private repository, Dependabot can't read `@apollogeddon/forgejs`, or your own packages, from GitHub Packages without a token, and its npm updates fail with `private_source_authentication_failure`. Add a classic token with only `read:packages` as a Dependabot secret named `PACKAGES_TOKEN` (**Settings → Secrets and variables → Dependabot**), then give the npm update the registry:
