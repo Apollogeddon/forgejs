@@ -105,6 +105,10 @@ The full documentation is at [apollogeddon.github.io/forgejs](https://apollogedd
 - [Workflows](https://apollogeddon.github.io/forgejs/docs/workflows/overview): the reusable GitHub Actions workflows and their inputs.
 - [Migration](https://apollogeddon.github.io/forgejs/docs/migration): adopting Forge.js in a project that already has tooling.
 
+## Contributing
+
+Pull requests are welcome. The [contributing guide](https://apollogeddon.github.io/forgejs/docs/contributing) covers setting up the repository, the checks to run before opening a pull request, and the commit message format releases are generated from.
+
 ## License
 
 Forge.js is released under the [MIT License](LICENSE).
