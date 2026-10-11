@@ -124,7 +124,48 @@ Pass `run_tests: false` to skip the test suite. Every pipeline workflow accepts 
 *Orchestrates publishing to GitHub Packages.*
 
 1. Calls → `testing.yml`, `review.yml`, `merge.yml` and `version.yml` as above.
-2. **`publish`**: On a new release, downloads the build artifact and publishes it to GitHub Packages as is, using `GITHUB_TOKEN`. Nothing is installed and lifecycle scripts (`prepublishOnly`, `prepare`) don't run, so no dependency code runs while the publish token is set; run those checks in your build or tests instead. Disable with `publish: false`. *(Needs: version)*
+2. **`publish`**: On a new release, downloads the build artifact, packs it and publishes the tarball to GitHub Packages as is, using `GITHUB_TOKEN`. Nothing is installed and lifecycle scripts (`prepublishOnly`, `prepare`) don't run, so no dependency code runs while the publish token is set; run those checks in your build or tests instead. It then uploads the published tarball as the `<artifact_name>-package` artifact, for [`attest.yml`](#attestyml). Disable with `publish: false`. *(Needs: version)*
+
+Outputs `published` (`'true'` when this run published the package) and `package_artifact` (the name of the artifact holding the published tarball).
+
+## attest.yml
+
+*Build provenance for a published package.*
+
+1. **`attest`**: Downloads the `artifact` input's artifact and attests the build provenance of each file in it with [`actions/attest-build-provenance`](https://github.com/actions/attest-build-provenance): a signed statement, kept by GitHub, of the repository, commit and workflow run that built it.
+
+npm's own `--provenance` flag only works with the public npm registry, which GitHub Packages isn't, so a library attests the tarball it published instead. Add it to your `index.yml` as its own job after the library job:
+
+```yaml
+jobs:
+  library:
+    # ...as generated
+  provenance:
+    needs: library
+    if: needs.library.outputs.published == 'true'
+    uses: apollogeddon/forgejs/.github/workflows/attest.yml@main
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    with:
+      artifact: ${{ needs.library.outputs.package_artifact }}
+```
+
+It's a separate workflow, not an input of `library.yml`, because GitHub checks a called workflow's permissions against its caller's before running anything: a job in `library.yml` asking for `id-token: write` would stop every library pipeline that doesn't grant it, even with the job turned off. Artifact attestations are free in public repositories; a private repository needs GitHub Enterprise Cloud. It works for any artifact, such as `debian.yml`'s `debian-package`.
+
+To check a published package, fetch its tarball and verify it against your repository. The attestation is signed by this workflow, so name forgejs as the signer:
+
+```bash
+npm pack @<owner>/<name>@<version>
+gh attestation verify <owner>-<name>-<version>.tgz --repo <owner>/<repo> --signer-repo apollogeddon/forgejs
+```
+
+A package published to the public npm registry from your own workflow can use `npm publish --provenance` instead, which needs `id-token: write` too.
+
+| Input | Default | Description |
+| :--- | :--- | :--- |
+| `artifact` | *(required)* | The artifact whose files to attest, e.g. `library.yml`'s `package_artifact` output |
 
 ## debian.yml
 
@@ -231,6 +272,8 @@ jobs:
 1. **`prepare`**: Resolves the image name (`ghcr.io/<owner>/<repo>`, lowercased) and turns `platforms` into a build matrix.
 2. **`build`**: Builds each platform on its own runner. `linux/amd64` and `linux/arm64` build natively (`ubuntu-24.04-arm`); every other platform is emulated with QEMU. On pull requests the image is built but not pushed, so a broken Dockerfile fails the PR's checks. Make the `docker` job a required status check to stop Dependabot auto-merge on a failing build.
 3. **`merge`**: When `push` is `true`, combines the per-platform images into one multi-platform manifest tagged `X.Y.Z`, `X.Y`, `X` (omitted for `0.x` versions), `sha-<commit>` and `latest`, with provenance and SBOM attestations. *(Needs: build)*
+
+Images carry their provenance (`mode=max`) and SBOM as BuildKit attestations in the image index itself, so they need no `attest.yml` job; `docker buildx imagetools inspect <image> --format '{{ json .Provenance }}'` shows them.
 
 With `buildkit_endpoint` set, **`build-remote`** replaces `build` and `merge`: one job on `runs_on` builds every platform on that BuildKit, emulating the ones its host can't run natively, and on a release pushes the same tags and attestations itself. The BuildKit host needs QEMU registered for foreign platforms (`binfmt_misc`), and its emulated builds run several times slower than native ones. Pushed images build without the cache, as a shared BuildKit's cache could hold layers another repository's job planted.
 

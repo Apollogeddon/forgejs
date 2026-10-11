@@ -66,6 +66,18 @@ jobs:
       pull-requests: write
       packages: write
 
+  # attests the tarball the release published, so it can be checked with gh attestation verify
+  provenance:
+    needs: index
+    if: needs.index.outputs.published == 'true'
+    uses: ./.github/workflows/attest.yml
+    with:
+      artifact: ${{ needs.index.outputs.package_artifact }}
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+
   pages:
     needs: changes
     if: needs.changes.outputs.docs == 'true'
