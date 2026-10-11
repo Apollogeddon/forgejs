@@ -240,3 +240,60 @@ describe("Node.js version resolution", () => {
     });
   }
 });
+
+describe("Build provenance for published packages", () => {
+  type Step = { name?: string; id?: string; uses?: string; run?: string; env?: Record<string, string>; with?: Record<string, unknown> };
+  type Wf = {
+    on: { workflow_call: { inputs: Record<string, { required?: boolean }>; outputs?: Record<string, { value?: string }> } };
+    jobs: Record<string, { if?: string; uses?: string; permissions?: Record<string, string>; outputs?: Record<string, string>; steps?: Step[]; with?: Record<string, unknown> }>;
+  };
+  const load = (file: string) => yaml.load(fs.readFileSync(path.join(workflowsDir, file), "utf-8")) as Wf;
+  const library = load("library.yml");
+  const publish = library.jobs.publish;
+  const step = (name: string) => publish?.steps?.find((s) => s.name === name);
+
+  // a pipeline's permissions are checked before it runs, so asking for more would stop every caller that doesn't grant it
+  it("should leave the library pipeline's permissions as they were", () => {
+    expect(publish?.permissions).toEqual({ contents: "read", packages: "write" });
+    for (const job of Object.values(library.jobs)) {
+      expect(job.permissions?.["id-token"]).toBeUndefined();
+      expect(job.permissions?.attestations).toBeUndefined();
+    }
+  });
+
+  it("should publish the packed tarball and upload that same file", () => {
+    expect(step("Publish to GitHub Packages")?.run).toContain('npm publish "$TARBALL" --ignore-scripts');
+    expect(step("Publish to GitHub Packages")?.env?.TARBALL).toBe("${{ steps.pack.outputs.tarball }}");
+    expect(step("Upload the published tarball")?.with?.path).toBe("${{ steps.pack.outputs.tarball }}");
+    expect(step("Upload the published tarball")?.with?.name).toBe("${{ inputs.artifact_name }}-package");
+  });
+
+  it("should pack without running lifecycle scripts, into a directory of its own", () => {
+    expect(step("Pack")?.run).toContain('npm pack --ignore-scripts --pack-destination "$dir"');
+  });
+
+  it("should expose whether it published, and where the tarball is", () => {
+    const outputs = library.on.workflow_call.outputs ?? {};
+    expect(outputs.published?.value).toBe("${{ jobs.publish.outputs.published }}");
+    expect(outputs.package_artifact?.value).toBe("${{ jobs.publish.outputs.artifact }}");
+  });
+
+  it("should attest an artifact in a job that alone holds the signing permissions", () => {
+    const attest = load("attest.yml");
+    expect(attest.on.workflow_call.inputs.artifact?.required).toBe(true);
+    const job = attest.jobs.attest;
+    expect(job?.permissions).toEqual({ contents: "read", "id-token": "write", attestations: "write" });
+    const steps = job?.steps ?? [];
+    expect(steps[0]?.with?.name).toBe("${{ inputs.artifact }}");
+    expect(steps[1]?.uses).toMatch(/^actions\/attest-build-provenance@v\d+$/);
+    expect(steps[1]?.with?.["subject-path"]).toBe("${{ runner.temp }}/attest/*");
+  });
+
+  it("should attest forgejs's own published package", () => {
+    const job = load(".index.yml").jobs.provenance;
+    expect(job?.uses).toBe("./.github/workflows/attest.yml");
+    expect(job?.if).toBe("needs.index.outputs.published == 'true'");
+    expect(job?.with?.artifact).toBe("${{ needs.index.outputs.package_artifact }}");
+    expect(job?.permissions).toEqual({ contents: "read", "id-token": "write", attestations: "write" });
+  });
+});

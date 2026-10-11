@@ -18,6 +18,7 @@ Forge.js ships reusable GitHub Actions workflows that give every project the sam
 | `library.yml` | Pipeline for libraries: testing, auto-merge, versioning, then publishing to GitHub Packages |
 | `debian.yml` | Pipeline for Debian-packaged backends: testing, auto-merge, versioning, then the `.deb` build |
 | `website.yml` | Pipeline for websites: testing, auto-merge, versioning, then GitHub Pages deployment |
+| `attest.yml` | Build provenance attestation for a published package, added as its own job when you want it |
 | `docker.yml` | Multi-platform Docker image build, pushed to GitHub Container Registry (GHCR) on release; `--docker` adds it as its own job |
 
 ## Generated workflow
@@ -134,7 +135,8 @@ GitHub doesn't start workflow runs for events made with `GITHUB_TOKEN`. So relea
 | `pull-requests: write` | release PRs and Dependabot auto-merge |
 | `packages: read` | Installing `@apollogeddon` packages from GitHub Packages (service, website, Debian) |
 | `packages: write` | Publishing to GitHub Packages (library) and pushing Docker images to GHCR (the `docker` job) |
-| `id-token: write` | GitHub Pages deployment (website); no other mode needs it |
+| `id-token: write` | GitHub Pages deployment (website), and the `attest.yml` job if you add one |
+| `attestations: write` | The `attest.yml` job, if you add one |
 | `pages: write` | GitHub Pages deployment (website) |
 
 GitHub checks a called workflow's permissions against the caller's before running anything, so grant everything your mode needs even if a job would be skipped.
