@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.1.1](https://github.com/Apollogeddon/forgejs/compare/v5.1.0...v5.1.1) (2026-10-11)
+
+
+### Bug Fixes
+
+* **docker:** name scoped packages' images validly, and keep docs/ dependencies current ([8ecdd10](https://github.com/Apollogeddon/forgejs/commit/8ecdd1047ee046282957b94ae5933645307baf72))
+
 ## [5.1.0](https://github.com/Apollogeddon/forgejs/compare/v5.0.0...v5.1.0) (2026-10-11)
 
 
