@@ -60,6 +60,65 @@ on:
         required: false
         type: string
         default: ''
+      ref:
+        description: "Commit, branch or tag to check out; empty means the commit that triggered the run"
+        required: false
+        type: string
+        default: ''
+      setup_go:
+        description: "Go to install before pre_build_command: a version (e.g. 1.25.x) or a go.mod, go.work, .go-version or .tool-versions path from the repository root; empty installs none"
+        required: false
+        type: string
+        default: ''
+      pre_build_command:
+        description: "Shell command run in working_directory before installing dependencies, in every job that does; GH_TOKEN holds the GH_TOKEN secret if passed"
+        required: false
+        type: string
+        default: ''
+      base_path:
+        description: "The path the site is served under, e.g. /my-repo/ for a GitHub Pages project site, so the site checks resolve root-relative links; empty means /"
+        required: false
+        type: string
+        default: ''
+      check_links:
+        description: "Check the built site's links with lychee; internal links only unless check_external_links"
+        required: false
+        type: boolean
+        default: false
+      check_external_links:
+        description: "With check_links, check links to other sites too"
+        required: false
+        type: boolean
+        default: false
+      link_check_args:
+        description: "Extra lychee arguments, e.g. --include-fragments or --exclude <pattern>"
+        required: false
+        type: string
+        default: ''
+      check_accessibility:
+        description: "Check the built site against WCAG 2.2 A and AA with axe, in a headless Chromium"
+        required: false
+        type: boolean
+        default: false
+      accessibility_paths:
+        description: "Comma- or newline-separated pages to check, relative to base_path; empty checks every page in the sitemap, else the home page"
+        required: false
+        type: string
+        default: ''
+      accessibility_impact:
+        description: "The lowest axe impact that fails the check (minor, moderate, serious or critical); lower ones are reported as warnings"
+        required: false
+        type: string
+        default: 'serious'
+      review_dependabot:
+        description: "Request a review on Dependabot's pull requests; turn off when another pipeline in the same run already does"
+        required: false
+        type: boolean
+        default: true
+    secrets:
+      GH_TOKEN:
+        description: "A token pre_build_command can use, as GH_TOKEN"
+        required: false
     outputs:
       new_release_published:
         description: "Whether a new release was published"
@@ -88,11 +147,23 @@ jobs:
       build_env_vars: ${{ inputs.build_env_vars }}
       artifact_name: ${{ inputs.artifact_name }}
       run_tests: ${{ inputs.run_tests }}
+      ref: ${{ inputs.ref }}
+      setup_go: ${{ inputs.setup_go }}
+      pre_build_command: ${{ inputs.pre_build_command }}
+      base_path: ${{ inputs.base_path }}
+      check_links: ${{ inputs.check_links }}
+      check_external_links: ${{ inputs.check_external_links }}
+      link_check_args: ${{ inputs.link_check_args }}
+      check_accessibility: ${{ inputs.check_accessibility }}
+      accessibility_paths: ${{ inputs.accessibility_paths }}
+      accessibility_impact: ${{ inputs.accessibility_impact }}
+    secrets:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
   # Dependabot's pull requests ask for a review as they open, before the checks, so a failing
   # update reaches the reviewer too
   review:
-    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
+    if: inputs.review_dependabot && github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
     uses: ./.github/workflows/review.yml
     with:
       runs_on: ${{ inputs.runs_on }}
@@ -137,6 +208,18 @@ jobs:
       build_env_vars: ${{ inputs.build_env_vars }}
       artifact_name: ${{ inputs.artifact_name }}
       run_tests: ${{ inputs.run_tests }}
+      ref: ${{ inputs.ref }}
+      setup_go: ${{ inputs.setup_go }}
+      pre_build_command: ${{ inputs.pre_build_command }}
+      base_path: ${{ inputs.base_path }}
+      check_links: ${{ inputs.check_links }}
+      check_external_links: ${{ inputs.check_external_links }}
+      link_check_args: ${{ inputs.link_check_args }}
+      check_accessibility: ${{ inputs.check_accessibility }}
+      accessibility_paths: ${{ inputs.accessibility_paths }}
+      accessibility_impact: ${{ inputs.accessibility_impact }}
+    secrets:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
   deploy:
     runs-on: ${{ inputs.runs_on }}
@@ -149,6 +232,11 @@ jobs:
       (needs.testing.result == 'success' || needs['release-testing'].result == 'success') &&
       (needs.version.result == 'success' || needs.version.result == 'skipped') &&
       (!inputs.enable_versioning || needs.version.outputs.new_release_published == 'true' || needs.version.outputs.new_release_published == true)
+    # one deploy at a time, and a waiting one is replaced by a newer one rather than overtaking a running
+    # one; not named pages, which a caller copying GitHub's starter workflow uses, as a shared group deadlocks
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

@@ -21,6 +21,25 @@ on:
         required: false
         type: boolean
         default: true
+      ref:
+        description: "Commit, branch or tag to check out; empty means the commit that triggered the run"
+        required: false
+        type: string
+        default: ''
+      setup_go:
+        description: "Go to install before pre_build_command: a version (e.g. 1.25.x) or a go.mod, go.work, .go-version or .tool-versions path from the repository root; empty installs none"
+        required: false
+        type: string
+        default: ''
+      pre_build_command:
+        description: "Shell command run in working_directory before installing dependencies, in every job that does; GH_TOKEN holds the GH_TOKEN secret if passed"
+        required: false
+        type: string
+        default: ''
+    secrets:
+      GH_TOKEN:
+        description: "A token pre_build_command can use, as GH_TOKEN"
+        required: false
 
 jobs:
   secure:
@@ -32,6 +51,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.ref }}
           persist-credentials: false
           fetch-depth: 0
       - name: Gitleaks Scan
@@ -55,6 +75,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.ref }}
           persist-credentials: false
       # the input if set, else the project's .nvmrc, else forgejs's default
       - name: Resolve the Node.js version
@@ -75,6 +96,21 @@ jobs:
           cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
           registry-url: 'https://npm.pkg.github.com'
           scope: "@${{ github.repository_owner }}"
+      - name: Set up Go
+        if: inputs.setup_go != ''
+        uses: actions/setup-go@v7
+        with:
+          # a path names a file to read the version from, anything else is the version itself
+          go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          go-version-file: ${{ (endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          cache: false
+      # generates what the install, checks or build need, e.g. content made by another tool
+      - name: Pre-build command
+        if: inputs.pre_build_command != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          PRE_BUILD_COMMAND: ${{ inputs.pre_build_command }}
+        run: bash -e -c "$PRE_BUILD_COMMAND"
       - name: Install dependencies
         run: npm ci --ignore-scripts
         env:
