@@ -181,6 +181,15 @@ describe("CLI Init Command", () => {
     expect(dockerfile).toContain("USER node");
   });
 
+  it("should name a scoped package's image for the package alone", () => {
+    fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify({ name: "@acme/my-service" }));
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --docker`, { cwd: tempDir });
+
+    const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
+    expect(packageJson.scripts["docker:build"]).toMatch(/ -t my-service \.$/);
+    expect(packageJson.scripts["docker:run"]).toMatch(/ my-service$/);
+  });
+
   it("should support --website flag", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --website`, { cwd: tempDir });
 
