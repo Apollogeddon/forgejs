@@ -84,6 +84,7 @@ Existing files and scripts are kept unless you pass `--force`. Preview changes w
 | Releases | [release-please](https://github.com/googleapis/release-please) |
 | Containers (`--docker`) | Multi-platform [Docker Buildx](https://docs.docker.com/build/) images, pushed to GitHub Container Registry on release |
 | Debian packages (`--debian`) | [Snodeb](https://www.npmjs.com/package/snodeb) |
+| Website checks (CI, opt-in) | [lychee](https://lychee.cli.rs/) for links and [axe](https://github.com/dequelabs/axe-core) for accessibility |
 
 OSV-Scanner is not an npm package: CI downloads it, and the local `npm run security` script needs `osv-scanner` on your `PATH`.
 

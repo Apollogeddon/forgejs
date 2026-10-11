@@ -90,6 +90,11 @@ jobs:
       enable_versioning: false
       # the tool's pipeline auto-merges Dependabot PRs; this one does when only docs/ changed
       auto_merge: ${{ needs.changes.outputs.code != 'true' }}
+      # and requests the review on them, which the tool's pipeline does otherwise
+      review_dependabot: ${{ needs.changes.outputs.code != 'true' }}
+      # the site's internal links; it's served under /forgejs/ on GitHub Pages
+      check_links: true
+      base_path: '/forgejs/'
       # distinct from the library job's 'dist' artifact in the same run
       artifact_name: 'pages-dist'
     permissions:

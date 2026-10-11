@@ -17,7 +17,7 @@ Forge.js ships reusable GitHub Actions workflows that give every project the sam
 | `service.yml` | Pipeline for backends: testing, auto-merge, versioning |
 | `library.yml` | Pipeline for libraries: testing, auto-merge, versioning, then publishing to GitHub Packages |
 | `debian.yml` | Pipeline for Debian-packaged backends: testing, auto-merge, versioning, then the `.deb` build |
-| `website.yml` | Pipeline for websites: testing, auto-merge, versioning, then GitHub Pages deployment |
+| `website.yml` | Pipeline for websites: testing, optional link and accessibility checks, auto-merge, versioning, then GitHub Pages deployment |
 | `attest.yml` | Build provenance attestation for a published package, added as its own job when you want it |
 | `docker.yml` | Multi-platform Docker image build, pushed to GitHub Container Registry (GHCR) on release; `--docker` adds it as its own job |
 
@@ -123,7 +123,7 @@ The pipeline workflows (`service.yml`, `library.yml`, `debian.yml` and `website.
 
 ## Secrets
 
-None. The workflows use only the run's `GITHUB_TOKEN`, which a called workflow gets without `secrets: inherit`. It installs `@apollogeddon` packages from GitHub Packages, publishes libraries there, and drives release-please and Dependabot auto-merge. Don't add `secrets: inherit`: it hands every repository secret to a workflow that lives in another repository.
+None. The workflows use only the run's `GITHUB_TOKEN`, which a called workflow gets without `secrets: inherit`. It installs `@apollogeddon` packages from GitHub Packages, publishes libraries there, and drives release-please and Dependabot auto-merge. Don't add `secrets: inherit`: it hands every repository secret to a workflow that lives in another repository. `website.yml` takes one optional secret, `GH_TOKEN`, for a [pre-build command](/forgejs/docs/workflows/reference#generating-content-before-the-build); pass it by name if you need it.
 
 GitHub doesn't start workflow runs for events made with `GITHUB_TOKEN`. So release-please's release pull requests don't run your checks on their own (they wait for approval, or a push to the branch), and the push a Dependabot auto-merge makes to `main` doesn't run the pipeline until the next push.
 
