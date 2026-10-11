@@ -1,5 +1,19 @@
 # Changelog
 
+## [5.1.0](https://github.com/Apollogeddon/forgejs/compare/v5.0.0...v5.1.0) (2026-10-11)
+
+
+### Features
+
+* **ci:** add a checkout ref, pre-build command and opt-in link and accessibility checks to websites ([#228](https://github.com/Apollogeddon/forgejs/issues/228)) ([f70122c](https://github.com/Apollogeddon/forgejs/commit/f70122c4053112228447294b501d8b43daf9930c))
+* **ci:** publish the packed tarball and attest its build provenance with attest.yml ([9e9e850](https://github.com/Apollogeddon/forgejs/commit/9e9e850a89d1f91f992e55820c18e39df733cc75))
+* **ci:** publish the packed tarball and attest its build provenance with attest.yml ([1fedb86](https://github.com/Apollogeddon/forgejs/commit/1fedb86b51fc81c090cbec30c71d9b29cdfe35c0))
+
+
+### Bug Fixes
+
+* **deps:** patch vulnerabilities via osv-scanner ([c88c713](https://github.com/Apollogeddon/forgejs/commit/c88c713ac14f38a269f6dc56ecbf500ef55f7e87))
+
 ## [5.0.0](https://github.com/Apollogeddon/forgejs/compare/v4.1.0...v5.0.0) (2026-10-10)
 
 
