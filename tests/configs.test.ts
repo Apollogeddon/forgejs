@@ -34,6 +34,8 @@ describe("Code Configurations Imports", () => {
     expect(configModule).toBeDefined();
     expect(configModule.default).toBeDefined();
     expect(configModule.default.files).toBeDefined();
+    // named after this repository's package, as it reads the package.json where snodeb runs
+    expect(configModule.default.systemd).toMatchObject({ user: "forgejs", group: "forgejs" });
   });
 
   it("should import commitlint.config.ts without errors", async () => {
