@@ -17,7 +17,8 @@ Forge.js ships reusable GitHub Actions workflows that give every project the sam
 | `service.yml` | Pipeline for backends: testing, auto-merge, versioning |
 | `library.yml` | Pipeline for libraries: testing, auto-merge, versioning, then publishing to GitHub Packages |
 | `debian.yml` | Pipeline for Debian-packaged backends: testing, auto-merge, versioning, then the `.deb` build |
-| `website.yml` | Pipeline for websites: testing, auto-merge, versioning, then GitHub Pages deployment |
+| `website.yml` | Pipeline for websites: testing, optional link and accessibility checks, auto-merge, versioning, then GitHub Pages deployment |
+| `attest.yml` | Build provenance attestation for a published package, added as its own job when you want it |
 | `docker.yml` | Multi-platform Docker image build, pushed to GitHub Container Registry (GHCR) on release; `--docker` adds it as its own job |
 
 ## Generated workflow
@@ -49,7 +50,6 @@ jobs:
       packages: read
       pull-requests: write
     with:
-      node_version: '22'
       auto_patch: true
 ```
 
@@ -64,7 +64,6 @@ jobs:
       pull-requests: write
       packages: write
     with:
-      node_version: '22'
       auto_patch: true
 ```
 
@@ -81,7 +80,6 @@ jobs:
       id-token: write
       pull-requests: write
     with:
-      node_version: '22'
       auto_patch: true
 ```
 
@@ -111,7 +109,7 @@ The pipeline workflows (`service.yml`, `library.yml`, `debian.yml` and `website.
 | Input | Default | Description |
 | :--- | :--- | :--- |
 | `runs_on` | `'ubuntu-latest'` | Runner label for every job; see [Choosing runners](/forgejs/docs/workflows/reference#choosing-runners) |
-| `node_version` | `'22'` | Node.js version for every job |
+| `node_version` | `''` | Node.js version for every job. Empty reads the project's `.nvmrc`, and without one uses Node.js 24; see [Node.js version](/forgejs/docs/configuration#nodejs-version) |
 | `working_directory` | `'.'` | Directory containing `package.json` |
 | `enable_secrets` | `true` | Run the Gitleaks secret scan |
 | `artifact_name` | `'dist'` | Name of the build artifact passed between jobs (not `service.yml`) |
@@ -125,7 +123,7 @@ The pipeline workflows (`service.yml`, `library.yml`, `debian.yml` and `website.
 
 ## Secrets
 
-None. The workflows use only the run's `GITHUB_TOKEN`, which a called workflow gets without `secrets: inherit`. It installs `@apollogeddon` packages from GitHub Packages, publishes libraries there, and drives release-please and Dependabot auto-merge. Don't add `secrets: inherit`: it hands every repository secret to a workflow that lives in another repository.
+None. The workflows use only the run's `GITHUB_TOKEN`, which a called workflow gets without `secrets: inherit`. It installs `@apollogeddon` packages from GitHub Packages, publishes libraries there, and drives release-please and Dependabot auto-merge. Don't add `secrets: inherit`: it hands every repository secret to a workflow that lives in another repository. `website.yml` takes one optional secret, `GH_TOKEN`, for a [pre-build command](/forgejs/docs/workflows/reference#generating-content-before-the-build); pass it by name if you need it.
 
 GitHub doesn't start workflow runs for events made with `GITHUB_TOKEN`. So release-please's release pull requests don't run your checks on their own (they wait for approval, or a push to the branch), and the push a Dependabot auto-merge makes to `main` doesn't run the pipeline until the next push.
 
@@ -137,7 +135,8 @@ GitHub doesn't start workflow runs for events made with `GITHUB_TOKEN`. So relea
 | `pull-requests: write` | release PRs and Dependabot auto-merge |
 | `packages: read` | Installing `@apollogeddon` packages from GitHub Packages (service, website, Debian) |
 | `packages: write` | Publishing to GitHub Packages (library) and pushing Docker images to GHCR (the `docker` job) |
-| `id-token: write` | GitHub Pages deployment (website); no other mode needs it |
+| `id-token: write` | GitHub Pages deployment (website), and the `attest.yml` job if you add one |
+| `attestations: write` | The `attest.yml` job, if you add one |
 | `pages: write` | GitHub Pages deployment (website) |
 
 GitHub checks a called workflow's permissions against the caller's before running anything, so grant everything your mode needs even if a job would be skipped.

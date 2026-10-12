@@ -3,7 +3,7 @@ module.exports = {
   entry: ["src/index.ts"],
   format: ["esm"],
   platform: "node",
-  target: "node22",
+  target: "node24",
   dts: true,
   clean: true,
   minify: false,

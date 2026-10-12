@@ -20,7 +20,6 @@ jobs:
       pull-requests: write
       packages: write
     with:
-      node_version: '22'
       auto_patch: true
 `;
 
@@ -46,7 +45,6 @@ jobs:
       packages: read
       pull-requests: write
     with:
-      node_version: '22'
       auto_patch: true
 `;
 
@@ -74,7 +72,6 @@ jobs:
       id-token: write
       pull-requests: write
     with:
-      node_version: '22'
       auto_patch: true
 `;
 
@@ -100,7 +97,6 @@ jobs:
       packages: read
       pull-requests: write
     with:
-      node_version: '22'
       auto_patch: true
 `;
 

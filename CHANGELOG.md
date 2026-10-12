@@ -1,5 +1,42 @@
 # Changelog
 
+## [5.1.1](https://github.com/Apollogeddon/forgejs/compare/v5.1.0...v5.1.1) (2026-10-11)
+
+
+### Bug Fixes
+
+* **docker:** name scoped packages' images validly, and keep docs/ dependencies current ([8ecdd10](https://github.com/Apollogeddon/forgejs/commit/8ecdd1047ee046282957b94ae5933645307baf72))
+
+## [5.1.0](https://github.com/Apollogeddon/forgejs/compare/v5.0.0...v5.1.0) (2026-10-11)
+
+
+### Features
+
+* **ci:** add a checkout ref, pre-build command and opt-in link and accessibility checks to websites ([#228](https://github.com/Apollogeddon/forgejs/issues/228)) ([f70122c](https://github.com/Apollogeddon/forgejs/commit/f70122c4053112228447294b501d8b43daf9930c))
+* **ci:** publish the packed tarball and attest its build provenance with attest.yml ([9e9e850](https://github.com/Apollogeddon/forgejs/commit/9e9e850a89d1f91f992e55820c18e39df733cc75))
+* **ci:** publish the packed tarball and attest its build provenance with attest.yml ([1fedb86](https://github.com/Apollogeddon/forgejs/commit/1fedb86b51fc81c090cbec30c71d9b29cdfe35c0))
+
+
+### Bug Fixes
+
+* **deps:** patch vulnerabilities via osv-scanner ([c88c713](https://github.com/Apollogeddon/forgejs/commit/c88c713ac14f38a269f6dc56ecbf500ef55f7e87))
+
+## [5.0.0](https://github.com/Apollogeddon/forgejs/compare/v4.1.0...v5.0.0) (2026-10-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* forgejs needs Node.js 24, and its tsdown config targets it. A project with no .nvmrc and no node_version input now runs on Node.js 24 instead of 22.
+
+### Features
+
+* read the Node.js version from .nvmrc, falling back to Node.js 24 ([2a48263](https://github.com/Apollogeddon/forgejs/commit/2a482635f0e656173bc170889cb97779aef4291c))
+
+
+### Bug Fixes
+
+* **docker:** keep an empty node_modules when a backend has no runtime dependencies ([1034452](https://github.com/Apollogeddon/forgejs/commit/10344528878f6ddd5157a0753563304d710a69e7))
+
 ## [4.1.0](https://github.com/Apollogeddon/forgejs/compare/v4.0.0...v4.1.0) (2026-10-10)
 
 

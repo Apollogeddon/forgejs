@@ -7,7 +7,7 @@ Forge.js sets up TypeScript and Node.js projects with a standard toolchain and a
 
 ## Requirements
 
-- Node.js 22 or later.
+- Node.js 24 or later.
 - Git, for the generated Lefthook hooks.
 - A GitHub token with the `read:packages` scope. `@apollogeddon/forgejs` is published to GitHub Packages, not the public npm registry.
 
@@ -86,7 +86,7 @@ Only one mode can be active at a time. `--no-testing` and `--no-version` also tu
 
 `--no-all` turns off the standard features, not the mode: without a mode flag the project is still a `--backend` project, with its CI workflow.
 
-`--website` scaffolds a frontend application built with Vite: `index.html`, `src/main.ts` and `vite.config.ts`, with `dev`, `build` and `preview` scripts. Run `npm run dev` to work on it locally. In CI, the `website.yml` workflow builds the site and deploys `dist/` to GitHub Pages. It deploys whatever `npm run build` writes to `dist/`, so a site built with another tool, such as Astro, deploys the same way.
+`--website` scaffolds a frontend application built with Vite: `index.html`, `src/main.ts` and `vite.config.ts`, with `dev`, `build` and `preview` scripts. Run `npm run dev` to work on it locally. In CI, the `website.yml` workflow builds the site and deploys `dist/` to GitHub Pages. It deploys whatever `npm run build` writes to `dist/`, so a site built with another tool, such as Astro, deploys the same way. It can also check the built site's links and accessibility, and run a command that generates content before the build; see [`website.yml`](/forgejs/docs/workflows/reference#websiteyml).
 
 ## Generated scripts
 

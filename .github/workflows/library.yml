@@ -25,7 +25,8 @@ on:
       node_version:
         required: false
         type: string
-        default: '22'
+        description: "Node.js version; empty reads the project's .nvmrc, else Node 24"
+        default: ''
       working_directory:
         required: false
         type: string
@@ -59,6 +60,13 @@ on:
         required: false
         type: string
         default: ''
+    outputs:
+      published:
+        description: "Whether the package was published in this run"
+        value: ${{ jobs.publish.outputs.published }}
+      package_artifact:
+        description: "The artifact holding the published tarball, e.g. for attest.yml; empty when nothing was published"
+        value: ${{ jobs.publish.outputs.artifact }}
 
 jobs:
   testing:
@@ -133,6 +141,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      published: ${{ steps.publish.outputs.published }}
+      artifact: ${{ steps.publish.outputs.artifact }}
     defaults:
       run:
         working-directory: ${{ inputs.working_directory }}
@@ -144,16 +155,52 @@ jobs:
         with:
           name: ${{ inputs.artifact_name }}
           path: ${{ inputs.working_directory }}/dist
+      # the input if set, else the project's .nvmrc, else forgejs's default
+      - name: Resolve the Node.js version
+        id: node
+        working-directory: ${{ inputs.working_directory }}
+        env:
+          INPUT: ${{ inputs.node_version }}
+        run: |
+          if [ -n "$INPUT" ]; then version="$INPUT"
+          elif [ -f .nvmrc ]; then version=$(tr -d '[:space:]' < .nvmrc)
+          else version=24
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v7
         with:
-          node-version: ${{ inputs.node_version }}
+          node-version: ${{ steps.node.outputs.version }}
           registry-url: 'https://npm.pkg.github.com'
           scope: "@${{ github.repository_owner }}"
           # no dependency cache in a job holding a publish token, as a poisoned cache could ship
           package-manager-cache: false
       # publishes the tested build artifact as is: no install and no lifecycle scripts,
       # so no dependency code runs while the publish token is set
+      - name: Pack
+        id: pack
+        # into a directory of its own, so the tarball is the one file there
+        run: |
+          dir="$RUNNER_TEMP/package"
+          rm -rf "$dir"
+          mkdir -p "$dir"
+          npm pack --ignore-scripts --pack-destination "$dir"
+          tarball=$(find "$dir" -maxdepth 1 -name '*.tgz' -print -quit)
+          echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
+      # the packed tarball itself, so what's published is byte for byte what attest.yml can attest
       - name: Publish to GitHub Packages
-        run: npm publish --ignore-scripts
+        id: publish
+        run: |
+          npm publish "$TARBALL" --ignore-scripts
+          echo "published=true" >> "$GITHUB_OUTPUT"
+          echo "artifact=$ARTIFACT" >> "$GITHUB_OUTPUT"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+          ARTIFACT: ${{ inputs.artifact_name }}-package
+      - name: Upload the published tarball
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.artifact_name }}-package
+          path: ${{ steps.pack.outputs.tarball }}
+          if-no-files-found: error
+          retention-days: 7

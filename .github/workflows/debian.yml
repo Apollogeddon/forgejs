@@ -25,7 +25,8 @@ on:
       node_version:
         required: false
         type: string
-        default: '22'
+        description: "Node.js version; empty reads the project's .nvmrc, else Node 24"
+        default: ''
       working_directory:
         required: false
         type: string
@@ -147,9 +148,21 @@ jobs:
         with:
           name: ${{ inputs.artifact_name }}
           path: ${{ inputs.working_directory }}/dist
+      # the input if set, else the project's .nvmrc, else forgejs's default
+      - name: Resolve the Node.js version
+        id: node
+        working-directory: ${{ inputs.working_directory }}
+        env:
+          INPUT: ${{ inputs.node_version }}
+        run: |
+          if [ -n "$INPUT" ]; then version="$INPUT"
+          elif [ -f .nvmrc ]; then version=$(tr -d '[:space:]' < .nvmrc)
+          else version=24
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v7
         with:
-          node-version: ${{ inputs.node_version }}
+          node-version: ${{ steps.node.outputs.version }}
           registry-url: 'https://npm.pkg.github.com'
           scope: "@${{ github.repository_owner }}"
           # no dependency cache for the release build, as a poisoned cache would be packaged

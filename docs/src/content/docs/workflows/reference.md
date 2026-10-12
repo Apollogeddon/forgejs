@@ -68,7 +68,7 @@ In that mode release-please tags the release before the push's checks run. If th
 *Security and static analysis.*
 
 1. **`secure`**: Gitleaks secret scan (skip with `enable_secrets: false`) and an OSV-Scanner dependency scan. The OSV-Scanner scan reports findings in the log but doesn't fail the job.
-2. **`linting`**: `npm ci`, then `biome ci` and `npm run type`.
+2. **`linting`**: `npm ci`, then `biome ci` and `npm run type`. Runs `website.yml`'s [pre-build command](#generating-content-before-the-build) first, if set.
 
 ## testing.yml
 
@@ -76,7 +76,7 @@ In that mode release-please tags the release before the push's checks run. If th
 
 1. Calls → `quality.yml`.
 2. **`testing`**: Runs the Vitest suite (skip with `run_tests: false`) and uploads the coverage report as `coverage-<artifact_name>`. *(Needs: quality)*
-3. **`build`**: Writes `build_env_vars` to `.env`, runs the build, and uploads the result as the `artifact_name` artifact. *(Needs: quality; runs alongside testing)*
+3. **`build`**: Writes `build_env_vars` to `.env`, runs the build, and uploads the result as the `artifact_name` artifact. With `website.yml`'s [site checks](#site-checks) turned on, it then checks the built site's links and accessibility. *(Needs: quality; runs alongside testing)*
 4. **`patch`**: On `main` with `auto_patch` enabled, runs `osv-scanner fix` against `package-lock.json` and commits any security patches. *(Needs: quality, testing, build)*
 
 ## version.yml
@@ -124,7 +124,48 @@ Pass `run_tests: false` to skip the test suite. Every pipeline workflow accepts 
 *Orchestrates publishing to GitHub Packages.*
 
 1. Calls → `testing.yml`, `review.yml`, `merge.yml` and `version.yml` as above.
-2. **`publish`**: On a new release, downloads the build artifact and publishes it to GitHub Packages as is, using `GITHUB_TOKEN`. Nothing is installed and lifecycle scripts (`prepublishOnly`, `prepare`) don't run, so no dependency code runs while the publish token is set; run those checks in your build or tests instead. Disable with `publish: false`. *(Needs: version)*
+2. **`publish`**: On a new release, downloads the build artifact, packs it and publishes the tarball to GitHub Packages as is, using `GITHUB_TOKEN`. Nothing is installed and lifecycle scripts (`prepublishOnly`, `prepare`) don't run, so no dependency code runs while the publish token is set; run those checks in your build or tests instead. It then uploads the published tarball as the `<artifact_name>-package` artifact, for [`attest.yml`](#attestyml). Disable with `publish: false`. *(Needs: version)*
+
+Outputs `published` (`'true'` when this run published the package) and `package_artifact` (the name of the artifact holding the published tarball).
+
+## attest.yml
+
+*Build provenance for a published package.*
+
+1. **`attest`**: Downloads the `artifact` input's artifact and attests the build provenance of each file in it with [`actions/attest-build-provenance`](https://github.com/actions/attest-build-provenance): a signed statement, kept by GitHub, of the repository, commit and workflow run that built it.
+
+npm's own `--provenance` flag only works with the public npm registry, which GitHub Packages isn't, so a library attests the tarball it published instead. Add it to your `index.yml` as its own job after the library job:
+
+```yaml
+jobs:
+  library:
+    # ...as generated
+  provenance:
+    needs: library
+    if: needs.library.outputs.published == 'true'
+    uses: apollogeddon/forgejs/.github/workflows/attest.yml@main
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    with:
+      artifact: ${{ needs.library.outputs.package_artifact }}
+```
+
+It's a separate workflow, not an input of `library.yml`, because GitHub checks a called workflow's permissions against its caller's before running anything: a job in `library.yml` asking for `id-token: write` would stop every library pipeline that doesn't grant it, even with the job turned off. Artifact attestations are free in public repositories; a private repository needs GitHub Enterprise Cloud. It works for any artifact, such as `debian.yml`'s `debian-package`.
+
+To check a published package, fetch its tarball and verify it against your repository. The attestation is signed by this workflow, so name forgejs as the signer:
+
+```bash
+npm pack @<owner>/<name>@<version>
+gh attestation verify <owner>-<name>-<version>.tgz --repo <owner>/<repo> --signer-repo apollogeddon/forgejs
+```
+
+A package published to the public npm registry from your own workflow can use `npm publish --provenance` instead, which needs `id-token: write` too.
+
+| Input | Default | Description |
+| :--- | :--- | :--- |
+| `artifact` | *(required)* | The artifact whose files to attest, e.g. `library.yml`'s `package_artifact` output |
 
 ## debian.yml
 
@@ -141,7 +182,84 @@ Pass `run_tests: false` to skip the test suite. Every pipeline workflow accepts 
 2. Calls → `review.yml` on Dependabot's pull requests, to request your review.
 3. Calls → `merge.yml` to auto-merge Dependabot PRs once testing passes. Disable with `auto_merge: false`. *(Needs: testing)*
 4. Calls → `version.yml` to check whether a new release was published. Skip with `enable_versioning: false`. *(Needs: testing)*
-5. **`deploy`**: Downloads the build artifact and deploys it to GitHub Pages. Runs on the main branch only and, when versioning is enabled, only when a new release is published. *(Needs: testing, version)*
+5. **`deploy`**: Downloads the build artifact and deploys it to GitHub Pages. Runs on the main branch only and, when versioning is enabled, only when a new release is published. Deploys run one at a time, in the `pages-deploy` concurrency group: a newer deploy waits for a running one, and replaces one still waiting. The group isn't `pages`, the one GitHub's starter Pages workflow uses at workflow level, as a job sharing its caller's group deadlocks. *(Needs: testing, version)*
+
+On Dependabot's pull requests it requests a review through `review.yml`. When another pipeline in the same run already does (two pipelines in one repository, say), pass `review_dependabot: false` to one of them so the request isn't made twice.
+
+| Input | Default | Description |
+| :--- | :--- | :--- |
+| `ref` | `''` | Commit, branch or tag to check, build and deploy; empty means the commit that triggered the run |
+| `setup_go` | `''` | Go to install before `pre_build_command`: a version, e.g. `1.25.x`, or a `go.mod`, `go.work`, `.go-version` or `.tool-versions` path from the repository root; empty installs none |
+| `pre_build_command` | `''` | Shell command run in `working_directory` before `npm ci`, in every job that installs the site |
+| `review_dependabot` | `true` | Request a review on Dependabot's pull requests |
+| `base_path` | `''` | The path the site is served under, e.g. `/my-repo/` for a project site; the site checks need it to resolve root-relative links. Empty means `/` |
+| `check_links` | `false` | Check the built site's links with lychee |
+| `check_external_links` | `false` | With `check_links`, check links to other sites too |
+| `link_check_args` | `''` | Extra lychee arguments, e.g. `--include-fragments` or `--exclude <pattern>` |
+| `check_accessibility` | `false` | Check the built site against WCAG 2.2 A and AA with axe |
+| `accessibility_paths` | `''` | Comma- or newline-separated pages to check, relative to `base_path`; empty checks every page in the sitemap, else the home page |
+| `accessibility_impact` | `'serious'` | The lowest axe impact that fails the check: `minor`, `moderate`, `serious` or `critical` |
+
+It also takes one optional secret, `GH_TOKEN`, for `pre_build_command`.
+
+### Building another commit
+
+By default every job checks out the commit that triggered the run. Set `ref` to a branch, tag or commit to check, build and deploy that instead, for example the tip of `main` after an earlier job in the same run pushed a commit to it:
+
+```yaml
+jobs:
+  generate:
+    # ...commits generated files and pushes them to main
+  website:
+    needs: generate
+    uses: apollogeddon/forgejs/.github/workflows/website.yml@main
+    with:
+      ref: main
+```
+
+`testing.yml`'s `patch` job still checks out the triggering commit, so on `main` it can only push its patches when nothing else has pushed since.
+
+### Generating content before the build
+
+A site that builds from files something else makes first, such as reference pages a Go tool writes or a file copied from elsewhere in the repository, sets `pre_build_command`. It runs with `bash -e` in `working_directory`, after Node.js (and Go, with `setup_go`) is set up and before `npm ci`, in the lint, test and build jobs, so the type check and tests see the same files the build does:
+
+```yaml
+jobs:
+  website:
+    uses: apollogeddon/forgejs/.github/workflows/website.yml@main
+    with:
+      working_directory: docs
+      setup_go: go.mod
+      pre_build_command: |
+        go run ./cmd/gendocs --out src/content/reference
+        cp ../CHANGELOG.md src/content/changelog.md
+    secrets:
+      GH_TOKEN: ${{ secrets.DOCS_TOKEN }}
+```
+
+The command gets a token, as `GH_TOKEN`, only when the caller passes the `GH_TOKEN` secret; `gh` and most Go tooling read it from there. To give it the run's own token, pass `GH_TOKEN: ${{ github.token }}`; it has the permissions of the calling job. The checkout keeps no credentials, so `git` can't push with it either way.
+
+### Site checks
+
+Two checks of the built site are off by default, as a check that suddenly fails would break the existing sites calling `website.yml`. Turn them on with `check_links` and `check_accessibility`. They run in `testing.yml`'s `build` job after the build artifact is uploaded, so a failing check stops the deploy but leaves the build to inspect. Each writes its findings to the run's summary.
+
+Both serve the site from a copy at `base_path`, as GitHub Pages does, so set `base_path` to the site's base (`/<repo>/` for a project site, unless it uses a custom domain). Leave it empty for a site built with relative URLs, such as `init --website`'s Vite config.
+
+- **Links**: [lychee](https://lychee.cli.rs/) checks every link in the built HTML. By default it only checks links within the site, offline, so another site being down never fails a build; set `check_external_links` to check those too. A directory link needs an `index.html`, and a link without an extension also matches `<path>.html`. lychee reads a `lychee.toml` or `.lycheeignore` in `working_directory`, and `link_check_args` passes it anything else.
+- **Accessibility**: [axe](https://github.com/dequelabs/axe-core) checks each page in a headless Chromium against WCAG 2.0, 2.1 and 2.2 A and AA. It checks `accessibility_paths`, else every page in `sitemap-index.xml` or `sitemap.xml`, else the home page. Violations at `accessibility_impact` or above fail the check and are annotated on the run; lower ones are reported as warnings. The job installs Chromium and, with passwordless `sudo`, the libraries it needs; a self-hosted runner without `sudo` needs those libraries installed already.
+
+```yaml
+jobs:
+  website:
+    uses: apollogeddon/forgejs/.github/workflows/website.yml@main
+    with:
+      base_path: /my-site/
+      check_links: true
+      check_accessibility: true
+      accessibility_paths: |
+        /
+        /docs/
+```
 
 `website.yml` was a deploy-only step before v3. Callers that ran `testing.yml` themselves and passed in a prebuilt artifact should now call `website.yml` alone.
 
@@ -154,6 +272,8 @@ Pass `run_tests: false` to skip the test suite. Every pipeline workflow accepts 
 1. **`prepare`**: Resolves the image name (`ghcr.io/<owner>/<repo>`, lowercased) and turns `platforms` into a build matrix.
 2. **`build`**: Builds each platform on its own runner. `linux/amd64` and `linux/arm64` build natively (`ubuntu-24.04-arm`); every other platform is emulated with QEMU. On pull requests the image is built but not pushed, so a broken Dockerfile fails the PR's checks. Make the `docker` job a required status check to stop Dependabot auto-merge on a failing build.
 3. **`merge`**: When `push` is `true`, combines the per-platform images into one multi-platform manifest tagged `X.Y.Z`, `X.Y`, `X` (omitted for `0.x` versions), `sha-<commit>` and `latest`, with provenance and SBOM attestations. *(Needs: build)*
+
+Images carry their provenance (`mode=max`) and SBOM as BuildKit attestations in the image index itself, so they need no `attest.yml` job; `docker buildx imagetools inspect <image> --format '{{ json .Provenance }}'` shows them.
 
 With `buildkit_endpoint` set, **`build-remote`** replaces `build` and `merge`: one job on `runs_on` builds every platform on that BuildKit, emulating the ones its host can't run natively, and on a release pushes the same tags and attestations itself. The BuildKit host needs QEMU registered for foreign platforms (`binfmt_misc`), and its emulated builds run several times slower than native ones. Pushed images build without the cache, as a shared BuildKit's cache could hold layers another repository's job planted.
 
@@ -170,7 +290,7 @@ The generated Dockerfiles build platform-independent work once on the build host
 
 | Image | Platforms |
 | :--- | :--- |
-| Backend (`node:22-slim`, running as the non-root `node` user) | `linux/amd64`, `linux/arm64`, `linux/arm/v7`, `linux/ppc64le` |
+| Backend (`node:24-slim`, running as the non-root `node` user) | `linux/amd64`, `linux/arm64`, `linux/arm/v7`, `linux/ppc64le` |
 | Website (`nginx:stable-alpine`) | `linux/amd64`, `linux/arm64`, `linux/arm/v6`, `linux/arm/v7`, `linux/386`, `linux/ppc64le`, `linux/riscv64`, `linux/s390x` |
 
 Building locally needs a token with `read:packages` so `npm ci` can install `@apollogeddon` packages: `NODE_AUTH_TOKEN=<token> npm run docker:build`. Podman's Windows client can't pass build secrets, so on Windows with Podman run the build from inside the Podman machine or WSL.
