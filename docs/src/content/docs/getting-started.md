@@ -80,6 +80,7 @@ npx @apollogeddon/forgejs init [options]
 | `--debian` | Add Snodeb `.deb` packaging. Not available with `--library` or `--website`. |
 | `--force` | Overwrite existing config files and scripts, and remove config files for disabled features. |
 | `--dry-run` | Show what would change without writing anything. |
+| `--node <version>` | The project's Node.js version, from 24 up (`26`, or `26.1.0`): written to `.nvmrc` and `engines.node`, replacing what was there, and to the base images of a new Dockerfile (an existing one is kept, with a warning, unless you pass `--force`). Without it, `init` uses the version `.nvmrc` already pins, else 24. |
 | `-C`, `--path <dir>` | Scaffold `<dir>` instead of the current directory, creating it if needed. |
 | `-V`, `--version` | Print the Forge.js version and exit. |
 | `--help` | Show the help message. |

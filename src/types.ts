@@ -11,6 +11,8 @@ export interface InitConfig {
   linting: boolean;
   // the directory to scaffold; the current directory when unset
   target?: string;
+  // the project's Node.js version; init uses its .nvmrc's, else NODE_VERSION, when unset
+  node?: string;
 }
 
 export interface PackageJson {

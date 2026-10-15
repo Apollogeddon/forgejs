@@ -1,11 +1,20 @@
 import type { InitConfig, PackageJson } from "../types.js";
 import type { IFileSystem } from "../utils/filesystem.js";
+import { NODE_VERSION, validNodeVersion } from "../versions.js";
 
 export interface Feature {
   name: string;
   shouldRun: (cfg: InitConfig) => boolean;
   apply: (cwd: string, cfg: InitConfig, fs: IFileSystem, packageJson: PackageJson) => boolean;
   cleanup: (cwd: string, cfg: InitConfig, fs: IFileSystem) => void;
+}
+
+// --node, else the version the project's .nvmrc pins (as forgego keeps go.mod's), else NODE_VERSION
+export function nodeVersion(cwd: string, cfg: InitConfig, fs: IFileSystem): string {
+  if (cfg.node !== undefined) return cfg.node;
+  const nvmrc = fs.join(cwd, ".nvmrc");
+  const pinned = fs.existsSync(nvmrc) ? fs.readFileSync(nvmrc, "utf-8").trim().replace(/^v/, "") : "";
+  return validNodeVersion(pinned) ? pinned : NODE_VERSION;
 }
 
 export function createFile(cwd: string, fileName: string, content: string, cfg: InitConfig, fs: IFileSystem): boolean {

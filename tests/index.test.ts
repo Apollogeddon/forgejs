@@ -353,6 +353,44 @@ describe("CLI Init Command", () => {
     expect(fs.existsSync(path.join(tempDir, "commitlint.config.ts"))).toBe(false);
   });
 
+  it("should pin the version given with --node in .nvmrc, engines and the Dockerfile", () => {
+    fs.writeFileSync(path.join(tempDir, ".nvmrc"), "24\n");
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --docker --node 26`, { cwd: tempDir });
+    expect(fs.readFileSync(path.join(tempDir, ".nvmrc"), "utf-8")).toBe("26\n");
+    const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
+    expect(packageJson.engines.node).toBe(">=26");
+    expect(fs.readFileSync(path.join(tempDir, "Dockerfile"), "utf-8")).toContain("FROM node:26-slim\n");
+  });
+
+  it("should keep the version a project's .nvmrc pins without --node", () => {
+    fs.writeFileSync(path.join(tempDir, ".nvmrc"), "v25.1.0\n");
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --docker`, { cwd: tempDir });
+    expect(fs.readFileSync(path.join(tempDir, ".nvmrc"), "utf-8")).toBe("v25.1.0\n");
+    expect(fs.readFileSync(path.join(tempDir, "Dockerfile"), "utf-8")).toContain("FROM node:25.1.0-slim\n");
+  });
+
+  it("should warn that --node didn't reach a Dockerfile it kept", () => {
+    fs.writeFileSync(path.join(tempDir, "Dockerfile"), "FROM node:24-slim\n");
+    const result = spawnSync("node", [TSX_CLI, CLI_SCRIPT, "init", "--docker", "--node", "26"], {
+      cwd: tempDir,
+      encoding: "utf-8",
+    });
+    expect(result.stderr).toContain("Dockerfile kept: set its node base images to 26");
+    expect(fs.readFileSync(path.join(tempDir, "Dockerfile"), "utf-8")).toBe("FROM node:24-slim\n");
+  });
+
+  it("should leave an .nvmrc it can't read alone and fall back to its default, with a warning", () => {
+    fs.writeFileSync(path.join(tempDir, ".nvmrc"), "lts/*\n");
+    const result = spawnSync("node", [TSX_CLI, CLI_SCRIPT, "init", "--docker"], { cwd: tempDir, encoding: "utf-8" });
+    expect(result.stderr).toContain(`.nvmrc's "lts/*" isn't a Node.js version init can use`);
+    expect(fs.readFileSync(path.join(tempDir, ".nvmrc"), "utf-8")).toBe("lts/*\n");
+    expect(fs.readFileSync(path.join(tempDir, "Dockerfile"), "utf-8")).toContain(`FROM node:${NODE_VERSION}-slim\n`);
+  });
+
+  it.each(["banana", "22", "24.x", "''"])("should exit 2 for --node %s", (version) => {
+    expect(runExpectingFailure(`init --node ${version}`, tempDir)).toMatch(/--node takes/);
+  });
+
   it.each(["-C", "--path"])("should scaffold the directory given with %s, creating it", (flag) => {
     const target = path.join(tempDir, "nested", "app");
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${flag} "${target}"`, { cwd: tempDir });

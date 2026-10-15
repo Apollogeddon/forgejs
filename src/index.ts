@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
 import { forgejsVersion, init } from "./core.js";
+import { NODE_VERSION, validNodeVersion } from "./versions.js";
 
 // Options that can't be combined exit with this, as forgego and forgepy do
 const EXIT_INVALID_CONFIG = 2;
@@ -28,6 +29,7 @@ const options = {
   "no-all": { type: "boolean" },
   "dry-run": { type: "boolean" },
   path: { type: "string", short: "C" },
+  node: { type: "string" },
   help: { type: "boolean" },
   // Prints the version on its own; after init, the deprecated name of --versioning
   version: { type: "boolean", short: "V" },
@@ -135,7 +137,12 @@ const config = {
   docker: !!values.docker,
 
   ...(values.path === undefined ? {} : { target: values.path }),
+  ...(values.node === undefined ? {} : { node: values.node }),
 };
+
+if (config.node !== undefined && !validNodeVersion(config.node)) {
+  invalid(`--node takes a Node.js version from ${NODE_VERSION} up, such as ${NODE_VERSION} or ${NODE_VERSION}.1.0.`);
+}
 
 if (config.library) {
   if (config.docker) invalid("Docker configuration is not available for Library mode.");
@@ -152,26 +159,27 @@ Usage: npx @apollogeddon/forgejs init [options]
        npx @apollogeddon/forgejs --version
 
 Modes (Default is --backend):
-  --backend      Setup for Node.js backend/service [Default]
-  --library      Setup for TypeScript library
-  --website      Setup for Frontend website (Vite)
+  --backend         Setup for Node.js backend/service [Default]
+  --library         Setup for TypeScript library
+  --website         Setup for Frontend website (Vite)
 
 Standard Features (Enabled by default; disable with --no-<feature> or --no-all):
-  --testing      Setup Testing (vitest)
-  --versioning   Setup Versioning (release-please, commitlint)
-  --linting      Setup Linting & Formatting (biome, lefthook)
+  --testing         Setup Testing (vitest)
+  --versioning      Setup Versioning (release-please, commitlint)
+  --linting         Setup Linting & Formatting (biome, lefthook)
 
 Optional Features:
-  --docker       Setup Docker configuration
-  --debian       Setup Debian packaging (snodeb)
+  --docker          Setup Docker configuration
+  --debian          Setup Debian packaging (snodeb)
 
 Options:
-  --all          Enable all standard features [Default]
-  --force        Overwrite existing files (and enforce script standards)
-  --dry-run      Simulate the process without making changes
-  -C, --path DIR Target directory (default: current directory)
-  -V, --version  Show the Forge.js version
-  --help         Show this help message
+  --all             Enable all standard features [Default]
+  --force           Overwrite existing files (and enforce script standards)
+  --dry-run         Simulate the process without making changes
+  --node VERSION    Target Node.js version (default: .nvmrc's, else ${NODE_VERSION})
+  -C, --path DIR    Target directory (default: current directory)
+  -V, --version     Show the Forge.js version
+  --help            Show this help message
 
 Invalid combinations of options exit with code 2.
 `);

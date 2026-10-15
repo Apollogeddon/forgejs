@@ -1,12 +1,20 @@
 import * as templates from "../templates/index.js";
 import { imageName } from "../utils/names.js";
-import { createFile, type Feature, removeFile, setScript } from "./types.js";
+import { createFile, type Feature, nodeVersion, removeFile, setScript } from "./types.js";
 
 export const DockerFeature: Feature = {
   name: "Docker",
   shouldRun: (cfg) => cfg.docker,
   apply: (cwd, cfg, fs, packageJson) => {
-    const content = cfg.website ? templates.dockerConfigWebsite : templates.dockerConfigBackend;
+    const content = (cfg.website ? templates.dockerConfigWebsite : templates.dockerConfigBackend)(
+      nodeVersion(cwd, cfg, fs),
+    );
+    const dockerfile = fs.join(cwd, "Dockerfile");
+    if (cfg.node !== undefined && !cfg.force && fs.existsSync(dockerfile)) {
+      if (fs.readFileSync(dockerfile, "utf-8") !== content) {
+        console.warn(`⚠️  Dockerfile kept: set its node base images to ${cfg.node}, or re-run with --force.`);
+      }
+    }
     const a = createFile(cwd, "Dockerfile", content, cfg, fs);
     const b = createFile(cwd, ".dockerignore", templates.dockerIgnore, cfg, fs);
 
