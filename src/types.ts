@@ -7,8 +7,10 @@ export interface InitConfig {
   debian: boolean;
   docker: boolean;
   testing: boolean;
-  version: boolean;
+  versioning: boolean;
   linting: boolean;
+  // the directory to scaffold; the current directory when unset
+  target?: string;
 }
 
 export interface PackageJson {

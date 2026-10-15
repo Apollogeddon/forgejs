@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import os from "node:os";
@@ -40,10 +40,11 @@ function robustRemoveDir(dir: string, maxRetries = 5, delay = 500) {
 }
 
 // Returns stderr so tests can check the rejection reason, not just that something threw.
-function runExpectingFailure(args: string, cwd: string): string {
+function runExpectingFailure(args: string, cwd: string, status = 2): string {
   try {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} ${args}`, { cwd, stdio: "pipe" });
   } catch (error) {
+    expect((error as { status?: number }).status).toBe(status);
     return String((error as { stderr?: Buffer }).stderr ?? "");
   }
   throw new Error(`Expected "${args}" to fail`);
@@ -316,6 +317,50 @@ describe("CLI Init Command", () => {
     expect(runExpectingFailure("init --library --debian", tempDir)).toMatch(/debian/i);
   });
 
+  it.each([
+    ["--backend --website", /one mode/],
+    ["--website --debian", /debian/i],
+    ["--testing --no-testing", /--testing and --no-testing/],
+    ["--all --no-all", /--all and --no-all/],
+  ])("should exit 2 for the invalid combination %s", (flags, reason) => {
+    expect(runExpectingFailure(`init ${flags}`, tempDir)).toMatch(reason);
+    expect(fs.existsSync(path.join(tempDir, "package.json"))).toBe(false);
+  });
+
+  it.each(["--version", "-V"])("should print the Forge.js version with %s", (flag) => {
+    const own = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../package.json"), "utf-8"));
+    const stdout = execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} ${flag}`, { cwd: tempDir, encoding: "utf-8" });
+    expect(stdout.trim()).toBe(`forgejs ${own.version}`);
+    expect(fs.existsSync(path.join(tempDir, "package.json"))).toBe(false);
+  });
+
+  it("should print the version for init -V rather than scaffold", () => {
+    const stdout = execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init -V`, { cwd: tempDir, encoding: "utf-8" });
+    expect(stdout).toMatch(/^forgejs \d/);
+    expect(fs.existsSync(path.join(tempDir, "package.json"))).toBe(false);
+  });
+
+  it("should name the flags actually passed when the old and new versioning flags clash", () => {
+    expect(runExpectingFailure("init --versioning --no-version", tempDir)).toContain(
+      "--versioning and --no-version can't both be passed",
+    );
+  });
+
+  it("should still take init --no-version as --no-versioning, with a warning", () => {
+    const result = spawnSync("node", [TSX_CLI, CLI_SCRIPT, "init", "--no-version"], { cwd: tempDir, encoding: "utf-8" });
+    expect(result.status).toBe(0);
+    expect(result.stderr).toContain("--no-version is deprecated: use --no-versioning");
+    expect(fs.existsSync(path.join(tempDir, "commitlint.config.ts"))).toBe(false);
+  });
+
+  it.each(["-C", "--path"])("should scaffold the directory given with %s, creating it", (flag) => {
+    const target = path.join(tempDir, "nested", "app");
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${flag} "${target}"`, { cwd: tempDir });
+    expect(JSON.parse(fs.readFileSync(path.join(target, "package.json"), "utf-8")).name).toBe("app");
+    expect(fs.existsSync(path.join(target, "tsconfig.json"))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, "package.json"))).toBe(false);
+  });
+
   it("should generate Nginx Dockerfile for --website --docker", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --website --docker`, { cwd: tempDir });
     expect(fs.existsSync(path.join(tempDir, "Dockerfile"))).toBe(true);
@@ -344,6 +389,7 @@ describe("CLI Init Command", () => {
 
   it.each([
     ["--no-testing", "run_tests"],
+    ["--no-versioning", "enable_versioning"],
     ["--no-version", "enable_versioning"],
   ])("should switch off the matching pipeline step for %s", (flag, input) => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${flag}`, { cwd: tempDir });
@@ -355,10 +401,10 @@ describe("CLI Init Command", () => {
     "--library",
     "--website",
     "--debian",
-    "--backend --docker --no-testing --no-version",
-    "--library --no-testing --no-version",
-    "--website --docker --no-testing --no-version",
-    "--debian --docker --no-testing --no-version",
+    "--backend --docker --no-testing --no-versioning",
+    "--library --no-testing --no-versioning",
+    "--website --docker --no-testing --no-versioning",
+    "--debian --docker --no-testing --no-versioning",
   ])("should only pass inputs the called workflows declare (%s)", (flags) => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${flags}`, { cwd: tempDir });
     for (const [name, job] of Object.entries(readGeneratedWorkflow(tempDir).jobs)) {
@@ -530,8 +576,8 @@ describe("CLI Init Command", () => {
     expect(updatedPackageJson.scripts.lint).toBeDefined();
   });
 
-  it("should not include the commitlint hook in lefthook.yml when --no-version is passed", () => {
-    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --no-version`, { cwd: tempDir });
+  it("should not include the commitlint hook in lefthook.yml when --no-versioning is passed", () => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --no-versioning`, { cwd: tempDir });
     const lefthookConfig = fs.readFileSync(path.join(tempDir, "lefthook.yml"), "utf-8");
     expect(lefthookConfig).not.toContain("commitlint");
   });

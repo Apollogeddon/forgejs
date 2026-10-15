@@ -10,9 +10,11 @@ import { slug } from "./utils/names.js";
 // "../package.json" resolves in both - don't move this into a deeper-nested file.
 const require = createRequire(import.meta.url);
 const ownPackageJson = require("../package.json") as { name: string; version: string };
+export const forgejsVersion = ownPackageJson.version;
 
 export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()): number {
-  const cwd = fs.cwd();
+  const cwd = cfg.target === undefined ? fs.cwd() : fs.resolve(cfg.target);
+  if (!cfg.dryRun && !fs.existsSync(cwd)) fs.mkdirSync(cwd, { recursive: true });
   let hasError = false;
 
   console.log(`Initializing Forge.js in ${cwd}...`);

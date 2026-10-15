@@ -6,7 +6,7 @@ export const LintingFeature: Feature = {
   shouldRun: (cfg) => cfg.linting,
   apply: (cwd, cfg, fs, packageJson) => {
     const a = createFile(cwd, "biome.json", templates.biomeConfig, cfg, fs);
-    const b = createFile(cwd, "lefthook.yml", templates.lefthookConfig(cfg.version), cfg, fs);
+    const b = createFile(cwd, "lefthook.yml", templates.lefthookConfig(cfg.versioning), cfg, fs);
 
     setScript(packageJson, cfg, "lint", "biome check --fix");
     setScript(packageJson, cfg, "security", "osv-scanner scan -r .");

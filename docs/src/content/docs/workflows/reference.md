@@ -117,7 +117,7 @@ The pipeline workflows call it on Dependabot's pull requests as they open, befor
 3. Calls → `merge.yml` to auto-merge Dependabot PRs once testing passes. *(Needs: testing)*
 4. Calls → `version.yml` to trigger a release on the main branch. Skip with `enable_versioning: false`. *(Needs: testing)*
 
-Pass `run_tests: false` to skip the test suite. Every pipeline workflow accepts `run_tests` and `enable_versioning`, and `init` sets them for `--no-testing` and `--no-version`.
+Pass `run_tests: false` to skip the test suite. Every pipeline workflow accepts `run_tests` and `enable_versioning`, and `init` sets them for `--no-testing` and `--no-versioning`.
 
 ## library.yml
 
