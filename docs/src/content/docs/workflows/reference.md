@@ -67,7 +67,14 @@ In that mode release-please tags the release before the push's checks run. If th
 
 *Security and static analysis.*
 
-1. **`secure`**: Gitleaks secret scan (skip with `enable_secrets: false`) and an OSV-Scanner dependency scan. The OSV-Scanner scan reports findings in the log but doesn't fail the job.
+1. **`secure`**: Gitleaks secret scan (skip with `enable_secrets: false`) and an OSV-Scanner dependency scan. On a pull request, a high or critical finding (a CVSS score of 7 or more, or GitHub's rating when an advisory has no score) fails the job, so a change can't add one. Elsewhere, such as on `main` or a release, it's an error annotation that doesn't fail the job: an advisory published against a dependency you already have shouldn't stop releases, and the `patch` job, which only runs when the checks pass, can then update it. Lower findings are warning annotations, and every finding is listed in the job summary. If the scanner can't run, for example because OSV's API is unreachable, the job warns and passes. To accept a finding you can't fix yet, list it in an [`osv-scanner.toml`](https://google.github.io/osv-scanner/configuration/) beside the lockfile:
+
+   ```toml
+   [[IgnoredVulns]]
+   id = "GHSA-xxxx-xxxx-xxxx"
+   ignoreUntil = 2026-12-31
+   reason = "No fixed version yet; the vulnerable function isn't called"
+   ```
 2. **`linting`**: `npm ci`, then `biome ci` and `npm run type`. Runs `website.yml`'s [pre-build command](#generating-content-before-the-build) first, if set.
 
 ## testing.yml
