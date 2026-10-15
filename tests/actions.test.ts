@@ -559,3 +559,15 @@ describe("OSV scan", () => {
     expect(calls.setFailed).toEqual([]);
   });
 });
+
+describe("Dependabot auto-merge", () => {
+  // the author alone would merge someone else's push to Dependabot's branch, and the actor alone
+  // a pull request someone else opened that Dependabot then updated
+  it("should gate on Dependabot both opening the pull request and making its latest change", () => {
+    const merge = yaml.load(fs.readFileSync(path.join(workflowsDir, "merge.yml"), "utf-8")) as Workflow;
+    const gate = String(merge.jobs["auto-merge"]?.if);
+    expect(gate).toContain("github.event.pull_request.user.login == 'dependabot[bot]' && ");
+    expect(gate).toContain("github.actor == 'dependabot[bot]' && ");
+    expect(gate).not.toContain("||");
+  });
+});
