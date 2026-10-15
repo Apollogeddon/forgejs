@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import * as yaml from "js-yaml";
 import { describe, expect, it } from "vitest";
+import * as templates from "../src/templates/index.js";
 import { NODE_VERSION } from "../src/versions.js";
 
 const workflowsDir = path.join(process.cwd(), ".github", "workflows");
@@ -454,5 +455,27 @@ describe("Build provenance for published packages", () => {
     expect(job?.if).toBe("needs.index.outputs.published == 'true'");
     expect(job?.with?.artifact).toBe("${{ needs.index.outputs.package_artifact }}");
     expect(job?.permissions).toEqual({ contents: "read", "id-token": "write", attestations: "write" });
+  });
+});
+
+describe("Main's pipeline after an auto-merge", () => {
+  const merge = fs.readFileSync(path.join(workflowsDir, "merge.yml"), "utf-8");
+  const sent = merge.match(/DISPATCH_TYPE: ([\w-]+)/)?.[1];
+  const listens = (workflow: string) =>
+    (yaml.load(workflow) as { on: { repository_dispatch?: { types?: string[] } } }).on.repository_dispatch?.types ?? [];
+
+  it("sends a repository_dispatch once it merges", () => {
+    expect(sent).toBeTruthy();
+    expect(merge).toContain("createDispatchEvent");
+  });
+
+  it.each([
+    ["library", templates.libraryWorkflow],
+    ["service", templates.serviceWorkflow],
+    ["website", templates.websiteWorkflow],
+    ["debian", templates.debianWorkflow],
+    [".index.yml", fs.readFileSync(path.join(workflowsDir, ".index.yml"), "utf-8")],
+  ])("%s runs on it", (_name, workflow) => {
+    expect(listens(workflow)).toEqual([sent]);
   });
 });

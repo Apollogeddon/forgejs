@@ -93,7 +93,7 @@ Outputs `new_release_published`, `version` and `tag_name` for the delivery jobs:
 
 *Dependabot auto-merge.*
 
-1. **`auto-merge`**: For pull requests opened by Dependabot, enables GitHub's auto-merge so the PR merges once required checks pass. If the PR can already be merged, it merges it straight away. It squash-merges, so release-please lists each update once: a merge commit repeats the pull request's title, and release-please reads that as a second change. Merge your own pull requests the same way, with **Squash and merge**. GitHub Actions updates (branches starting `dependabot/github_actions/`) are skipped and left for a person to merge: they change workflow files, which `GITHUB_TOKEN` can't merge.
+1. **`auto-merge`**: For pull requests opened by Dependabot, enables GitHub's auto-merge so the PR merges once required checks pass. If the PR can already be merged, it merges it straight away. It squash-merges, so release-please lists each update once: a merge commit repeats the pull request's title, and release-please reads that as a second change. Merge your own pull requests the same way, with **Squash and merge**. GitHub Actions updates (branches starting `dependabot/github_actions/`) are skipped and left for a person to merge: they change workflow files, which `GITHUB_TOKEN` can't merge. Once the pull request has merged, it sends the `auto-merged` `repository_dispatch` event, so a workflow listening for it runs on `main`: a merge made with `GITHUB_TOKEN` starts no push run. When it enabled auto-merge rather than merging, it waits up to 12 minutes for the merge before sending it. See [Secrets](/forgejs/docs/workflows/overview#secrets).
 
 ## review.yml
 
