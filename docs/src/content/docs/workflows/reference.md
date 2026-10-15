@@ -83,7 +83,7 @@ In that mode release-please tags the release before the push's checks run. If th
 
 1. Calls → `quality.yml`.
 2. **`testing`**: Runs the Vitest suite (skip with `run_tests: false`) and uploads the coverage report as `coverage-<artifact_name>`. *(Needs: quality)*
-3. **`build`**: Writes `build_env_vars` to `.env`, runs the build, and uploads the result as the `artifact_name` artifact. With `website.yml`'s [site checks](#site-checks) turned on, it then checks the built site's links and accessibility. *(Needs: quality; runs alongside testing)*
+3. **`build`**: Writes `build_env_vars` to `.env`, runs the build, then the project's `publint` and `docs:check` scripts when it defines them, and uploads the result as the `artifact_name` artifact. With `website.yml`'s [site checks](#site-checks) turned on, it then checks the built site's links and accessibility. *(Needs: quality; runs alongside testing)*
 4. **`patch`**: On `main` with `auto_patch` enabled, runs `osv-scanner fix` against `package-lock.json` and commits any security patches. *(Needs: quality, testing, build)*
 
 ## version.yml

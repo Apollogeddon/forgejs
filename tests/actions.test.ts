@@ -571,3 +571,42 @@ describe("Dependabot auto-merge", () => {
     expect(gate).not.toContain("||");
   });
 });
+
+describe("Package checks", () => {
+  type Step = { name?: string; run?: string };
+  const steps = (
+    yaml.load(fs.readFileSync(path.join(workflowsDir, "testing.yml"), "utf-8")) as {
+      jobs: { build: { steps: Step[] } };
+    }
+  ).jobs.build.steps;
+  const checks = steps.find((step) => step.name === "Package checks");
+
+  function runChecks(scripts: Record<string, string>) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "forgejs-checks-"));
+    try {
+      fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "x", scripts }));
+      return execFileSync("bash", ["-e", "-c", String(checks?.run)], { cwd: dir, encoding: "utf-8" });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  it("should run after the build, which publint checks", () => {
+    const index = (name: string) => steps.findIndex((step) => step.name === name);
+    expect(index("Package checks")).toBeGreaterThan(index("Build"));
+  });
+
+  it("should pass a project that defines neither script", () => {
+    expect(() => runChecks({})).not.toThrow();
+  });
+
+  it("should run publint and docs:check when the project defines them", () => {
+    const output = runChecks({ publint: "echo ran-publint", "docs:check": "echo ran-docs-check" });
+    expect(output).toContain("ran-publint");
+    expect(output).toContain("ran-docs-check");
+  });
+
+  it.each(["publint", "docs:check"])("should fail when %s fails", (script) => {
+    expect(() => runChecks({ [script]: "exit 3" })).toThrow();
+  });
+});
