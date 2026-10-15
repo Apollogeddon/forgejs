@@ -1,11 +1,9 @@
 const { defineConfig } = require("vitest/config");
-const path = require("node:path");
 
 module.exports = defineConfig({
+  // The project's own tsconfig "paths" (the @/* alias); a path set here would resolve inside node_modules
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "../src"),
-    },
+    tsconfigPaths: true,
   },
   test: {
     environment: "node",

@@ -78,6 +78,33 @@ describe("End-to-end: a scaffolded project actually works", () => {
   );
 
   it(
+    "backend scaffold resolves the @/ alias in tsc, vitest and the build, and tsc emits into the project",
+    () => {
+      scaffoldAndInstall(tempDir, "--backend");
+      fs.writeFileSync(path.join(tempDir, "src/util.ts"), 'export const greeting = "aliased";\n');
+      fs.writeFileSync(
+        path.join(tempDir, "src/index.ts"),
+        'import { greeting } from "@/util";\n\nconsole.log(`Hello from ${greeting}!`);\n',
+      );
+      fs.writeFileSync(
+        path.join(tempDir, "src/util.test.ts"),
+        'import { expect, it } from "vitest";\nimport { greeting } from "@/util";\n\nit("resolves @/", () => {\n  expect(greeting).toBe("aliased");\n});\n',
+      );
+      execSync("npm run type", { cwd: tempDir, stdio: "pipe" });
+      execSync("npm test", { cwd: tempDir, stdio: "pipe" });
+      execSync("npm run build", { cwd: tempDir, stdio: "pipe" });
+      expect(execSync("npm start", { cwd: tempDir, encoding: "utf-8" })).toContain("Hello from aliased!");
+
+      // a plain tsc emits into the project's dist/, never into the installed forgejs package
+      fs.rmSync(path.join(tempDir, "dist"), { recursive: true, force: true });
+      execSync("npx tsc", { cwd: tempDir, stdio: "pipe" });
+      expect(fs.existsSync(path.join(tempDir, "dist/src/index.js"))).toBe(true);
+      expect(fs.existsSync(path.join(tempDir, "node_modules/@apollogeddon/forgejs/configs/dist"))).toBe(false);
+    },
+    180000,
+  );
+
+  it(
     "library scaffold lints, type-checks, builds, tests, and passes publint",
     () => {
       scaffoldAndInstall(tempDir, "--library");
@@ -91,12 +118,19 @@ describe("End-to-end: a scaffolded project actually works", () => {
   );
 
   it(
-    "website scaffold lints, type-checks, and builds with vite",
+    "website scaffold lints, type-checks, and builds with vite, resolving the @/ alias",
     () => {
       scaffoldAndInstall(tempDir, "--website");
+      // the @/ alias resolves in tsc and Vite as it does for a backend
+      fs.writeFileSync(path.join(tempDir, "src/greeting.ts"), 'export const greeting = "aliased";\n');
+      fs.writeFileSync(path.join(tempDir, "src/main.ts"), 'import { greeting } from "@/greeting";\n\nconsole.log(greeting);\n');
       execSync("npm run lint", { cwd: tempDir, stdio: "pipe" });
       execSync("npm run type", { cwd: tempDir, stdio: "pipe" });
       execSync("npm run build", { cwd: tempDir, stdio: "pipe" });
+      // bundled in, not left as an import the browser can't resolve
+      const assets = path.join(tempDir, "dist/assets");
+      const bundle = fs.readdirSync(assets).map((file) => fs.readFileSync(path.join(assets, file), "utf-8"));
+      expect(bundle.join("")).toContain("aliased");
       execSync("npm test", { cwd: tempDir, stdio: "pipe" });
     },
     180000,

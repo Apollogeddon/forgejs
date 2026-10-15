@@ -8,12 +8,12 @@
     "moduleDetection": "force",
     "ignoreDeprecations": "6.0",
     "isolatedModules": true,
-    "rootDir": ".",
+    "rootDir": "${configDir}",
+    "outDir": "${configDir}/dist",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["${configDir}/src/*"]
     },
     "resolveJsonModule": true,
-    "outDir": "dist",
     "verbatimModuleSyntax": true,
     "strict": true,
     "noUncheckedIndexedAccess": true,
