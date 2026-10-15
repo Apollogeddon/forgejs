@@ -190,6 +190,30 @@ describe("CLI Init Command", () => {
     expect(packageJson.scripts["docker:run"]).toMatch(/ my-service$/);
   });
 
+  it("should name a project in a directory with spaces and capitals validly", () => {
+    const dir = path.join(tempDir, "My JS");
+    fs.mkdirSync(dir);
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --docker`, { cwd: dir });
+
+    const packageJson = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf-8"));
+    expect(packageJson.name).toBe("my-js");
+    expect(packageJson.scripts["docker:build"]).toMatch(/ -t my-js \.$/);
+    expect(packageJson.scripts["docker:run"]).toMatch(/ my-js$/);
+  });
+
+  it("should give an image a valid name when package.json has an unusual one or none", () => {
+    fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify({ name: "My_Service" }));
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --docker`, { cwd: tempDir });
+    let packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
+    expect(packageJson.scripts["docker:build"]).toMatch(/ -t my-service \.$/);
+
+    fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify({ version: "1.0.0" }));
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --docker --force`, { cwd: tempDir });
+    packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
+    expect(packageJson.scripts["docker:build"]).not.toContain("undefined");
+    expect(packageJson.scripts["docker:build"]).toMatch(/ -t forgejs-test-[0-9-]+ \.$/);
+  });
+
   it("should support --website flag", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --website`, { cwd: tempDir });
 

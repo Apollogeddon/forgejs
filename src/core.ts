@@ -4,6 +4,7 @@ import { setDependency } from "./features/types.js";
 import type { InitConfig, PackageJson } from "./types.js";
 import type { IFileSystem } from "./utils/filesystem.js";
 import { NodeFileSystem } from "./utils/filesystem.js";
+import { slug } from "./utils/names.js";
 
 // core.ts and the tsdown bundle output are both one directory below repo root, so
 // "../package.json" resolves in both - don't move this into a deeper-nested file.
@@ -37,7 +38,7 @@ export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()): n
     if (!fs.existsSync(packageJsonPath)) {
       console.log("📝 Creating new package.json");
       packageJson = {
-        name: fs.basename(cwd),
+        name: slug(fs.basename(cwd)),
         version: "1.0.0",
         description: "",
         main: "index.js",
