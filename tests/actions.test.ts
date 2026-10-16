@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import * as yaml from "js-yaml";
@@ -7,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import { NODE_VERSION } from "../src/versions.js";
 
 const workflowsDir = path.join(process.cwd(), ".github", "workflows");
+const require = createRequire(import.meta.url);
 
 describe("GitHub Actions Workflows YAML Syntax", () => {
   const workflowFiles = fs.readdirSync(workflowsDir).filter((file) => file.endsWith(".yml"));
@@ -454,5 +456,157 @@ describe("Build provenance for published packages", () => {
     expect(job?.if).toBe("needs.index.outputs.published == 'true'");
     expect(job?.with?.artifact).toBe("${{ needs.index.outputs.package_artifact }}");
     expect(job?.permissions).toEqual({ contents: "read", "id-token": "write", attestations: "write" });
+  });
+});
+
+describe("OSV scan", () => {
+  type Step = { name?: string; id?: string; run?: string; env?: Record<string, string>; with?: { script?: string } };
+  const steps = (
+    yaml.load(fs.readFileSync(path.join(workflowsDir, "quality.yml"), "utf-8")) as {
+      jobs: { secure: { steps: Step[] } };
+    }
+  ).jobs.secure.steps;
+  const scan = steps.find((step) => step.name === "OSV Scan");
+  const report = steps.find((step) => step.name === "Report OSV findings");
+
+  // runs the report step's github-script body with a stand-in for its core API
+  async function runReport(status: number, results: unknown[] | null = [], enforce = true) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "forgejs-osv-"));
+    const file = path.join(dir, "osv.json");
+    if (results) fs.writeFileSync(file, JSON.stringify({ results }));
+    const calls: Record<string, string[]> = { info: [], warning: [], error: [], setFailed: [] };
+    const record = (kind: string) => (message: string) => calls[kind]?.push(message);
+    const core = {
+      info: record("info"),
+      warning: record("warning"),
+      error: record("error"),
+      setFailed: record("setFailed"),
+      summary: { addHeading: () => core.summary, addTable: () => core.summary, write: async () => {} },
+    };
+    const env = { ...process.env };
+    Object.assign(process.env, {
+      OSV_STATUS: String(status),
+      OSV_REPORT: file,
+      OSV_ENFORCE: String(enforce),
+      GITHUB_WORKSPACE: dir,
+    });
+    try {
+      const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
+      await new AsyncFunction("require", "core", String(report?.with?.script))(require, core);
+    } finally {
+      process.env = env;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+    return calls;
+  }
+
+  const lockfile = (dir = "/w") => ({ source: { path: `${dir}/package-lock.json` } });
+  const finding = (id: string, maxSeverity: string, rating?: string) => ({
+    package: { name: `pkg-${id}`, version: "1.0.0" },
+    vulnerabilities: [{ id, summary: `advisory ${id}`, database_specific: rating ? { severity: rating } : {} }],
+    groups: [{ ids: [id], max_severity: maxSeverity }],
+  });
+
+  it("should never swallow the scanner's result", () => {
+    expect(scan?.run).not.toContain("|| true");
+    expect(scan?.run).toContain("--format json");
+    expect(report?.env?.OSV_STATUS).toBe("${{ steps.osv.outputs.status }}");
+    expect(report?.env?.OSV_ENFORCE).toBe("${{ github.event_name == 'pull_request' }}");
+  });
+
+  it("should annotate a high finding outside a pull request, so main's patch job still runs", async () => {
+    const calls = await runReport(1, [{ ...lockfile(), packages: [finding("GHSA-high", "9.8")] }], false);
+    expect(calls.error).toEqual([expect.stringContaining("GHSA-high")]);
+    expect(calls.setFailed).toEqual([]);
+    expect(calls.warning).toEqual([expect.stringContaining("fails pull requests")]);
+  });
+
+  it("should fail on a high or critical finding and annotate the rest", async () => {
+    const calls = await runReport(1, [
+      { ...lockfile(), packages: [finding("GHSA-high", "8.1"), finding("GHSA-low", "5.3")] },
+    ]);
+    expect(calls.error).toEqual([expect.stringContaining("GHSA-high")]);
+    expect(calls.warning).toEqual([expect.stringContaining("GHSA-low")]);
+    expect(calls.setFailed).toEqual([expect.stringContaining("1 high or critical vulnerability")]);
+  });
+
+  it("should only warn when nothing is high or critical", async () => {
+    const calls = await runReport(1, [{ ...lockfile(), packages: [finding("GHSA-moderate", "", "MODERATE")] }]);
+    expect(calls.warning).toHaveLength(1);
+    expect(calls.setFailed).toEqual([]);
+  });
+
+  it("should use the advisory's rating when it has no CVSS score", async () => {
+    const calls = await runReport(1, [{ ...lockfile(), packages: [finding("GHSA-critical", "", "CRITICAL")] }]);
+    expect(calls.setFailed).toHaveLength(1);
+  });
+
+  it.each([
+    [0, 0],
+    [128, 0],
+  ])("should pass when the scanner exits %i", async (status) => {
+    const calls = await runReport(status);
+    expect(calls.setFailed).toEqual([]);
+    expect(calls.warning).toEqual([]);
+  });
+
+  it.each([
+    [127, []],
+    [1, null],
+  ])("should warn, not fail, when the scanner exits %i with %j results", async (status, results) => {
+    const calls = await runReport(status, results);
+    expect(calls.warning).toEqual([expect.stringContaining("couldn't finish")]);
+    expect(calls.setFailed).toEqual([]);
+  });
+});
+
+describe("Dependabot auto-merge", () => {
+  // the author alone would merge someone else's push to Dependabot's branch, and the actor alone
+  // a pull request someone else opened that Dependabot then updated
+  it("should gate on Dependabot both opening the pull request and making its latest change", () => {
+    const merge = yaml.load(fs.readFileSync(path.join(workflowsDir, "merge.yml"), "utf-8")) as Workflow;
+    const gate = String(merge.jobs["auto-merge"]?.if);
+    expect(gate).toContain("github.event.pull_request.user.login == 'dependabot[bot]' && ");
+    expect(gate).toContain("github.actor == 'dependabot[bot]' && ");
+    expect(gate).not.toContain("||");
+  });
+});
+
+describe("Package checks", () => {
+  type Step = { name?: string; run?: string };
+  const steps = (
+    yaml.load(fs.readFileSync(path.join(workflowsDir, "testing.yml"), "utf-8")) as {
+      jobs: { build: { steps: Step[] } };
+    }
+  ).jobs.build.steps;
+  const checks = steps.find((step) => step.name === "Package checks");
+
+  function runChecks(scripts: Record<string, string>) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "forgejs-checks-"));
+    try {
+      fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "x", scripts }));
+      return execFileSync("bash", ["-e", "-c", String(checks?.run)], { cwd: dir, encoding: "utf-8" });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  it("should run after the build, which publint checks", () => {
+    const index = (name: string) => steps.findIndex((step) => step.name === name);
+    expect(index("Package checks")).toBeGreaterThan(index("Build"));
+  });
+
+  it("should pass a project that defines neither script", () => {
+    expect(() => runChecks({})).not.toThrow();
+  });
+
+  it("should run publint and docs:check when the project defines them", () => {
+    const output = runChecks({ publint: "echo ran-publint", "docs:check": "echo ran-docs-check" });
+    expect(output).toContain("ran-publint");
+    expect(output).toContain("ran-docs-check");
+  });
+
+  it.each(["publint", "docs:check"])("should fail when %s fails", (script) => {
+    expect(() => runChecks({ [script]: "exit 3" })).toThrow();
   });
 });

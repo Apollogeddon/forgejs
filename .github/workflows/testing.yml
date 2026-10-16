@@ -227,6 +227,12 @@ jobs:
         run: printf '%s\n' "$BUILD_ENV_VARS" >> .env
       - name: Build
         run: npm run build
+      # publint checks the built package and docs:check the generated API docs; projects without
+      # these scripts skip them
+      - name: Package checks
+        run: |
+          npm run --if-present publint
+          npm run --if-present docs:check
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v7
         with:

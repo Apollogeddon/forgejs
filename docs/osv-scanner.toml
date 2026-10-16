@@ -1,0 +1,6 @@
+# No fixed braces release exists yet. It's reached only through micromatch in the docs site's
+# build tooling, which matches the site's own fixed patterns, never untrusted input
+[[IgnoredVulns]]
+id = "GHSA-vfj7-8cjw-p6xm"
+ignoreUntil = 2027-01-15
+reason = "No fixed braces release; only the docs build's own glob patterns reach it"

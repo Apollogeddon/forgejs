@@ -74,15 +74,22 @@ npx @apollogeddon/forgejs init [options]
 | `--website` | Frontend website built with Vite. |
 | `--testing`, `--no-testing` | Vitest. On by default. |
 | `--linting`, `--no-linting` | Biome and Lefthook. On by default. |
-| `--version`, `--no-version` | release-please and commitlint. On by default. |
+| `--versioning`, `--no-versioning` | release-please and commitlint. On by default. |
 | `--all`, `--no-all` | Turn every standard feature on or off. An explicit flag such as `--testing` still wins. |
 | `--docker` | Add a `Dockerfile` and a container build in CI. Not available with `--library`. |
 | `--debian` | Add Snodeb `.deb` packaging. Not available with `--library` or `--website`. |
 | `--force` | Overwrite existing config files and scripts, and remove config files for disabled features. |
 | `--dry-run` | Show what would change without writing anything. |
+| `--node <version>` | The project's Node.js version, from 24 up (`26`, or `26.1.0`): written to `.nvmrc` and `engines.node`, replacing what was there, and to the base images of a new Dockerfile (an existing one is kept, with a warning, unless you pass `--force`). Without it, `init` uses the version `.nvmrc` already pins, else 24. |
+| `-C`, `--path <dir>` | Scaffold `<dir>` instead of the current directory, creating it if needed. |
+| `-V`, `--version` | Print the Forge.js version and exit. |
 | `--help` | Show the help message. |
 
-Only one mode can be active at a time. `--no-testing` and `--no-version` also turn off the matching jobs in the generated CI workflow.
+Only one mode can be active at a time, and a feature can't be both on and off. Options that can't be combined exit with code 2; an unknown option exits with code 1. `--no-testing` and `--no-versioning` also turn off the matching jobs in the generated CI workflow.
+
+Earlier releases named the versioning feature `init --version` and `init --no-version`. They still work after `init`, with a warning: use `--versioning` and `--no-versioning`.
+
+A new `package.json` is named after the directory, lowercased with anything other than letters and digits turned into dashes: a directory called `My JS` gives `my-js`. The Docker scripts name the image the same way.
 
 `--no-all` turns off the standard features, not the mode: without a mode flag the project is still a `--backend` project, with its CI workflow.
 
@@ -121,6 +128,7 @@ A default `init` (backend) produces:
 │   ├── dependabot.yml        # weekly updates with a 3-day cooldown
 │   └── workflows/index.yml   # CI/CD calling the reusable workflows
 ├── .editorconfig
+├── .nvmrc                    # the project's Node.js version, read by nvm, setup-node and CI
 ├── src/
 │   └── index.ts
 ├── biome.json                # extends the Forge.js Biome config

@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
-import { init } from "./core.js";
+import { forgejsVersion, init } from "./core.js";
+import { NODE_VERSION, validNodeVersion } from "./versions.js";
+
+// Options that can't be combined exit with this, as forgego and forgepy do
+const EXIT_INVALID_CONFIG = 2;
 
 const options = {
   backend: { type: "boolean" },
@@ -13,8 +17,8 @@ const options = {
 
   // Standard features: each has an explicit --no-<x> negation, since node:util's
   // parseArgs has no built-in negation support for boolean flags.
-  version: { type: "boolean" },
-  "no-version": { type: "boolean" },
+  versioning: { type: "boolean" },
+  "no-versioning": { type: "boolean" },
   testing: { type: "boolean" },
   "no-testing": { type: "boolean" },
   linting: { type: "boolean" },
@@ -24,7 +28,12 @@ const options = {
   all: { type: "boolean" },
   "no-all": { type: "boolean" },
   "dry-run": { type: "boolean" },
+  path: { type: "string", short: "C" },
+  node: { type: "string" },
   help: { type: "boolean" },
+  // Prints the version on its own; after init, the deprecated name of --versioning
+  version: { type: "boolean", short: "V" },
+  "no-version": { type: "boolean" },
 } as const;
 
 function parseCliArgs() {
@@ -34,6 +43,7 @@ function parseCliArgs() {
       options,
       strict: true,
       allowPositionals: true,
+      tokens: true,
     });
   } catch (error) {
     console.error(`❌ ${error instanceof Error ? error.message : String(error)}`);
@@ -41,7 +51,7 @@ function parseCliArgs() {
   }
 }
 
-const { values, positionals } = parseCliArgs();
+const { values, positionals, tokens } = parseCliArgs();
 
 // --help takes priority over everything else, including mode/flag validation
 if (values.help) {
@@ -51,7 +61,39 @@ if (values.help) {
 
 const command = positionals[0];
 
-function resolveFeature(flag: boolean | undefined, negated: boolean | undefined, enableByDefault: boolean): boolean {
+// -V always prints the version; --version does when there's no command, and after init is the
+// versioning feature's old name
+if (
+  (command === undefined && values.version) ||
+  tokens.some((token) => token.kind === "option" && token.rawName === "-V")
+) {
+  console.log(`forgejs ${forgejsVersion}`);
+  process.exit(0);
+}
+
+if (command !== "init") {
+  showHelp();
+  process.exit(1);
+}
+
+if (values.version || values["no-version"]) {
+  console.warn(
+    `⚠️  --${values.version ? "" : "no-"}version is deprecated: use --${values.version ? "" : "no-"}versioning`,
+  );
+}
+
+function invalid(message: string): never {
+  console.error(`❌ Error: ${message}`);
+  process.exit(EXIT_INVALID_CONFIG);
+}
+
+function resolveFeature(
+  [on, off]: [string, string],
+  flag: boolean | undefined,
+  negated: boolean | undefined,
+  enableByDefault: boolean,
+): boolean {
+  if (flag && negated) invalid(`${on} and ${off} can't both be passed.`);
   if (negated) return false;
   return !!(flag ?? enableByDefault);
 }
@@ -59,8 +101,9 @@ function resolveFeature(flag: boolean | undefined, negated: boolean | undefined,
 const modes = ["backend", "library", "website"];
 const hasModeFlag = modes.some((mode) => values[mode as keyof typeof values]);
 
+if (values.all && values["no-all"]) invalid("--all and --no-all can't both be passed.");
 // Standard features default on unless --no-all is passed
-const enableByDefault = !values["no-all"] && values.all !== false;
+const enableByDefault = !values["no-all"];
 
 // If no mode flag is provided, backend is the default, with --no-all too: that turns
 // the standard features off, not the mode
@@ -70,8 +113,7 @@ const isWebsite = !!values.website;
 
 const activeModes = [isBackend, isLibrary, isWebsite].filter(Boolean);
 if (activeModes.length > 1) {
-  console.error("❌ Error: Only one mode (--backend, --library, --website) can be active at a time.");
-  process.exit(1);
+  invalid("Only one mode (--backend, --library, --website) can be active at a time.");
 }
 
 const config = {
@@ -82,61 +124,63 @@ const config = {
   library: isLibrary,
   website: isWebsite,
 
-  testing: resolveFeature(values.testing, values["no-testing"], enableByDefault),
-  version: resolveFeature(values.version, values["no-version"], enableByDefault),
-  linting: resolveFeature(values.linting, values["no-linting"], enableByDefault),
+  testing: resolveFeature(["--testing", "--no-testing"], values.testing, values["no-testing"], enableByDefault),
+  versioning: resolveFeature(
+    [values.versioning ? "--versioning" : "--version", values["no-versioning"] ? "--no-versioning" : "--no-version"],
+    values.versioning || values.version,
+    values["no-versioning"] || values["no-version"],
+    enableByDefault,
+  ),
+  linting: resolveFeature(["--linting", "--no-linting"], values.linting, values["no-linting"], enableByDefault),
 
   debian: !!values.debian,
   docker: !!values.docker,
+
+  ...(values.path === undefined ? {} : { target: values.path }),
+  ...(values.node === undefined ? {} : { node: values.node }),
 };
 
+if (config.node !== undefined && !validNodeVersion(config.node)) {
+  invalid(`--node takes a Node.js version from ${NODE_VERSION} up, such as ${NODE_VERSION} or ${NODE_VERSION}.1.0.`);
+}
+
 if (config.library) {
-  if (config.docker) {
-    console.error("❌ Error: Docker configuration is not available for Library mode.");
-    process.exit(1);
-  }
-  if (config.debian) {
-    console.error("❌ Error: Debian packaging is not available for Library mode.");
-    process.exit(1);
-  }
+  if (config.docker) invalid("Docker configuration is not available for Library mode.");
+  if (config.debian) invalid("Debian packaging is not available for Library mode.");
 }
 
-if (config.website) {
-  if (config.debian) {
-    console.error("❌ Error: Debian packaging is not available for Website mode.");
-    process.exit(1);
-  }
-}
+if (config.website && config.debian) invalid("Debian packaging is not available for Website mode.");
 
-if (command === "init") {
-  process.exit(init(config));
-} else {
-  showHelp();
-  process.exit(1);
-}
+process.exit(init(config));
 
 function showHelp() {
   console.log(`
 Usage: npx @apollogeddon/forgejs init [options]
+       npx @apollogeddon/forgejs --version
 
 Modes (Default is --backend):
-  --backend   Setup for Node.js backend/service [Default]
-  --library   Setup for TypeScript library
-  --website   Setup for Frontend website (Vite)
+  --backend         Setup for Node.js backend/service [Default]
+  --library         Setup for TypeScript library
+  --website         Setup for Frontend website (Vite)
 
 Standard Features (Enabled by default; disable with --no-<feature> or --no-all):
-  --testing   Setup Testing (vitest)
-  --version   Setup Versioning (release-please, commitlint)
-  --linting   Setup Linting & Formatting (biome, lefthook)
+  --testing         Setup Testing (vitest)
+  --versioning      Setup Versioning (release-please, commitlint)
+  --linting         Setup Linting & Formatting (biome, lefthook)
 
 Optional Features:
-  --docker    Setup Docker configuration
-  --debian    Setup Debian packaging (snodeb)
+  --docker          Setup Docker configuration
+  --debian          Setup Debian packaging (snodeb)
 
 Options:
-  --all       Enable all standard features [Default]
-  --force     Overwrite existing files (and enforce script standards)
-  --dry-run   Simulate the process without making changes
-  --help      Show this help message
+  --all             Enable all standard features [Default]
+  --force           Overwrite existing files (and enforce script standards)
+  --dry-run         Simulate the process without making changes
+  --node VERSION    Target Node.js version (default: .nvmrc's, else ${NODE_VERSION})
+  -C, --path DIR    Target directory (default: current directory)
+  -V, --version     Show the Forge.js version
+  --help            Show this help message
+
+Invalid combinations of options exit with code 2.
 `);
 }
