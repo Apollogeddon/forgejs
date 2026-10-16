@@ -1,4 +1,4 @@
-name: ForgeJS CI/CD
+name: index
 
 on:
   push:
@@ -8,19 +8,30 @@ on:
     branches:
       - main
   workflow_dispatch:
-  # sent by the auto-merge job, as a merge it makes starts no push run on main
+  # sent by the merge pipeline, as a merge it makes starts no push run on main
   repository_dispatch:
     types: [auto-merged]
+  # weekly, for the patch pipeline; a manual run and an auto-merged dispatch patch too
+  schedule:
+    - cron: '17 3 * * 1'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  # never cancel a run on main mid-release, or the release is created but never published
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  # a pull request's newer run replaces its older one; every other run has a group of its own, so a run on
+  # main, running or queued, is never cancelled and a release is never created without being published
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+# Each job calls one pipeline, so the run page reads <pipeline> / <stage>. Pull requests run the checks
+# (library for the tool, website for docs/); main runs version, and on a release checks the tool again
+# before publishing it; the site deploys from every change to main that touches it.
 
 jobs:
   # Which pipelines this change needs: the tool's runs unless only docs/ changed, and the
   # docs site's runs when docs/ or anything it builds from changed.
   changes:
+    name: changes
+    # the weekly run only patches
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -29,7 +40,8 @@ jobs:
       code: ${{ steps.diff.outputs.code }}
       docs: ${{ steps.diff.outputs.docs }}
     steps:
-      - uses: actions/checkout@v7
+      - name: Check out
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -54,54 +66,101 @@ jobs:
           echo "code=$code" | tee -a "$GITHUB_OUTPUT"
           echo "docs=$docs" | tee -a "$GITHUB_OUTPUT"
 
-  index:
+  version:
     needs: changes
-    if: needs.changes.outputs.code == 'true'
-    uses: ./.github/workflows/library.yml
-    with:
-      # the PR run tested this change; release-testing re-tests main before a release
-      test_on_push: false
-      # a release PR only bumps the version and changelog
-      test_release_prs: false
-      working_directory: '.'
+    if: needs.changes.outputs.code == 'true' && github.event_name != 'pull_request'
+    uses: ./.github/workflows/version.yml
     permissions:
       contents: write
       pull-requests: write
-      packages: write
 
-  # attests the tarball the release published, so it can be checked with gh attestation verify
-  provenance:
-    needs: index
-    if: needs.index.outputs.published == 'true'
-    uses: ./.github/workflows/attest.yml
-    with:
-      artifact: ${{ needs.index.outputs.package_artifact }}
+  # a pull request's checks, and on main the release's; a release PR only bumps the version and changelog
+  library:
+    needs: [changes, version]
+    if: >-
+      !cancelled() && needs.changes.outputs.code == 'true' &&
+      ((github.event_name == 'pull_request' && !startsWith(github.head_ref, 'release-please--')) ||
+      needs.version.outputs.new_release_published == 'true')
+    uses: ./.github/workflows/library.yml
     permissions:
       contents: read
+      packages: read
+      pull-requests: write
+
+  # the tarball the release published, with its build provenance, so it can be checked with gh attestation verify.
+  # A caller grants the union of what the called jobs ask for: package asks for packages: write alone, so only
+  # attest, which takes the caller's grant, holds id-token and attestations
+  publish:
+    needs: [version, library]
+    if: >-
+      !cancelled() && needs.library.result == 'success' &&
+      needs.version.outputs.new_release_published == 'true'
+    uses: ./.github/workflows/publish.yml
+    with:
+      attest: true
+    permissions:
+      contents: read
+      packages: write
       id-token: write
       attestations: write
 
-  pages:
+  # the docs site isn't versioned, so it's checked on every change that touches it, and deployed from main
+  website:
     needs: changes
-    if: needs.changes.outputs.docs == 'true'
+    if: needs.changes.outputs.docs == 'true' && !startsWith(github.head_ref, 'release-please--')
     uses: ./.github/workflows/website.yml
     with:
-      test_release_prs: false
       working_directory: 'docs'
       enable_secrets: false
       run_tests: false
-      enable_versioning: false
-      # the tool's pipeline auto-merges Dependabot PRs; this one does when only docs/ changed
-      auto_merge: ${{ needs.changes.outputs.code != 'true' }}
-      # and requests the review on them, which the tool's pipeline does otherwise
-      review_dependabot: ${{ needs.changes.outputs.code != 'true' }}
       # the site's internal links; it's served under /forgejs/ on GitHub Pages
       check_links: true
       base_path: '/forgejs/'
-      # distinct from the library job's 'dist' artifact in the same run
+      # distinct from the library's 'dist' artifact in the same run
       artifact_name: 'pages-dist'
     permissions:
-      contents: write
-      id-token: write
+      contents: read
+      packages: read
+      pull-requests: write
+
+  pages:
+    needs: website
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    uses: ./.github/workflows/pages.yml
+    with:
+      artifact_name: 'pages-dist'
+    permissions:
       pages: write
+      id-token: write
+
+  patch:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch'
+    uses: ./.github/workflows/patch.yml
+    permissions:
+      contents: write
+      packages: read
+
+  patch-docs:
+    name: patch (docs)
+    # one at a time, so the second commits on top of the first
+    needs: patch
+    if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch') }}
+    uses: ./.github/workflows/patch.yml
+    with:
+      working_directory: 'docs'
+    permissions:
+      contents: write
+      packages: read
+
+  # Dependabot's pull requests: a review request, and a squash merge when the checks passed
+  merge:
+    needs: [changes, library, website]
+    if: >-
+      !cancelled() && github.event_name == 'pull_request' &&
+      github.event.pull_request.user.login == 'dependabot[bot]'
+    uses: ./.github/workflows/merge.yml
+    with:
+      checks_passed: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+    permissions:
+      contents: write
       pull-requests: write

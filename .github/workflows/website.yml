@@ -1,4 +1,6 @@
-name: NodeJS Website
+name: website
+
+# A website's checks: lint, scan, test, build, then check the built site. pages.yml deploys it.
 
 on:
   workflow_call:
@@ -8,58 +10,36 @@ on:
         required: false
         type: string
         default: 'ubuntu-latest'
-      test_on_push:
-        description: "Run the checks on pushes too; false runs them on pull requests (and scheduled runs) only"
-        required: false
-        type: boolean
-        default: true
-      test_release_prs:
-        description: "Run the checks on release-please's release pull requests"
-        required: false
-        type: boolean
-        default: true
-      enable_secrets:
-        required: false
-        type: boolean
-        default: true
-      node_version:
-        required: false
-        type: string
-        description: "Node.js version; empty reads the project's .nvmrc, else Node 24"
-        default: ''
       working_directory:
+        description: "Directory holding package.json"
         required: false
         type: string
         default: '.'
-      auto_patch:
+      node_version:
+        description: "Node.js version; empty reads the project's .nvmrc, else Node 24"
+        required: false
+        type: string
+        default: ''
+      enable_secrets:
+        description: "Scan for secrets with Gitleaks"
+        required: false
+        type: boolean
+        default: true
+      run_tests:
+        description: "Run the test suite; init --no-testing sets it to false"
         required: false
         type: boolean
         default: true
       build_env_vars:
+        description: "Lines written to .env before the build"
         required: false
         type: string
         default: ''
       artifact_name:
+        description: "The build artifact's name, which publish, debian, pages and the check stage download"
         required: false
         type: string
         default: 'dist'
-      run_tests:
-        required: false
-        type: boolean
-        default: true
-      enable_versioning:
-        required: false
-        type: boolean
-        default: true
-      auto_merge:
-        required: false
-        type: boolean
-        default: true
-      reviewers:
-        description: "Comma-separated logins to request a review of Dependabot's and release-please's pull requests from; empty means the repository's owner"
-        required: false
-        type: string
-        default: ''
       ref:
         description: "Commit, branch or tag to check out; empty means the commit that triggered the run"
         required: false
@@ -110,149 +90,509 @@ on:
         required: false
         type: string
         default: 'serious'
-      review_dependabot:
-        description: "Request a review on Dependabot's pull requests; turn off when another pipeline in the same run already does"
-        required: false
-        type: boolean
-        default: true
     secrets:
       GH_TOKEN:
         description: "A token pre_build_command can use, as GH_TOKEN"
         required: false
-    outputs:
-      new_release_published:
-        description: "Whether a new release was published"
-        value: ${{ jobs.version.outputs.new_release_published }}
-      version:
-        description: "Released version (e.g. 1.2.3); empty when nothing was released"
-        value: ${{ jobs.version.outputs.version }}
-      tag_name:
-        description: "Released tag (e.g. v1.2.3); empty when nothing was released"
-        value: ${{ jobs.version.outputs.tag_name }}
 
 jobs:
-  testing:
-    # With test_on_push false, a push checks only when a release is made, in release-testing.
-    # Without versioning every push deploys, and only these checks build what it deploys, so they always run.
-    if: >-
-      (github.event_name != 'push' || inputs.test_on_push || !inputs.enable_versioning) &&
-      (inputs.test_release_prs || !startsWith(github.head_ref, 'release-please--'))
-    uses: ./.github/workflows/testing.yml
-    with:
-      runs_on: ${{ inputs.runs_on }}
-      working_directory: ${{ inputs.working_directory }}
-      node_version: ${{ inputs.node_version }}
-      enable_secrets: ${{ inputs.enable_secrets }}
-      auto_patch: ${{ inputs.auto_patch }}
-      build_env_vars: ${{ inputs.build_env_vars }}
-      artifact_name: ${{ inputs.artifact_name }}
-      run_tests: ${{ inputs.run_tests }}
-      ref: ${{ inputs.ref }}
-      setup_go: ${{ inputs.setup_go }}
-      pre_build_command: ${{ inputs.pre_build_command }}
-      base_path: ${{ inputs.base_path }}
-      check_links: ${{ inputs.check_links }}
-      check_external_links: ${{ inputs.check_external_links }}
-      link_check_args: ${{ inputs.link_check_args }}
-      check_accessibility: ${{ inputs.check_accessibility }}
-      accessibility_paths: ${{ inputs.accessibility_paths }}
-      accessibility_impact: ${{ inputs.accessibility_impact }}
-    secrets:
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
-  # Dependabot's pull requests ask for a review as they open, before the checks, so a failing
-  # update reaches the reviewer too
-  review:
-    if: inputs.review_dependabot && github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
-    uses: ./.github/workflows/review.yml
-    with:
-      runs_on: ${{ inputs.runs_on }}
-      reviewers: ${{ inputs.reviewers }}
-    permissions:
-      pull-requests: write
-
-  auto-merge:
-    uses: ./.github/workflows/merge.yml
-    with:
-      runs_on: ${{ inputs.runs_on }}
-    needs: [testing]
-    if: inputs.auto_merge
-    permissions:
-      contents: write
-      pull-requests: write
-
-  version:
-    # Runs when the checks were skipped, as on a push to main with test_on_push false, but not when they failed.
-    if: ${{ !failure() && !cancelled() && inputs.enable_versioning }}
-    uses: ./.github/workflows/version.yml
-    needs: [testing]
-    with:
-      runs_on: ${{ inputs.runs_on }}
-      node_version: ${{ inputs.node_version }}
-      working_directory: ${{ inputs.working_directory }}
-      reviewers: ${{ inputs.reviewers }}
-
-  release-testing:
-    # With test_on_push false, a push to main is checked and built only when release-please made a release.
-    needs: [version]
-    if: >-
-      !cancelled() && github.event_name == 'push' && !inputs.test_on_push &&
-      (needs.version.outputs.new_release_published == 'true' || needs.version.outputs.new_release_published == true)
-    uses: ./.github/workflows/testing.yml
-    with:
-      runs_on: ${{ inputs.runs_on }}
-      working_directory: ${{ inputs.working_directory }}
-      node_version: ${{ inputs.node_version }}
-      enable_secrets: ${{ inputs.enable_secrets }}
-      auto_patch: ${{ inputs.auto_patch }}
-      build_env_vars: ${{ inputs.build_env_vars }}
-      artifact_name: ${{ inputs.artifact_name }}
-      run_tests: ${{ inputs.run_tests }}
-      ref: ${{ inputs.ref }}
-      setup_go: ${{ inputs.setup_go }}
-      pre_build_command: ${{ inputs.pre_build_command }}
-      base_path: ${{ inputs.base_path }}
-      check_links: ${{ inputs.check_links }}
-      check_external_links: ${{ inputs.check_external_links }}
-      link_check_args: ${{ inputs.link_check_args }}
-      check_accessibility: ${{ inputs.check_accessibility }}
-      accessibility_paths: ${{ inputs.accessibility_paths }}
-      accessibility_impact: ${{ inputs.accessibility_impact }}
-    secrets:
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
-  deploy:
+  lint:
+    name: lint
     runs-on: ${{ inputs.runs_on }}
     timeout-minutes: 10
-    needs: [testing, version, release-testing]
-    # !failure() rather than success(), so a skipped version or checks job doesn't skip the deploy
-    if: |
-      !failure() && !cancelled() &&
-      github.ref == 'refs/heads/main' &&
-      (needs.testing.result == 'success' || needs['release-testing'].result == 'success') &&
-      (needs.version.result == 'success' || needs.version.result == 'skipped') &&
-      (!inputs.enable_versioning || needs.version.outputs.new_release_published == 'true' || needs.version.outputs.new_release_published == true)
-    # one deploy at a time, and a waiting one is replaced by a newer one rather than overtaking a running
-    # one; not named pages, which a caller copying GitHub's starter workflow uses, as a shared group deadlocks
-    concurrency:
-      group: pages-deploy
-      cancel-in-progress: false
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     permissions:
-      pages: write
-      id-token: write
+      contents: read
+      packages: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
     steps:
-      - name: Download artifact
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      # the input if set, else the project's .nvmrc, else forgejs's default
+      - name: Resolve the Node version
+        id: node
+        env:
+          INPUT: ${{ inputs.node_version }}
+        run: |
+          if [ -n "$INPUT" ]; then version="$INPUT"
+          elif [ -f .nvmrc ]; then version=$(tr -d '[:space:]' < .nvmrc)
+          else version=24
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ steps.node.outputs.version }}
+          cache: 'npm'
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: "@${{ github.repository_owner }}"
+      - name: Set up Go
+        if: inputs.setup_go != ''
+        uses: actions/setup-go@v7
+        with:
+          # a path names a file to read the version from, anything else is the version itself
+          go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          go-version-file: ${{ (endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          cache: false
+      # generates what the install, checks or build need, e.g. content made by another tool
+      - name: Run the pre-build command
+        if: inputs.pre_build_command != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          PRE_BUILD_COMMAND: ${{ inputs.pre_build_command }}
+        run: bash -e -c "$PRE_BUILD_COMMAND"
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # a project scaffolded with --no-linting has no Biome config to lint against
+      - name: Lint
+        run: |
+          if [ -f biome.json ] || [ -f biome.jsonc ]; then
+            npx @biomejs/biome ci .
+          else
+            echo "No biome.json, skipping Biome"
+          fi
+      - name: Check types
+        run: npm run type
+
+  scan:
+    name: scan
+    runs-on: ${{ inputs.runs_on }}
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      # Gitleaks comments on the pull request it finds a secret in
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Scan with Gitleaks
+        if: inputs.enable_secrets
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # A high or critical finding (CVSS 7 or more) fails a pull request; elsewhere it's annotated
+      # instead, so releases and the patch pipeline that fixes it still run. Accept one with an
+      # IgnoredVulns entry in an osv-scanner.toml beside the lockfile
+      - name: Scan with OSV
+        id: osv
+        run: |
+          curl -sL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o "$RUNNER_TEMP/osv-scanner"
+          chmod +x "$RUNNER_TEMP/osv-scanner"
+          # 0: nothing found, 1: vulnerabilities found, 128: no lockfile, anything else: no scan
+          status=0
+          "$RUNNER_TEMP/osv-scanner" scan source -r --format json --output-file "$RUNNER_TEMP/osv.json" . || status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          rm "$RUNNER_TEMP/osv-scanner"
+      - name: Report OSV findings
+        uses: actions/github-script@v9
+        env:
+          OSV_STATUS: ${{ steps.osv.outputs.status }}
+          OSV_REPORT: ${{ runner.temp }}/osv.json
+          OSV_ENFORCE: ${{ github.event_name == 'pull_request' }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const path = require('node:path');
+            const status = Number(process.env.OSV_STATUS);
+            if (status === 128) {
+              core.info('No lockfiles to scan');
+              return;
+            }
+            if ((status !== 0 && status !== 1) || !fs.existsSync(process.env.OSV_REPORT)) {
+              core.warning(`OSV-Scanner couldn't finish (exit ${status}), so dependencies weren't checked; see the scan step's log`, { title: 'OSV scan incomplete' });
+              return;
+            }
+            const report = JSON.parse(fs.readFileSync(process.env.OSV_REPORT, 'utf8'));
+            // a GitHub advisory's rating when an advisory has no CVSS score
+            const ratings = { CRITICAL: 9, HIGH: 7, MODERATE: 4, MEDIUM: 4, LOW: 1 };
+            const rows = [];
+            let blocking = 0;
+            for (const result of report.results ?? []) {
+              const file = path.relative(process.env.GITHUB_WORKSPACE, result.source.path);
+              for (const { package: pkg, vulnerabilities = [], groups = [] } of result.packages ?? []) {
+                for (const group of groups) {
+                  const vulns = vulnerabilities.filter((v) => group.ids.includes(v.id));
+                  let score = Number.parseFloat(group.max_severity);
+                  if (Number.isNaN(score)) {
+                    score = Math.max(0, ...vulns.map((v) => ratings[String(v.database_specific?.severity).toUpperCase()] ?? 0));
+                  }
+                  const high = score >= 7;
+                  const message = `${pkg.name} ${pkg.version}: ${group.ids.join(', ')} ${vulns[0]?.summary ?? ''} (severity ${score || 'unknown'})`;
+                  if (high) {
+                    blocking++;
+                    core.error(message, { title: 'High or critical vulnerability', file });
+                  } else {
+                    core.warning(message, { title: 'Vulnerability', file });
+                  }
+                  rows.push([file, `${pkg.name} ${pkg.version}`, group.ids.join(', '), String(score || 'unknown')]);
+                }
+              }
+            }
+            if (rows.length) {
+              await core.summary
+                .addHeading('OSV-Scanner findings', 3)
+                .addTable([['Lockfile', 'Package', 'Advisories', 'Severity'], ...rows])
+                .write();
+            }
+            const found = `${blocking} high or critical ${blocking === 1 ? 'vulnerability' : 'vulnerabilities'}`;
+            if (blocking && process.env.OSV_ENFORCE === 'true') {
+              core.setFailed(`${found}: update the packages, or record an accepted one in osv-scanner.toml`);
+            } else if (blocking) {
+              core.warning(`${found}: this fails pull requests until they're updated, as the patch job may do`, { title: 'OSV scan' });
+            } else {
+              core.info(`${rows.length} found, none high or critical`);
+            }
+
+
+  test:
+    name: test
+    if: inputs.run_tests
+    needs: [lint, scan]
+    runs-on: ${{ inputs.runs_on }}
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      # the input if set, else the project's .nvmrc, else forgejs's default
+      - name: Resolve the Node version
+        id: node
+        env:
+          INPUT: ${{ inputs.node_version }}
+        run: |
+          if [ -n "$INPUT" ]; then version="$INPUT"
+          elif [ -f .nvmrc ]; then version=$(tr -d '[:space:]' < .nvmrc)
+          else version=24
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ steps.node.outputs.version }}
+          cache: 'npm'
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: "@${{ github.repository_owner }}"
+      - name: Set up Go
+        if: inputs.setup_go != ''
+        uses: actions/setup-go@v7
+        with:
+          # a path names a file to read the version from, anything else is the version itself
+          go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          go-version-file: ${{ (endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          cache: false
+      # generates what the install, checks or build need, e.g. content made by another tool
+      - name: Run the pre-build command
+        if: inputs.pre_build_command != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          PRE_BUILD_COMMAND: ${{ inputs.pre_build_command }}
+        run: bash -e -c "$PRE_BUILD_COMMAND"
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Test
+        run: npm test
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-${{ inputs.artifact_name }}
+          path: ${{ inputs.working_directory }}/coverage
+          if-no-files-found: ignore
+
+  build:
+    name: build
+    # only needs the lint and scan to pass, so it runs alongside the tests
+    needs: [lint, scan]
+    runs-on: ${{ inputs.runs_on }}
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      # the input if set, else the project's .nvmrc, else forgejs's default
+      - name: Resolve the Node version
+        id: node
+        env:
+          INPUT: ${{ inputs.node_version }}
+        run: |
+          if [ -n "$INPUT" ]; then version="$INPUT"
+          elif [ -f .nvmrc ]; then version=$(tr -d '[:space:]' < .nvmrc)
+          else version=24
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ steps.node.outputs.version }}
+          cache: 'npm'
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: "@${{ github.repository_owner }}"
+      - name: Set up Go
+        if: inputs.setup_go != ''
+        uses: actions/setup-go@v7
+        with:
+          # a path names a file to read the version from, anything else is the version itself
+          go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          go-version-file: ${{ (endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          cache: false
+      # generates what the install, checks or build need, e.g. content made by another tool
+      - name: Run the pre-build command
+        if: inputs.pre_build_command != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          PRE_BUILD_COMMAND: ${{ inputs.pre_build_command }}
+        run: bash -e -c "$PRE_BUILD_COMMAND"
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Write the build environment
+        if: inputs.build_env_vars != ''
+        # through the environment, so the value is never parsed as part of the script
+        env:
+          BUILD_ENV_VARS: ${{ inputs.build_env_vars }}
+        run: printf '%s\n' "$BUILD_ENV_VARS" >> .env
+      - name: Build
+        run: npm run build
+      # publint checks the built package and docs:check the generated API docs; projects without
+      # these scripts skip them
+      - name: Check the package
+        run: |
+          npm run --if-present publint
+          npm run --if-present docs:check
+      - name: Upload the build
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: ${{ inputs.working_directory }}/dist
+
+  # checks the uploaded build, so a failing check leaves the build to inspect
+  check:
+    name: check
+    if: inputs.check_links || inputs.check_accessibility
+    needs: [build]
+    runs-on: ${{ inputs.runs_on }}
+    # installing a browser and visiting every page takes longer than a build
+    timeout-minutes: ${{ inputs.check_accessibility && 20 || 10 }}
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      # for a lychee.toml or .lycheeignore, and the .nvmrc
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      # the input if set, else the project's .nvmrc, else forgejs's default
+      - name: Resolve the Node version
+        id: node
+        env:
+          INPUT: ${{ inputs.node_version }}
+        run: |
+          if [ -n "$INPUT" ]; then version="$INPUT"
+          elif [ -f .nvmrc ]; then version=$(tr -d '[:space:]' < .nvmrc)
+          else version=24
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Set up Node
+        if: inputs.check_accessibility
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ steps.node.outputs.version }}
+          package-manager-cache: false
+      - name: Download the build
         uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.artifact_name }}
-          path: ./pages-artifact
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v5
+          path: ${{ runner.temp }}/build
+      # served from a copy under base_path, as the host serves it, so root-relative links resolve
+      - name: Stage the site for checking
+        id: site
+        env:
+          BASE_PATH: ${{ inputs.base_path }}
+          BUILD: ${{ runner.temp }}/build
+        run: |
+          base="/${BASE_PATH#/}"
+          base="${base%/}/"
+          root="$RUNNER_TEMP/site"
+          rm -rf "$root"
+          mkdir -p "$root$base"
+          cp -R "$BUILD/." "$root$base"
+          echo "root=$root" >> "$GITHUB_OUTPUT"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+      # offline by default, so another site being down never fails the check; reads a lychee.toml or
+      # .lycheeignore in working_directory
+      - name: Check links
+        if: inputs.check_links
+        uses: lycheeverse/lychee-action@v2
         with:
-          path: ./pages-artifact
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
+          workingDirectory: ${{ inputs.working_directory }}
+          args: >-
+            --no-progress
+            ${{ !inputs.check_external_links && '--offline' || '' }}
+            --root-dir '${{ steps.site.outputs.root }}'
+            --fallback-extensions html
+            --index-files index.html
+            ${{ inputs.link_check_args }}
+            '${{ steps.site.outputs.root }}/**/*.html'
+          output: ${{ runner.temp }}/lychee/out.md
+          fail: true
+          failIfEmpty: false
+          jobSummary: true
+      - name: Install the accessibility checker
+        if: ${{ !cancelled() && inputs.check_accessibility && steps.site.outcome == 'success' }}
+        working-directory: ${{ runner.temp }}
+        run: |
+          mkdir -p a11y
+          cd a11y
+          printf '{"private":true,"type":"module"}' > package.json
+          npm install --ignore-scripts --no-audit --no-fund --save-exact playwright@1.63.0 @axe-core/playwright@4.13.0
+          # the browser's system libraries need root to install; a runner without sudo must have them already
+          if sudo -n true 2>/dev/null; then
+            npx playwright install --with-deps --only-shell chromium
+          else
+            npx playwright install --only-shell chromium
+          fi
+          cat > check.mjs <<'EOF'
+          import fs from "node:fs";
+          import http from "node:http";
+          import path from "node:path";
+          import AxeBuilder from "@axe-core/playwright";
+          import { chromium } from "playwright";
+
+          const root = process.env.SITE_ROOT;
+          const base = process.env.BASE_PATH;
+          const levels = ["minor", "moderate", "serious", "critical"];
+          const threshold = levels.indexOf(process.env.IMPACT || "serious");
+          if (threshold < 0) throw new Error(`accessibility_impact must be one of ${levels.join(", ")}`);
+
+          const types = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".mjs": "text/javascript",
+            ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp", ".avif": "image/avif", ".ico": "image/x-icon",
+            ".woff": "font/woff", ".woff2": "font/woff2", ".xml": "application/xml", ".txt": "text/plain" };
+
+          // the file a URL path serves, as a static host would: a directory's index.html, or the path plus .html
+          const resolve = (urlPath) => {
+            const file = path.join(root, decodeURIComponent(urlPath));
+            if (!file.startsWith(root + path.sep)) return undefined;
+            for (const candidate of [file, path.join(file, "index.html"), `${file}.html`]) {
+              if (fs.statSync(candidate, { throwIfNoEntry: false })?.isFile()) return candidate;
+            }
+          };
+
+          const server = http.createServer((req, res) => {
+            const file = resolve(new URL(req.url, "http://localhost").pathname);
+            if (!file) return res.writeHead(404).end("Not found");
+            res.writeHead(200, { "content-type": types[path.extname(file)] ?? "application/octet-stream" });
+            fs.createReadStream(file).pipe(res);
+          });
+          await new Promise((done) => server.listen(0, "127.0.0.1", done));
+          const origin = `http://127.0.0.1:${server.address().port}`;
+
+          // the listed paths, relative to the base path; without any, every page in the sitemap, else the home page
+          const sitemap = (file, seen = new Set()) => {
+            if (seen.has(file) || !fs.existsSync(file)) return [];
+            seen.add(file);
+            const locs = [...fs.readFileSync(file, "utf8").matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map((m) => new URL(m[1]).pathname);
+            return locs.flatMap((loc) => (loc.endsWith(".xml") ? sitemap(path.join(root, loc), seen) : [loc]));
+          };
+          const listed = (process.env.PAGES ?? "").split(/[\n,]/).map((p) => p.trim()).filter(Boolean);
+          let pages = listed.map((p) => base + p.replace(/^\//, ""));
+          if (pages.length === 0) {
+            const site = path.join(root, base);
+            const found = ["sitemap-index.xml", "sitemap.xml"].map((name) => path.join(site, name)).find(fs.existsSync);
+            pages = found ? [...new Set(sitemap(found))] : [base];
+            console.log(found ? `Checking ${pages.length} pages from ${path.relative(root, found)}` : "No sitemap, checking the home page");
+          }
+
+          const failures = [];
+          const notes = [];
+          const browser = await chromium.launch();
+          try {
+            const page = await (await browser.newContext()).newPage();
+            for (const pagePath of pages) {
+              const response = await page.goto(origin + pagePath, { waitUntil: "load" });
+              if (!response?.ok()) {
+                failures.push({ page: pagePath, rule: "page", impact: "critical", help: `HTTP ${response?.status()}`, nodes: [] });
+                continue;
+              }
+              const { violations } = await new AxeBuilder({ page })
+                .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+                .analyze();
+              for (const v of violations) {
+                const entry = { page: pagePath, rule: v.id, impact: v.impact, help: v.help, url: v.helpUrl, nodes: v.nodes.map((n) => n.target.join(" ")) };
+                (levels.indexOf(v.impact) >= threshold ? failures : notes).push(entry);
+              }
+            }
+          } finally {
+            await browser.close();
+            server.close();
+          }
+
+          const report = (entry, kind) => {
+            const where = entry.nodes.slice(0, 5).join(", ") + (entry.nodes.length > 5 ? `, and ${entry.nodes.length - 5} more` : "");
+            console.log(`::${kind} title=${entry.rule} (${entry.impact}) on ${entry.page}::${entry.help}${where ? `: ${where}` : ""}${entry.url ? ` ${entry.url}` : ""}`);
+          };
+          for (const entry of notes) report(entry, "warning");
+          for (const entry of failures) report(entry, "error");
+
+          const cell = (text) => String(text).replaceAll("|", "\\|").replaceAll("\n", " ");
+          const rows = [...failures, ...notes].map((e) =>
+            `| ${cell(e.page)} | ${e.url ? `[${e.rule}](${e.url})` : e.rule} | ${e.impact} | ${cell(e.help)} | ${e.nodes.length} |`);
+          const summary = [
+            "## Accessibility",
+            "",
+            `${pages.length} ${pages.length === 1 ? "page" : "pages"} checked against WCAG 2.2 A and AA: ${failures.length} violations at ${levels[threshold]} impact or above, ${notes.length} below it.`,
+            "",
+            ...(rows.length ? ["| Page | Rule | Impact | Problem | Elements |", "| :--- | :--- | :--- | :--- | ---: |", ...rows] : []),
+          ].join("\n");
+          if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
+          console.log(summary);
+          process.exitCode = failures.length > 0 ? 1 : 0;
+          EOF
+      - name: Check accessibility
+        if: ${{ !cancelled() && inputs.check_accessibility && steps.site.outcome == 'success' }}
+        env:
+          SITE_ROOT: ${{ steps.site.outputs.root }}
+          BASE_PATH: ${{ steps.site.outputs.base }}
+          PAGES: ${{ inputs.accessibility_paths }}
+          IMPACT: ${{ inputs.accessibility_impact }}
+        run: node "$RUNNER_TEMP/a11y/check.mjs"
+

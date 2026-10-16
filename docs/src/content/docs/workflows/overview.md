@@ -1,153 +1,152 @@
 ---
 title: Workflows overview
-description: Reusable GitHub Actions workflows for Node.js CI/CD pipelines.
+description: Reusable GitHub Actions pipelines for Node.js projects, called from one root workflow.
 ---
 
-Forge.js ships reusable GitHub Actions workflows that give every project the same quality checks, release process and delivery pipeline. `init` generates a `.github/workflows/index.yml` that calls the right one for your mode. This page covers the generated workflow, the shared inputs and the permissions it needs; the [job reference](/forgejs/docs/workflows/reference) describes each workflow's jobs.
+Forge.js ships reusable GitHub Actions pipelines that give every project the same checks, release process and delivery. `init` generates a root workflow, `.github/workflows/.index.yml`, whose jobs each call one pipeline. This page covers the generated workflow, when each pipeline runs, and the permissions they need; the [pipeline reference](/forgejs/docs/workflows/reference) describes each pipeline's stages and inputs.
 
-## Available workflows
+## Names on the run page
 
-| Workflow | Purpose |
+A root job calls a pipeline, and a pipeline's jobs are its stages, so a run page lists every job as `<pipeline> / <stage>`: `library / lint`, `version / release`, `pages / deploy`. No pipeline calls another, so there's never a third level. A pipeline an event doesn't need, such as `publish` on a pull request, shows as one skipped row.
+
+A root job's id is the pipeline's name. A second call to the same pipeline names its variant in brackets, such as forgejs's own `patch (docs)`.
+
+## Pipelines
+
+| Pipeline | Stages | Purpose |
+| :--- | :--- | :--- |
+| `library.yml` | lint, scan, test, build | A library's checks, and the build `publish.yml` ships |
+| `service.yml` | lint, scan, test, build | A backend's checks, and the build `debian.yml` packages |
+| `website.yml` | lint, scan, test, build, check | A website's checks, the build, and optional link and accessibility checks of it |
+| `debian.yml` | build, test | The `.deb`, packaged from the build with Snodeb, and read back |
+| `docker.yml` | build, build (arm64), push | A multi-platform image, pushed to GHCR on a release |
+| `version.yml` | release | release-please: the release pull request, then the tag and GitHub release |
+| `publish.yml` | package, assets, attest | The package to GitHub Packages, files attached to the release, and their build provenance |
+| `pages.yml` | deploy | The built website, to GitHub Pages |
+| `patch.yml` | update | `osv-scanner fix` on `package-lock.json`, committed to `main` |
+| `merge.yml` | review, squash | A review request on Dependabot's pull requests, and their squash merge once the checks pass |
+
+The stages are `lint` (Biome and the type check), `scan` (Gitleaks and OSV-Scanner), `test`, `build`, `check` (a check of a built result), `push`, `release`, `package`, `assets`, `attest`, `deploy`, `update`, `review` and `squash`.
+
+## When each pipeline runs
+
+| Event | Pipelines |
 | :--- | :--- |
-| `quality.yml` | Secret scanning (Gitleaks), dependency scanning (OSV-Scanner), Biome and TypeScript type checking |
-| `testing.yml` | Full QA suite: quality, Vitest, the build artifact, and automatic security patching on `main` |
-| `version.yml` | Automated versioning and GitHub releases via release-please |
-| `merge.yml` | Auto-merges Dependabot pull requests once checks pass, except GitHub Actions updates |
-| `review.yml` | Requests a review on Dependabot's and release-please's pull requests, which `CODEOWNERS` doesn't do in a private repository on GitHub Free |
-| `service.yml` | Pipeline for backends: testing, auto-merge, versioning |
-| `library.yml` | Pipeline for libraries: testing, auto-merge, versioning, then publishing to GitHub Packages |
-| `debian.yml` | Pipeline for Debian-packaged backends: testing, auto-merge, versioning, then the `.deb` build |
-| `website.yml` | Pipeline for websites: testing, optional link and accessibility checks, auto-merge, versioning, then GitHub Pages deployment |
-| `attest.yml` | Build provenance attestation for a published package, added as its own job when you want it |
-| `docker.yml` | Multi-platform Docker image build, pushed to GitHub Container Registry (GHCR) on release; `--docker` adds it as its own job |
+| Pull request | The checks (`library`, `service` or `website`, then `debian` and `docker` builds), then `merge` on Dependabot's |
+| Push to `main` | `version`; on a release, the checks again, then `publish`, `pages` or the `docker` push |
+| `auto-merged` dispatch, manual run | The same as a push to `main`, and `patch`, so a merged Dependabot update is followed by any security patch straight away |
+| Weekly schedule | `patch` |
+
+A project without versioning has no release to wait for: its checks run on every push to `main` as well, and a website deploys from every push.
 
 ## Generated workflow
 
-Your `index.yml` calls a reusable workflow with the `uses` keyword. `init` generates one for the selected mode.
-
-Every generated `index.yml` starts with the same triggers and concurrency rule: a newer push cancels the pull request run it replaces, and a run on `main` is never cancelled, so a release is never created without being published.
+`init` writes `.github/workflows/.index.yml` for the selected mode. Every one starts with the same triggers and concurrency rule: a newer push to a pull request cancels the run it replaces, and every other run has a concurrency group of its own, so a run on `main`, running or queued, is never cancelled and a release is never created without being published.
 
 ```yaml
+name: index
+
 on:
   push:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+  workflow_dispatch:
   repository_dispatch:
     types: [auto-merged]
+  schedule:
+    - cron: '17 3 * * 1'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
-```
-
-**Backend**, generated by `init --backend`:
-
-```yaml
-jobs:
-  service:
-    uses: apollogeddon/forgejs/.github/workflows/service.yml@main
-    permissions:
-      contents: write
-      packages: read
-      pull-requests: write
-    with:
-      auto_patch: true
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 ```
 
 **Library**, generated by `init --library`:
 
 ```yaml
 jobs:
+  version:
+    if: ${{ github.event_name != 'pull_request' && github.event_name != 'schedule' }}
+    uses: apollogeddon/forgejs/.github/workflows/version.yml@main
+    permissions:
+      contents: write
+      pull-requests: write
+
   library:
+    needs: version
+    if: ${{ !cancelled() && (github.event_name == 'pull_request' || needs.version.outputs.new_release_published == 'true') }}
     uses: apollogeddon/forgejs/.github/workflows/library.yml@main
     permissions:
-      contents: write
-      pull-requests: write
-      packages: write
-    with:
-      auto_patch: true
-```
-
-**Website**, generated by `init --website`:
-
-```yaml
-jobs:
-  website:
-    uses: apollogeddon/forgejs/.github/workflows/website.yml@main
-    permissions:
-      contents: write
+      contents: read
       packages: read
-      pages: write
-      id-token: write
       pull-requests: write
-    with:
-      auto_patch: true
-```
 
-**Debian**, generated by `init --debian`, calls `debian.yml` with the same permissions as the backend.
-
-**Docker**: `--docker` adds a separate `docker` job that runs after your pipeline job (backend, website or Debian) and uses its release outputs. Projects without Docker have no Docker job:
-
-```yaml
-jobs:
-  service:
-    # ...as above
-  docker:
-    needs: service
-    uses: apollogeddon/forgejs/.github/workflows/docker.yml@main
+  publish:
+    needs: [version, library]
+    if: ${{ !cancelled() && needs.library.result == 'success' && needs.version.outputs.new_release_published == 'true' }}
+    uses: apollogeddon/forgejs/.github/workflows/publish.yml@main
     permissions:
       contents: read
       packages: write
+
+  patch:
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' }}
+    uses: apollogeddon/forgejs/.github/workflows/patch.yml@main
+    permissions:
+      contents: write
+      packages: read
+
+  merge:
+    needs: library
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]' }}
+    uses: apollogeddon/forgejs/.github/workflows/merge.yml@main
     with:
-      push: ${{ github.ref == 'refs/heads/main' && needs.service.outputs.new_release_published == 'true' }}
-      version: ${{ needs.service.outputs.version }}
+      checks_passed: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+    permissions:
+      contents: write
+      pull-requests: write
 ```
 
-## Common inputs
+The other modes differ only in their jobs:
 
-The pipeline workflows (`service.yml`, `library.yml`, `debian.yml` and `website.yml`) accept these inputs. Inputs that only one workflow takes are listed in the [job reference](/forgejs/docs/workflows/reference).
+| Mode | Jobs |
+| :--- | :--- |
+| `--backend` | `version`, `service`, `patch`, `merge` |
+| `--library` | `version`, `library`, `publish`, `patch`, `merge` |
+| `--website` | `version`, `website`, `pages`, `patch`, `merge` |
+| `--debian` | `version`, `service`, `debian`, `publish` (the `.deb` attached to the release), `patch`, `merge` |
 
-| Input | Default | Description |
-| :--- | :--- | :--- |
-| `runs_on` | `'ubuntu-latest'` | Runner label for every job; see [Choosing runners](/forgejs/docs/workflows/reference#choosing-runners) |
-| `node_version` | `''` | Node.js version for every job. Empty reads the project's `.nvmrc`, and without one uses Node.js 24; see [Node.js version](/forgejs/docs/configuration#nodejs-version) |
-| `working_directory` | `'.'` | Directory containing `package.json` |
-| `enable_secrets` | `true` | Run the Gitleaks secret scan |
-| `artifact_name` | `'dist'` | Name of the build artifact passed between jobs (not `service.yml`) |
-| `auto_patch` | `true` | On `main`, run `osv-scanner fix` and commit any dependency security patches |
-| `build_env_vars` | `''` | Lines written to `.env` before the build |
-| `run_tests` | `true` | Run the Vitest suite; `init --no-testing` sets it to `false` |
-| `enable_versioning` | `true` | Run release-please; `init --no-versioning` sets it to `false` |
-| `test_on_push` | `true` | Run the checks on pushes too; see [Checking once per change](/forgejs/docs/workflows/reference#checking-once-per-change) |
-| `test_release_prs` | `true` | Run the checks on release-please's release pull requests |
-| `reviewers` | `''` | Comma-separated logins to request a review of Dependabot's and release-please's pull requests from; empty means the repository's owner. See [`review.yml`](/forgejs/docs/workflows/reference#reviewyml) |
+- `--docker` adds a `docker` job after the checks: it builds on pull requests, and builds and pushes on a release. `merge` waits for it, so a broken image stops a Dependabot merge.
+- `--no-testing` passes `run_tests: false` to the checks, which skips their `test` stage.
+- `--no-versioning` leaves out `version` and `publish`: the checks, and a website's deploy, run on every push to `main` instead.
+- `--no-linting` needs nothing: the `lint` stage skips Biome when the project has no `biome.json`.
+
+### Upgrading from `index.yml`
+
+Before 6.0, `init` generated `.github/workflows/index.yml` (and before 2.3.2, `ci.yml` and `debian.yml`), which called `library.yml`, `service.yml`, `website.yml` or `debian.yml` as one job. Once `init` has written `.index.yml`, it removes such a file when it's exactly as an earlier release generated it, ignoring line endings, trailing spaces and blank lines. One you've changed since, say to set `runs_on`, is kept with a warning until you run `init --force`: move your changes to `.index.yml` first. An `index.yml` that calls none of forgejs's workflows is your own and is never removed; check it doesn't repeat `.index.yml`'s jobs. Nothing is removed when `init` kept an existing `.index.yml`. See [Inputs that moved](/forgejs/docs/workflows/reference#inputs-that-moved) for a hand-written caller.
 
 ## Secrets
 
-None. The workflows use only the run's `GITHUB_TOKEN`, which a called workflow gets without `secrets: inherit`. It installs `@apollogeddon` packages from GitHub Packages, publishes libraries there, and drives release-please and Dependabot auto-merge. Don't add `secrets: inherit`: it hands every repository secret to a workflow that lives in another repository. `website.yml` takes one optional secret, `GH_TOKEN`, for a [pre-build command](/forgejs/docs/workflows/reference#generating-content-before-the-build); pass it by name if you need it.
+None. The pipelines use only the run's `GITHUB_TOKEN`, which a called workflow gets without `secrets: inherit`. It installs `@apollogeddon` packages from GitHub Packages, publishes libraries there, and drives release-please and the Dependabot merge. Don't add `secrets: inherit`: it hands every repository secret to a workflow that lives in another repository. The check pipelines take one optional secret, `GH_TOKEN`, for a [pre-build command](/forgejs/docs/workflows/reference#generating-content-before-the-build); pass it by name if you need it.
 
-GitHub doesn't start workflow runs for events made with `GITHUB_TOKEN`. So release-please's release pull requests don't run your checks on their own (they wait for approval, or a push to the branch), and the push a Dependabot auto-merge makes to `main` doesn't run the pipeline either. The auto-merge job therefore sends a `repository_dispatch` event, `auto-merged`, once the pull request has merged: one of the two events `GITHUB_TOKEN` may start a run with. Listen for it next to `push` and `pull_request`, as `init` does, so `main` is checked and release-please opens or updates its release pull request:
-
-```yaml
-  repository_dispatch:
-    types: [auto-merged]
-```
-
-The event runs on the default branch. A workflow that doesn't listen for it ignores it, and `main` waits for the next push as before.
+GitHub doesn't start workflow runs for events made with `GITHUB_TOKEN`. So release-please's release pull requests don't run your checks on their own (they wait for approval, or a push to the branch), and the push a Dependabot merge makes to `main` doesn't run the pipeline either. The `merge` pipeline therefore sends a `repository_dispatch` event, `auto-merged`, once the pull request has merged: one of the two events `GITHUB_TOKEN` may start a run with. `.index.yml` listens for it, so `main` runs `version` and release-please opens or updates its release pull request. The event runs on the default branch.
 
 ## Required permissions
 
-| Permission | Needed for |
-| :--- | :--- |
-| `contents: write` | release-please tags and releases, security patch commits |
-| `pull-requests: write` | release PRs and Dependabot auto-merge |
-| `packages: read` | Installing `@apollogeddon` packages from GitHub Packages (service, website, Debian) |
-| `packages: write` | Publishing to GitHub Packages (library) and pushing Docker images to GHCR (the `docker` job) |
-| `id-token: write` | GitHub Pages deployment (website), and the `attest.yml` job if you add one |
-| `attestations: write` | The `attest.yml` job, if you add one |
-| `pages: write` | GitHub Pages deployment (website) |
+Each root job grants what its pipeline's stages need, and nothing else:
 
-GitHub checks a called workflow's permissions against the caller's before running anything, so grant everything your mode needs even if a job would be skipped.
+| Root job | Permissions | Needed for |
+| :--- | :--- | :--- |
+| `library`, `service`, `website` | `contents: read`, `packages: read`, `pull-requests: write` | Installing `@apollogeddon` packages; Gitleaks' comment on a pull request it finds a secret in |
+| `debian` | `contents: read`, `packages: read` | Installing packages for the `.deb` |
+| `docker` | `contents: read`, `packages: write` | Pushing to GHCR |
+| `version` | `contents: write`, `pull-requests: write` | release-please's tags, releases and release pull requests |
+| `publish` | `contents: read`, `packages: write`; `contents: write` for `assets`; `id-token: write` and `attestations: write` for `attest` | Publishing, attaching release files, attesting |
+| `pages` | `pages: write`, `id-token: write` | GitHub Pages |
+| `patch` | `contents: write`, `packages: read` | Committing the patch |
+| `merge` | `contents: write`, `pull-requests: write` | The review request, the merge and the dispatch |
+
+GitHub checks a called workflow's permissions against the caller's before running anything, even a job that would be skipped. So a caller grants the union of what a pipeline's stages ask for. In `publish.yml`, `package` asks for exactly `contents: read` and `packages: write`, so it never holds more, and every caller grants those (the `--debian` one too, though its `package` stage is off). `assets` and `attest` ask for nothing and take the caller's grant, so a caller grants `contents: write`, or `id-token: write` and `attestations: write`, only for the stage it turns on.
 
 For GitHub Pages, set **Settings → Pages → Source** to **GitHub Actions**.

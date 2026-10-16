@@ -85,7 +85,7 @@ npx @apollogeddon/forgejs init [options]
 | `-V`, `--version` | Print the Forge.js version and exit. |
 | `--help` | Show the help message. |
 
-Only one mode can be active at a time, and a feature can't be both on and off. Options that can't be combined exit with code 2; an unknown option exits with code 1. `--no-testing` and `--no-versioning` also turn off the matching jobs in the generated CI workflow.
+Only one mode can be active at a time, and a feature can't be both on and off. Options that can't be combined exit with code 2; an unknown option exits with code 1. `--no-testing` also turns off the `test` stage in the generated CI workflow, and `--no-versioning` leaves out its `version` and `publish` jobs, so the checks run on every push to `main` instead; see [Generated workflow](/forgejs/docs/workflows/overview#generated-workflow).
 
 Earlier releases named the versioning feature `init --version` and `init --no-version`. They still work after `init`, with a warning: use `--versioning` and `--no-versioning`.
 
@@ -93,7 +93,7 @@ A new `package.json` is named after the directory, lowercased with anything othe
 
 `--no-all` turns off the standard features, not the mode: without a mode flag the project is still a `--backend` project, with its CI workflow.
 
-`--website` scaffolds a frontend application built with Vite: `index.html`, `src/main.ts` and `vite.config.ts`, with `dev`, `build` and `preview` scripts. Run `npm run dev` to work on it locally. In CI, the `website.yml` workflow builds the site and deploys `dist/` to GitHub Pages. It deploys whatever `npm run build` writes to `dist/`, so a site built with another tool, such as Astro, deploys the same way. It can also check the built site's links and accessibility, and run a command that generates content before the build; see [`website.yml`](/forgejs/docs/workflows/reference#websiteyml).
+`--website` scaffolds a frontend application built with Vite: `index.html`, `src/main.ts` and `vite.config.ts`, with `dev`, `build` and `preview` scripts. Run `npm run dev` to work on it locally. In CI, the `website` pipeline checks and builds the site, and the `pages` pipeline deploys `dist/` to GitHub Pages. It deploys whatever `npm run build` writes to `dist/`, so a site built with another tool, such as Astro, deploys the same way. It can also check the built site's links and accessibility, and run a command that generates content before the build; see [the check pipelines](/forgejs/docs/workflows/reference#site-checks).
 
 ## Generated scripts
 
@@ -126,7 +126,7 @@ A default `init` (backend) produces:
 ├── .github/
 │   ├── CODEOWNERS            # requests your review on others' pull requests
 │   ├── dependabot.yml        # weekly updates with a 3-day cooldown
-│   └── workflows/index.yml   # CI/CD calling the reusable workflows
+│   └── workflows/.index.yml  # CI/CD: one job per forgejs pipeline
 ├── .editorconfig
 ├── .nvmrc                    # the project's Node.js version, read by nvm, setup-node and CI
 ├── src/
@@ -145,4 +145,4 @@ A default `init` (backend) produces:
 ## Next steps
 
 - [Configuration](/forgejs/docs/configuration) explains how to override the shared configs.
-- [Workflows](/forgejs/docs/workflows/overview) describes the generated CI pipeline and its inputs.
+- [Workflows](/forgejs/docs/workflows/overview) describes the generated `.index.yml`, the pipelines it calls and their inputs.

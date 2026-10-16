@@ -1,0 +1,76 @@
+name: patch
+
+# Weekly: osv-scanner fix updates vulnerable dependencies in package-lock.json, and the result is committed to main.
+
+on:
+  workflow_call:
+    inputs:
+      runs_on:
+        description: "Runner label for every job, e.g. a self-hosted scale set's"
+        required: false
+        type: string
+        default: 'ubuntu-latest'
+      working_directory:
+        description: "Directory holding package.json"
+        required: false
+        type: string
+        default: '.'
+      node_version:
+        description: "Node.js version; empty reads the project's .nvmrc, else Node 24"
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  update:
+    name: update
+    if: github.ref == 'refs/heads/main'
+    runs-on: ${{ inputs.runs_on }}
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      packages: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      # the branch's tip rather than the triggering commit, so a patch committed earlier in the run is kept;
+      # keeps its credentials, to push the patch
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+      # the input if set, else the project's .nvmrc, else forgejs's default
+      - name: Resolve the Node version
+        id: node
+        env:
+          INPUT: ${{ inputs.node_version }}
+        run: |
+          if [ -n "$INPUT" ]; then version="$INPUT"
+          elif [ -f .nvmrc ]; then version=$(tr -d '[:space:]' < .nvmrc)
+          else version=24
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ steps.node.outputs.version }}
+          cache: 'npm'
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: "@${{ github.repository_owner }}"
+      - name: Update vulnerable dependencies
+        run: |
+          curl -L https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o osv-scanner
+          chmod +x osv-scanner
+          ./osv-scanner fix --non-interactive --strategy=in-place -L package-lock.json
+          rm osv-scanner
+          npm install --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit the patches
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: "fix(deps): patch vulnerabilities via osv-scanner"
+          file_pattern: 'package.json package-lock.json'
+          repository: ${{ inputs.working_directory }}

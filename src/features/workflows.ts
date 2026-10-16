@@ -1,7 +1,31 @@
 import * as templates from "../templates/index.js";
-import type { PackageJson } from "../types.js";
+import type { InitConfig, PackageJson } from "../types.js";
 import type { IFileSystem } from "../utils/filesystem.js";
-import { createFile, type Feature } from "./types.js";
+import { createFile, type Feature, removeFile } from "./types.js";
+
+export const INDEX_WORKFLOW = ".github/workflows/.index.yml";
+
+// Before .index.yml, forgejs generated index.yml (and, before 2.3.2, ci.yml and debian.yml); left in place, one
+// runs every pipeline twice. One exactly as an earlier forgejs wrote it goes; one calling forgejs's pipelines
+// that's been changed goes only with --force, as removeFile does; one calling none of them is the project's own.
+export function removeOldWorkflows(cwd: string, cfg: InitConfig, fs: IFileSystem): void {
+  for (const file of Object.keys(templates.LEGACY_WORKFLOWS)) {
+    const path = fs.join(cwd, file);
+    if (!fs.existsSync(path)) continue;
+    const content = fs.readFileSync(path, "utf-8");
+    if (templates.isLegacyWorkflow(file, content)) {
+      removeFile(cwd, file, { ...cfg, force: true }, fs);
+    } else if (templates.callsForgejs(content)) {
+      if (!cfg.force)
+        console.warn(`⚠️  ${file} calls forgejs's old pipelines and has been changed since init wrote it.`);
+      removeFile(cwd, file, cfg, fs);
+    } else if (file.endsWith("/index.yml")) {
+      console.warn(
+        `⚠️  Left ${file}, which doesn't call forgejs's pipelines: check it doesn't repeat ${INDEX_WORKFLOW}'s jobs.`,
+      );
+    }
+  }
+}
 
 const GITHUB_OWNER = /github\.com[:/]([A-Za-z0-9][A-Za-z0-9-]*)\//;
 
@@ -35,33 +59,19 @@ export const WorkflowFeature: Feature = {
       console.log("ℹ️  No GitHub remote yet, so no .github/CODEOWNERS. Run init again once the project has one.");
     }
 
-    let workflowContent = "";
-    let workflowName = "";
-
-    if (cfg.debian) {
-      workflowContent = templates.debianWorkflow;
-      workflowName = ".github/workflows/index.yml";
-    } else if (cfg.library) {
-      workflowContent = templates.libraryWorkflow;
-      workflowName = ".github/workflows/index.yml";
-    } else if (cfg.website) {
-      workflowContent = templates.websiteWorkflow;
-      workflowName = ".github/workflows/index.yml";
-    } else if (cfg.backend) {
-      workflowContent = templates.serviceWorkflow;
-      workflowName = ".github/workflows/index.yml";
-    }
-
-    if (workflowContent && workflowName) {
-      const inputs: Record<string, boolean> = {};
-      if (!cfg.testing) inputs.run_tests = false;
-      if (!cfg.versioning) inputs.enable_versioning = false;
-      workflowContent = templates.withPipelineInputs(workflowContent, inputs);
-      if (cfg.docker) {
-        workflowContent = templates.withDocker(workflowContent);
-      }
-      ok = createFile(cwd, workflowName, workflowContent, cfg, fs) && ok;
-    }
+    const mode = cfg.library ? "library" : cfg.website ? "website" : "service";
+    const workflow = templates.indexWorkflow({
+      mode,
+      debian: cfg.debian,
+      docker: cfg.docker,
+      testing: cfg.testing,
+      versioning: cfg.versioning,
+    });
+    // only once .index.yml is written: a kept or failed one would leave the project with no CI, or the old one
+    const replacing = !fs.existsSync(fs.join(cwd, INDEX_WORKFLOW)) || cfg.force;
+    const written = createFile(cwd, INDEX_WORKFLOW, workflow, cfg, fs);
+    if (written && replacing) removeOldWorkflows(cwd, cfg, fs);
+    ok = written && ok;
     return ok;
   },
   cleanup: () => {},

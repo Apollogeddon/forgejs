@@ -76,39 +76,53 @@ Forge.js never removes scripts, and only overwrites the ones it manages when you
 
 ### Run in a monorepo package
 
-Point a workflow at a subdirectory with `working_directory`, given relative to the repository root without a leading `./` or trailing `/`. `version.yml` releases that package on its own: release-please only counts commits under the directory, and tags its releases with the package's name (`api-v1.2.3`):
+Point the pipelines at a subdirectory with `working_directory`, given relative to the repository root without a leading `./` or trailing `/`. `version.yml` releases that package on its own: release-please only counts commits under the directory, and tags its releases with the package's name (`api-v1.2.3`):
 
 ```yaml
 jobs:
-  api:
-    uses: apollogeddon/forgejs/.github/workflows/service.yml@main
-    permissions:
-      contents: write
-      packages: read
-      pull-requests: write
+  version:
+    if: ${{ github.event_name != 'pull_request' && github.event_name != 'schedule' }}
+    uses: apollogeddon/forgejs/.github/workflows/version.yml@main
     with:
       working_directory: 'packages/api'
+    permissions:
+      contents: write
+      pull-requests: write
+
+  service:
+    needs: version
+    if: ${{ !cancelled() && (github.event_name == 'pull_request' || needs.version.outputs.new_release_published == 'true') }}
+    uses: apollogeddon/forgejs/.github/workflows/service.yml@main
+    with:
+      working_directory: 'packages/api'
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: write
 ```
+
+Pass it to `patch.yml` too, and to `publish.yml` for a library.
 
 ### Test across Node.js versions
 
-Call `testing.yml` from a matrix to run the quality and test jobs on several Node.js versions:
+Call a check pipeline from a matrix to run its stages on several Node.js versions. The run page names each call `service (22)`, `service (24)`:
 
 ```yaml
 jobs:
-  test:
+  service:
+    name: service (${{ matrix.node }})
     strategy:
       matrix:
         node: ['22', '24']
-    uses: apollogeddon/forgejs/.github/workflows/testing.yml@main
+    uses: apollogeddon/forgejs/.github/workflows/service.yml@main
     permissions:
-      contents: write   # requested by the patch job, even when it is skipped
+      contents: read
       packages: read
+      pull-requests: write
     with:
       node_version: ${{ matrix.node }}
-      # artifact names must be unique per run, and security patching should only run once
+      # artifact names must be unique per run
       artifact_name: dist-node-${{ matrix.node }}
-      auto_patch: false
 ```
 
 ### Set build-time environment variables
@@ -118,13 +132,8 @@ Pass `build_env_vars` to write variables into `.env` before the build. Use it fo
 ```yaml
 jobs:
   website:
+    # ...as generated
     uses: apollogeddon/forgejs/.github/workflows/website.yml@main
-    permissions:
-      contents: write
-      packages: read
-      pages: write
-      id-token: write
-      pull-requests: write
     with:
       build_env_vars: "PUBLIC_API_URL=${{ vars.PUBLIC_API_URL }}"
 ```
@@ -136,13 +145,14 @@ With `--docker`, CI builds `linux/amd64` and `linux/arm64`. Add platforms with t
 ```yaml
 jobs:
   docker:
-    needs: service
+    needs: [version, service]
+    if: ${{ !cancelled() && needs.service.result == 'success' }}
     uses: apollogeddon/forgejs/.github/workflows/docker.yml@main
     permissions:
       contents: read
       packages: write
     with:
-      push: ${{ github.ref == 'refs/heads/main' && needs.service.outputs.new_release_published == 'true' }}
-      version: ${{ needs.service.outputs.version }}
+      push: ${{ needs.version.outputs.new_release_published == 'true' }}
+      version: ${{ needs.version.outputs.version }}
       platforms: 'linux/amd64,linux/arm64,linux/arm/v7'
 ```
