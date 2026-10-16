@@ -1,5 +1,18 @@
 # Changelog
 
+## [6.0.0](https://github.com/Apollogeddon/forgejs/compare/v5.1.1...v6.0.0) (2026-10-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* the index.yml, testing and release pipelines are gone; call the split pipelines from a root .index.yml.
+
+### Features
+
+* **ci:** run main's pipeline after a dependabot auto-merge, through a repository_dispatch ([#235](https://github.com/Apollogeddon/forgejs/issues/235)) ([661161b](https://github.com/Apollogeddon/forgejs/commit/661161b6faefab84d4e9afe5fef620aff6087f6f))
+* review 4 findings (project-relative aliases, --versioning and -C, OSV gate, publint and docs:check in CI) ([#236](https://github.com/Apollogeddon/forgejs/issues/236)) ([febefca](https://github.com/Apollogeddon/forgejs/commit/febefca4f2eeadb5792b44fb5147c4dbe75144ff))
+* split the pipelines by role, with a root .index.yml and two-level job names ([#238](https://github.com/Apollogeddon/forgejs/issues/238)) ([7966560](https://github.com/Apollogeddon/forgejs/commit/7966560370177998cb7cdd8fa49cea2064c06d29))
+
 ## [5.1.1](https://github.com/Apollogeddon/forgejs/compare/v5.1.0...v5.1.1) (2026-10-11)
 
 
