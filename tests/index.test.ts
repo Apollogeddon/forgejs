@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { NODE_VERSION } from "../src/versions.js";
 
 const CLI_SCRIPT = path.resolve(__dirname, "../src/index.ts");
-// Generated index.yml calls these reusable workflows at @main; this repo is what @main serves
+// Generated .index.yml calls these pipelines at @main; this repo is what @main serves
 const REPO_WORKFLOWS = path.resolve(__dirname, "../.github/workflows");
 
 // Invoking the local tsx binary directly, rather than `npx tsx` from an unrelated tempDir cwd,
@@ -58,7 +58,7 @@ type GeneratedWorkflow = {
     string,
     {
       uses?: string;
-      needs?: string;
+      needs?: string | string[];
       with?: Record<string, unknown>;
       secrets?: unknown;
       permissions?: Record<string, string>;
@@ -67,7 +67,7 @@ type GeneratedWorkflow = {
 };
 
 function readGeneratedWorkflow(cwd: string): GeneratedWorkflow {
-  return yaml.load(fs.readFileSync(path.join(cwd, ".github/workflows/index.yml"), "utf-8")) as GeneratedWorkflow;
+  return yaml.load(fs.readFileSync(path.join(cwd, ".github/workflows/.index.yml"), "utf-8")) as GeneratedWorkflow;
 }
 
 describe("CLI Init Command", () => {
@@ -247,18 +247,16 @@ describe("CLI Init Command", () => {
 
     expect(fs.existsSync(path.join(tempDir, "vitest.config.ts"))).toBe(true);
 
-    const workflowPath = path.join(tempDir, ".github/workflows/index.yml");
-    expect(fs.existsSync(workflowPath)).toBe(true);
-    const workflowContent = fs.readFileSync(workflowPath, "utf-8");
-    expect(workflowContent).toContain("library.yml");
+    expect(readGeneratedWorkflow(tempDir).jobs.library?.uses).toBe(
+      "apollogeddon/forgejs/.github/workflows/library.yml@main",
+    );
   });
 
   it("should setup service workflow for backend", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
-    const workflowPath = path.join(tempDir, ".github/workflows/index.yml");
-    expect(fs.existsSync(workflowPath)).toBe(true);
-    const workflowContent = fs.readFileSync(workflowPath, "utf-8");
-    expect(workflowContent).toContain("service.yml");
+    expect(readGeneratedWorkflow(tempDir).jobs.service?.uses).toBe(
+      "apollogeddon/forgejs/.github/workflows/service.yml@main",
+    );
   });
 
   it("should support --debian flag to setup snodeb", () => {
@@ -410,28 +408,66 @@ describe("CLI Init Command", () => {
   it.each([
     ["--backend", "service"],
     ["--website", "website"],
-    ["--debian", "debian"],
-  ])("should add a docker job after the pipeline for %s --docker", (mode, pipeline) => {
+    ["--debian", "service"],
+  ])("should add a docker job after the checks for %s --docker", (mode, pipeline) => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${mode} --docker`, { cwd: tempDir });
     const docker = readGeneratedWorkflow(tempDir).jobs.docker;
-    expect(docker.uses).toContain("/docker.yml@");
-    expect(docker.needs).toBe(pipeline);
+    expect(docker.uses).toBe("apollogeddon/forgejs/.github/workflows/docker.yml@main");
+    expect(docker.needs).toEqual(["version", pipeline]);
     expect(docker.permissions?.packages).toBe("write");
-    expect(String(docker.with?.version)).toContain(`needs.${pipeline}.outputs.version`);
+    expect(String(docker.with?.version)).toBe("${{ needs.version.outputs.version }}");
   });
 
   it("should not add a docker job without --docker", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
-    expect(Object.keys(readGeneratedWorkflow(tempDir).jobs)).toEqual(["service"]);
+    expect(Object.keys(readGeneratedWorkflow(tempDir).jobs)).toEqual(["version", "service", "patch", "merge"]);
+  });
+
+  it("should package a Debian backend after its checks", () => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --debian`, { cwd: tempDir });
+    const jobs = readGeneratedWorkflow(tempDir).jobs;
+    expect(jobs.debian?.needs).toBe("service");
+    expect(jobs.publish?.with?.assets).toBe("debian-package");
+  });
+
+  it("should replace an index.yml an earlier forgejs generated", () => {
+    const old = path.join(tempDir, ".github/workflows/index.yml");
+    fs.mkdirSync(path.dirname(old), { recursive: true });
+    fs.writeFileSync(old, "jobs:\n  library:\n    uses: apollogeddon/forgejs/.github/workflows/library.yml@main\n");
+    const output = execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --library`, { cwd: tempDir, encoding: "utf-8" });
+    expect(fs.existsSync(old)).toBe(false);
+    expect(output).toContain("Removed .github/workflows/index.yml");
+    expect(fs.existsSync(path.join(tempDir, ".github/workflows/.index.yml"))).toBe(true);
+  });
+
+  it("should keep the old index.yml on a dry run", () => {
+    const old = path.join(tempDir, ".github/workflows/index.yml");
+    fs.mkdirSync(path.dirname(old), { recursive: true });
+    fs.writeFileSync(old, "jobs:\n  ci:\n    uses: apollogeddon/forgejs/.github/workflows/service.yml@main\n");
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --dry-run`, { cwd: tempDir });
+    expect(fs.existsSync(old)).toBe(true);
+  });
+
+  it("should leave a project's own index.yml, with a warning", () => {
+    const own = path.join(tempDir, ".github/workflows/index.yml");
+    fs.mkdirSync(path.dirname(own), { recursive: true });
+    fs.writeFileSync(own, "jobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm test\n");
+    const result = spawnSync("node", [TSX_CLI, CLI_SCRIPT, "init"], { cwd: tempDir, encoding: "utf-8" });
+    expect(result.status).toBe(0);
+    expect(fs.existsSync(own)).toBe(true);
+    expect(result.stderr).toContain("Left .github/workflows/index.yml");
   });
 
   it.each([
     ["--no-testing", "run_tests"],
-    ["--no-versioning", "enable_versioning"],
-    ["--no-version", "enable_versioning"],
+    ["--no-versioning", "version"],
+    ["--no-version", "version"],
   ])("should switch off the matching pipeline step for %s", (flag, input) => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${flag}`, { cwd: tempDir });
-    expect(readGeneratedWorkflow(tempDir).jobs.service.with?.[input]).toBe(false);
+    const jobs = readGeneratedWorkflow(tempDir).jobs;
+    if (input === "run_tests") expect(jobs.service?.with?.run_tests).toBe(false);
+    // without versioning there's no release to wait for, so no version job
+    else expect(jobs.version).toBeUndefined();
   });
 
   it.each([
@@ -471,7 +507,7 @@ describe("CLI Init Command", () => {
       // the called workflows only use GITHUB_TOKEN, which they get without inheriting every secret
       expect(job.secrets, `${name} passes secrets`).toBeUndefined();
       // only GitHub Pages needs an OIDC token
-      if (name !== "website") expect(job.permissions?.["id-token"], `${name} asks for id-token`).toBeUndefined();
+      if (name !== "pages") expect(job.permissions?.["id-token"], `${name} asks for id-token`).toBeUndefined();
     }
   });
 
@@ -558,7 +594,7 @@ describe("CLI Init Command", () => {
     // Build/Base features always run regardless of --no-all
     expect(fs.existsSync(path.join(tempDir, "tsdown.config.ts"))).toBe(true);
     // --no-all turns off the standard features, not the default backend mode
-    expect(fs.existsSync(path.join(tempDir, ".github", "workflows", "index.yml"))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, ".github", "workflows", ".index.yml"))).toBe(true);
   });
 
   it("should only tell the user to install the git hooks when npm install won't", () => {
@@ -620,14 +656,14 @@ describe("CLI Init Command", () => {
     expect(lefthookConfig).not.toContain("commitlint");
   });
 
-  // .nvmrc is where the Node.js version lives: CI reads it, so the generated index.yml sets none
+  // .nvmrc is where the Node.js version lives: CI reads it, so the generated .index.yml sets none
   it("should pin the project's Node.js version in .nvmrc and engines", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
 
     expect(fs.readFileSync(path.join(tempDir, ".nvmrc"), "utf-8")).toBe(`${NODE_VERSION}\n`);
     const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
     expect(packageJson.engines.node).toBe(`>=${NODE_VERSION}`);
-    expect(fs.readFileSync(path.join(tempDir, ".github/workflows/index.yml"), "utf-8")).not.toContain("node_version");
+    expect(fs.readFileSync(path.join(tempDir, ".github/workflows/.index.yml"), "utf-8")).not.toContain("node_version");
   });
 
   it("should keep a project's own engines.node without --force", () => {

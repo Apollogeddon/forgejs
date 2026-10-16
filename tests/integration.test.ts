@@ -35,6 +35,18 @@ function robustRemoveDir(dir: string, maxRetries = 5, delay = 500) {
   }
 }
 
+// What the generated .index.yml's check pipelines run: the lint stage's Biome and type check, then the
+// test and build stages, and the package checks after the build
+function runCheckStages(tempDir: string) {
+  expect(fs.existsSync(path.join(tempDir, ".github/workflows/.index.yml"))).toBe(true);
+  execSync("npx @biomejs/biome ci .", { cwd: tempDir, stdio: "pipe" });
+  execSync("npm run type", { cwd: tempDir, stdio: "pipe" });
+  execSync("npm test", { cwd: tempDir, stdio: "pipe" });
+  execSync("npm run build", { cwd: tempDir, stdio: "pipe" });
+  execSync("npm run --if-present publint", { cwd: tempDir, stdio: "pipe" });
+  execSync("npm run --if-present docs:check", { cwd: tempDir, stdio: "pipe" });
+}
+
 function scaffoldAndInstall(tempDir: string, ...initArgs: string[]) {
   execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${initArgs.join(" ")}`, { cwd: tempDir, stdio: "pipe" });
 
@@ -64,13 +76,12 @@ describe("End-to-end: a scaffolded project actually works", () => {
   );
 
   it(
-    "backend scaffold lints, type-checks, builds, tests, and runs",
+    "backend scaffold passes its CI check stages, and runs",
     () => {
       scaffoldAndInstall(tempDir, "--backend");
+      // formats the scaffold, as the pre-commit hook does before its first commit reaches CI
       execSync("npm run lint", { cwd: tempDir, stdio: "pipe" });
-      execSync("npm run type", { cwd: tempDir, stdio: "pipe" });
-      execSync("npm run build", { cwd: tempDir, stdio: "pipe" });
-      execSync("npm test", { cwd: tempDir, stdio: "pipe" });
+      runCheckStages(tempDir);
       const output = execSync("npm start", { cwd: tempDir, encoding: "utf-8" });
       expect(output).toContain("Hello from");
     },
@@ -105,13 +116,12 @@ describe("End-to-end: a scaffolded project actually works", () => {
   );
 
   it(
-    "library scaffold lints, type-checks, builds, tests, and passes publint",
+    "library scaffold passes its CI check stages, publint included",
     () => {
       scaffoldAndInstall(tempDir, "--library");
+      // formats the scaffold, as the pre-commit hook does before its first commit reaches CI
       execSync("npm run lint", { cwd: tempDir, stdio: "pipe" });
-      execSync("npm run type", { cwd: tempDir, stdio: "pipe" });
-      execSync("npm run build", { cwd: tempDir, stdio: "pipe" });
-      execSync("npm test", { cwd: tempDir, stdio: "pipe" });
+      runCheckStages(tempDir);
       execSync("npm run publint", { cwd: tempDir, stdio: "pipe" });
     },
     180000,

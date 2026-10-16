@@ -1,7 +1,35 @@
 import * as templates from "../templates/index.js";
-import type { PackageJson } from "../types.js";
+import type { InitConfig, PackageJson } from "../types.js";
 import type { IFileSystem } from "../utils/filesystem.js";
 import { createFile, type Feature } from "./types.js";
+
+export const INDEX_WORKFLOW = ".github/workflows/.index.yml";
+const OLD_INDEX_WORKFLOW = ".github/workflows/index.yml";
+
+// Before .index.yml, forgejs generated index.yml; left in place it would run every pipeline twice. A
+// project's own index.yml, one calling nothing of forgejs's, stays, with a warning.
+export function removeOldIndexWorkflow(cwd: string, cfg: InitConfig, fs: IFileSystem): void {
+  const file = fs.join(cwd, OLD_INDEX_WORKFLOW);
+  if (!fs.existsSync(file)) return;
+  if (!templates.isForgeIndexWorkflow(fs.readFileSync(file, "utf-8"))) {
+    console.warn(
+      `⚠️  Left ${OLD_INDEX_WORKFLOW}, which doesn't call forgejs's pipelines: check it doesn't repeat ${INDEX_WORKFLOW}'s jobs.`,
+    );
+    return;
+  }
+  if (cfg.dryRun) {
+    console.log(`[DryRun] Would remove ${OLD_INDEX_WORKFLOW}, which ${INDEX_WORKFLOW} replaces`);
+    return;
+  }
+  try {
+    fs.unlinkSync(file);
+    console.log(`🗑️  Removed ${OLD_INDEX_WORKFLOW}, which ${INDEX_WORKFLOW} replaces`);
+  } catch (error) {
+    console.warn(
+      `⚠️  Failed to remove ${OLD_INDEX_WORKFLOW}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
 
 const GITHUB_OWNER = /github\.com[:/]([A-Za-z0-9][A-Za-z0-9-]*)\//;
 
@@ -35,33 +63,16 @@ export const WorkflowFeature: Feature = {
       console.log("ℹ️  No GitHub remote yet, so no .github/CODEOWNERS. Run init again once the project has one.");
     }
 
-    let workflowContent = "";
-    let workflowName = "";
-
-    if (cfg.debian) {
-      workflowContent = templates.debianWorkflow;
-      workflowName = ".github/workflows/index.yml";
-    } else if (cfg.library) {
-      workflowContent = templates.libraryWorkflow;
-      workflowName = ".github/workflows/index.yml";
-    } else if (cfg.website) {
-      workflowContent = templates.websiteWorkflow;
-      workflowName = ".github/workflows/index.yml";
-    } else if (cfg.backend) {
-      workflowContent = templates.serviceWorkflow;
-      workflowName = ".github/workflows/index.yml";
-    }
-
-    if (workflowContent && workflowName) {
-      const inputs: Record<string, boolean> = {};
-      if (!cfg.testing) inputs.run_tests = false;
-      if (!cfg.versioning) inputs.enable_versioning = false;
-      workflowContent = templates.withPipelineInputs(workflowContent, inputs);
-      if (cfg.docker) {
-        workflowContent = templates.withDocker(workflowContent);
-      }
-      ok = createFile(cwd, workflowName, workflowContent, cfg, fs) && ok;
-    }
+    const mode = cfg.library ? "library" : cfg.website ? "website" : "service";
+    const workflow = templates.indexWorkflow({
+      mode,
+      debian: cfg.debian,
+      docker: cfg.docker,
+      testing: cfg.testing,
+      versioning: cfg.versioning,
+    });
+    ok = createFile(cwd, INDEX_WORKFLOW, workflow, cfg, fs) && ok;
+    removeOldIndexWorkflow(cwd, cfg, fs);
     return ok;
   },
   cleanup: () => {},
