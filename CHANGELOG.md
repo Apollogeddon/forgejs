@@ -1,5 +1,22 @@
 # Changelog
 
+## [7.0.0](https://github.com/Apollogeddon/forgejs/compare/v6.0.0...v7.0.0) (2026-10-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* init --version and --no-version no longer mean --versioning/--no-versioning; init no longer removes tsup.config.ts
+
+### Features
+
+* drop the deprecated --version/--no-version init flags and the tsup config clean-up ([#243](https://github.com/Apollogeddon/forgejs/issues/243)) ([90a1ed8](https://github.com/Apollogeddon/forgejs/commit/90a1ed8ac07bf444d59002ab6e0dad60be90144a))
+
+
+### Bug Fixes
+
+* **deps:** bump the dependencies group across 1 directory with 3 updates ([#240](https://github.com/Apollogeddon/forgejs/issues/240)) ([aad028c](https://github.com/Apollogeddon/forgejs/commit/aad028c53f9b104c8bbd02a019ce40100d24428c))
+* **deps:** bump the vitest group with 2 updates ([#239](https://github.com/Apollogeddon/forgejs/issues/239)) ([75c9f4a](https://github.com/Apollogeddon/forgejs/commit/75c9f4a96a5f93470f12669750078d1fe06307cc))
+
 ## [6.0.0](https://github.com/Apollogeddon/forgejs/compare/v5.1.1...v6.0.0) (2026-10-16)
 
 
