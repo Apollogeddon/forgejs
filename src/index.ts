@@ -31,9 +31,7 @@ const options = {
   path: { type: "string", short: "C" },
   node: { type: "string" },
   help: { type: "boolean" },
-  // Prints the version on its own; after init, the deprecated name of --versioning
   version: { type: "boolean", short: "V" },
-  "no-version": { type: "boolean" },
 } as const;
 
 function parseCliArgs() {
@@ -43,7 +41,6 @@ function parseCliArgs() {
       options,
       strict: true,
       allowPositionals: true,
-      tokens: true,
     });
   } catch (error) {
     console.error(`❌ ${error instanceof Error ? error.message : String(error)}`);
@@ -51,7 +48,7 @@ function parseCliArgs() {
   }
 }
 
-const { values, positionals, tokens } = parseCliArgs();
+const { values, positionals } = parseCliArgs();
 
 // --help takes priority over everything else, including mode/flag validation
 if (values.help) {
@@ -61,12 +58,8 @@ if (values.help) {
 
 const command = positionals[0];
 
-// -V always prints the version; --version does when there's no command, and after init is the
-// versioning feature's old name
-if (
-  (command === undefined && values.version) ||
-  tokens.some((token) => token.kind === "option" && token.rawName === "-V")
-) {
+// --version prints the version, after init too, rather than scaffold
+if (values.version) {
   console.log(`forgejs ${forgejsVersion}`);
   process.exit(0);
 }
@@ -74,12 +67,6 @@ if (
 if (command !== "init") {
   showHelp();
   process.exit(1);
-}
-
-if (values.version || values["no-version"]) {
-  console.warn(
-    `⚠️  --${values.version ? "" : "no-"}version is deprecated: use --${values.version ? "" : "no-"}versioning`,
-  );
 }
 
 function invalid(message: string): never {
@@ -126,9 +113,9 @@ const config = {
 
   testing: resolveFeature(["--testing", "--no-testing"], values.testing, values["no-testing"], enableByDefault),
   versioning: resolveFeature(
-    [values.versioning ? "--versioning" : "--version", values["no-versioning"] ? "--no-versioning" : "--no-version"],
-    values.versioning || values.version,
-    values["no-versioning"] || values["no-version"],
+    ["--versioning", "--no-versioning"],
+    values.versioning,
+    values["no-versioning"],
     enableByDefault,
   ),
   linting: resolveFeature(["--linting", "--no-linting"], values.linting, values["no-linting"], enableByDefault),

@@ -35,7 +35,5 @@ export const BuildFeature: Feature = {
     } else {
       removeFile(cwd, "tsdown.config.ts", cfg, fs);
     }
-    // Forge.js bundled with tsup before 4.0; with --force, init removes the config it left
-    removeFile(cwd, "tsup.config.ts", cfg, fs);
   },
 };

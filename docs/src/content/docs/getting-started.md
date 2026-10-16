@@ -87,8 +87,6 @@ npx @apollogeddon/forgejs init [options]
 
 Only one mode can be active at a time, and a feature can't be both on and off. Options that can't be combined exit with code 2; an unknown option exits with code 1. `--no-testing` also turns off the `test` stage in the generated CI workflow, and `--no-versioning` leaves out its `version` and `publish` jobs, so the checks run on every push to `main` instead; see [Generated workflow](/forgejs/docs/workflows/overview#generated-workflow).
 
-Earlier releases named the versioning feature `init --version` and `init --no-version`. They still work after `init`, with a warning: use `--versioning` and `--no-versioning`.
-
 A new `package.json` is named after the directory, lowercased with anything other than letters and digits turned into dashes: a directory called `My JS` gives `my-js`. The Docker scripts name the image the same way.
 
 `--no-all` turns off the standard features, not the mode: without a mode flag the project is still a `--backend` project, with its CI workflow.
