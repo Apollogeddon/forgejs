@@ -163,7 +163,7 @@ npm's own `--provenance` flag only works with the public npm registry, which Git
       attestations: write
 ```
 
-The stages ask for no permissions of their own: GitHub checks a called workflow's permissions before running any of it, so a stage asking for `id-token: write` would stop every caller that doesn't grant it, even with the stage turned off. Each takes the caller's grant instead.
+GitHub checks a called workflow's permissions before running any of it, so a caller grants the union of what its jobs ask for, even those turned off. `package`, which holds the publish token, asks for exactly `contents: read` and `packages: write`, so it never gets the signing permissions. `assets` and `attest` ask for none, as asking would stop every caller that doesn't grant them, and take the caller's grant instead.
 
 To check a published package, fetch its tarball and verify it against your repository. The attestation is signed by `publish.yml`, so name forgejs as the signer:
 
@@ -236,7 +236,7 @@ Building locally needs a token with `read:packages` so `npm ci` can install `@ap
 
 ## patch.yml
 
-*Weekly security patches.*
+*Security patches, weekly and on a manual run.*
 
 1. **`update`**: On `main`, runs `osv-scanner fix` against `package-lock.json` in `working_directory`, then `npm install`, and commits any changes as `fix(deps): patch vulnerabilities via osv-scanner`. It checks out the tip of `main`, so a second call in the same run (forgejs patches its docs site after the tool) commits on top of the first.
 
@@ -264,7 +264,7 @@ Before 6.0, `library.yml`, `service.yml`, `website.yml` and `debian.yml` each ra
 | :--- | :--- |
 | `test_on_push`, `test_release_prs` | Gone: the root job's `if` decides (see [Checking a release](#checking-a-release)) |
 | `enable_versioning` | Gone: call `version.yml`, or leave it out |
-| `auto_patch` | Gone: call `patch.yml` from a scheduled run |
+| `auto_patch` | Gone: call `patch.yml` from a scheduled or manual run |
 | `publish` (`library.yml`) | Gone: call `publish.yml` |
 | `reviewers` | `version.yml`'s and `merge.yml`'s `reviewers` |
 | `auto_merge`, `review_dependabot` (`website.yml`) | Gone: call `merge.yml` once per run |
