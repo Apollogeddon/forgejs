@@ -236,7 +236,7 @@ Building locally needs a token with `read:packages` so `npm ci` can install `@ap
 
 ## patch.yml
 
-*Security patches, weekly and on a manual run.*
+*Security patches: weekly, on a manual run, and after a Dependabot merge.*
 
 1. **`update`**: On `main`, runs `osv-scanner fix` against `package-lock.json` in `working_directory`, then `npm install`, and commits any changes as `fix(deps): patch vulnerabilities via osv-scanner`. It checks out the tip of `main`, so a second call in the same run (forgejs patches its docs site after the tool) commits on top of the first.
 
@@ -264,7 +264,7 @@ Before 6.0, `library.yml`, `service.yml`, `website.yml` and `debian.yml` each ra
 | :--- | :--- |
 | `test_on_push`, `test_release_prs` | Gone: the root job's `if` decides (see [Checking a release](#checking-a-release)) |
 | `enable_versioning` | Gone: call `version.yml`, or leave it out |
-| `auto_patch` | Gone: call `patch.yml` from a scheduled or manual run |
+| `auto_patch` | Gone: call `patch.yml` from a scheduled, manual or `auto-merged` run |
 | `publish` (`library.yml`) | Gone: call `publish.yml` |
 | `reviewers` | `version.yml`'s and `merge.yml`'s `reviewers` |
 | `auto_merge`, `review_dependabot` (`website.yml`) | Gone: call `merge.yml` once per run |

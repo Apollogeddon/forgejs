@@ -11,7 +11,7 @@ on:
   # sent by the merge pipeline, as a merge it makes starts no push run on main
   repository_dispatch:
     types: [auto-merged]
-  # weekly, for the patch pipeline; a manual run patches too
+  # weekly, for the patch pipeline; a manual run and an auto-merged dispatch patch too
   schedule:
     - cron: '17 3 * * 1'
 
@@ -134,7 +134,7 @@ jobs:
       id-token: write
 
   patch:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch'
     uses: ./.github/workflows/patch.yml
     permissions:
       contents: write
@@ -144,7 +144,7 @@ jobs:
     name: patch (docs)
     # one at a time, so the second commits on top of the first
     needs: patch
-    if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch') }}
     uses: ./.github/workflows/patch.yml
     with:
       working_directory: 'docs'

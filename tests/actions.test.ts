@@ -70,6 +70,9 @@ const STAGES: Record<string, string[]> = {
 // a stage, or a stage with a variant in brackets
 const inVocabulary = (pipeline: string, name: string) =>
   (STAGES[pipeline] ?? []).includes(name) || (STAGES[pipeline] ?? []).includes(name.replace(/ \([^)]+\)$/, ""));
+// a manual run patches too, and so does the auto-merged dispatch, straight after a Dependabot merge
+const PATCH_EVENTS =
+  "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch'";
 const kebab = (name: string) => name.replace(/[()]/g, "").trim().replace(/\s+/g, "-");
 
 const MODES: Array<[string, templates.IndexWorkflowOptions]> = [];
@@ -210,9 +213,9 @@ describe("forgejs's own .index.yml", () => {
     expect((wf as { concurrency?: unknown }).concurrency).toEqual(generatedWf.concurrency);
   });
 
-  it("patches on the weekly schedule and on a manual run", () => {
-    expect(wf.jobs.patch?.if).toBe("github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'");
-    expect(wf.jobs["patch-docs"]?.if).toContain("github.event_name == 'workflow_dispatch'");
+  it("patches on the weekly schedule, a manual run and an auto-merged dispatch", () => {
+    expect(wf.jobs.patch?.if).toBe(PATCH_EVENTS);
+    expect(wf.jobs["patch-docs"]?.if).toBe(`\${{ !cancelled() && (${PATCH_EVENTS}) }}`);
   });
 
   it("patches the tool and the docs one after the other", () => {
@@ -244,8 +247,8 @@ describe.each(generated)("Generated .index.yml (%s)", (_name, text) => {
     });
   });
 
-  it("patches on the weekly schedule and on a manual run", () => {
-    expect(wf.jobs.patch?.if).toBe("${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}");
+  it("patches on the weekly schedule, a manual run and an auto-merged dispatch", () => {
+    expect(wf.jobs.patch?.if).toBe(`\${{ ${PATCH_EVENTS} }}`);
     expect(Object.keys(wf.on)).toEqual(expect.arrayContaining(["schedule", "workflow_dispatch"]));
   });
 

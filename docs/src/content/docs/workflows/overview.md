@@ -33,8 +33,8 @@ The stages are `lint` (Biome and the type check), `scan` (Gitleaks and OSV-Scann
 | Event | Pipelines |
 | :--- | :--- |
 | Pull request | The checks (`library`, `service` or `website`, then `debian` and `docker` builds), then `merge` on Dependabot's |
-| Push to `main`, `auto-merged` dispatch | `version`; on a release, the checks again, then `publish`, `pages` or the `docker` push |
-| Manual run | The same as a push to `main`, and `patch` |
+| Push to `main` | `version`; on a release, the checks again, then `publish`, `pages` or the `docker` push |
+| `auto-merged` dispatch, manual run | The same as a push to `main`, and `patch`, so a merged Dependabot update is followed by any security patch straight away |
 | Weekly schedule | `patch` |
 
 A project without versioning has no release to wait for: its checks run on every push to `main` as well, and a website deploys from every push.
@@ -91,7 +91,7 @@ jobs:
       packages: write
 
   patch:
-    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' }}
     uses: apollogeddon/forgejs/.github/workflows/patch.yml@main
     permissions:
       contents: write

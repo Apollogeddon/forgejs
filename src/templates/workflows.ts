@@ -26,7 +26,7 @@ on:
   # sent by the merge pipeline, as a merge it makes starts no push run on main
   repository_dispatch:
     types: [auto-merged]
-  # weekly, for the patch pipeline; a manual run patches too
+  # weekly, for the patch pipeline; a manual run and an auto-merged dispatch patch too
   schedule:
     - cron: '17 3 * * 1'
 
@@ -172,8 +172,8 @@ export function indexWorkflow(cfg: IndexWorkflowOptions): string {
 
   jobs.push({
     id: "patch",
-    comment: "weekly or on a manual run, vulnerable dependencies updated on main",
-    if: "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'",
+    comment: "vulnerable dependencies updated on main: weekly, on a manual run, and after a Dependabot merge",
+    if: "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch'",
     pipeline: "patch",
     permissions: { contents: "write", packages: "read" },
   });
