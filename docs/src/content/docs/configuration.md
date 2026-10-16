@@ -110,11 +110,11 @@ export default defineConfig({
 
 ### Vite: websites
 
-`--website` generates a `vite.config.ts` that builds to `dist/`, the directory the website workflow deploys to GitHub Pages. It sets `base: "./"` so asset URLs are relative and the site works under a GitHub Pages project path (`https://<owner>.github.io/<repo>/`).
+`--website` generates a `vite.config.ts` that builds to `dist/`, the directory the `pages` pipeline deploys to GitHub Pages. It sets `base: "./"` so asset URLs are relative and the site works under a GitHub Pages project path (`https://<owner>.github.io/<repo>/`).
 
 ### release-please: versioning
 
-The reusable `version.yml` workflow runs release-please with the `node` release type. It needs no local config file: version numbers and changelogs come from your Conventional Commits.
+The reusable `version.yml` pipeline runs release-please with the `node` release type. It needs no local config file: version numbers and changelogs come from your Conventional Commits.
 
 To set release-please options, add a config and manifest to the project's `.github` directory (under `working_directory`, if set). `version.yml` then runs release-please from them instead of the `node` defaults. The config keys the package by its path from the repository root, `.` for a project at the root:
 
@@ -144,7 +144,7 @@ Set the manifest to the current released version. See release-please's [config o
 - **Backend:** compiles once on the build host, installs production dependencies per target platform, and runs `node dist/index.js` on `node:24-slim` as the non-root `node` user.
 - **Website:** builds the static site once on the build host and serves it with `nginx:stable-alpine` on port 80.
 
-CI builds the image for every configured platform. See [docker.yml](/forgejs/docs/workflows/reference#dockeryml) in the job reference.
+CI builds the image for every configured platform on pull requests, and pushes it on a release. See [docker.yml](/forgejs/docs/workflows/reference#dockeryml) in the pipeline reference.
 
 ### Snodeb: Debian packaging
 
@@ -174,7 +174,7 @@ module.exports = defineSnodebConfig({
 
 A project's Node.js version lives in `.nvmrc`, which `init` writes with `24` and nvm, fnm and `actions/setup-node` all read. `init` also sets `engines.node` to `>=24` in `package.json`, unless the project already has one.
 
-Every workflow job that sets up Node.js picks the version in this order:
+Every pipeline stage that sets up Node.js picks the version in this order:
 
 1. The `node_version` input, when the caller sets one.
 2. The project's `.nvmrc`.
@@ -189,7 +189,7 @@ So moving a project to another version is one edit to `.nvmrc`. The generated Do
 | File | What it does |
 | :--- | :--- |
 | `.editorconfig` | LF line endings, UTF-8, 2-space indent and 120 columns, matching the Biome config |
-| `.github/dependabot.yml` | Weekly npm and GitHub Actions updates, plus Docker with `--docker`. Minor and patch updates are grouped into one pull request, and each update waits 3 days after it's published before it's proposed, so a compromised release has time to be caught upstream. The workflow's auto-merge job merges them once CI passes. |
+| `.github/dependabot.yml` | Weekly npm and GitHub Actions updates, plus Docker with `--docker`. Minor and patch updates are grouped into one pull request, and each update waits 3 days after it's published before it's proposed, so a compromised release has time to be caught upstream. The `merge` pipeline requests your review on them and squash-merges them once CI passes. |
 | `.github/CODEOWNERS` | `* @owner`, so every pull request someone else opens, Dependabot's and release-please's included, requests your review and shows in your review requests. It doesn't block merging. |
 
 In a private repository, Dependabot can't read `@apollogeddon/forgejs`, or your own packages, from GitHub Packages without a token, and its npm updates fail with `private_source_authentication_failure`. Add a classic token with only `read:packages` as a Dependabot secret named `PACKAGES_TOKEN` (**Settings → Secrets and variables → Dependabot**), then give the npm update the registry:

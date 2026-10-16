@@ -64,7 +64,7 @@ npm install
 
 `init` then:
 
-- Creates, depending on the mode and flags, `tsconfig.json`, `biome.json`, `vitest.config.ts`, `lefthook.yml`, `commitlint.config.ts`, a build config (`tsdown.config.ts` or `vite.config.ts`), a `.github/workflows/index.yml` that calls the reusable workflows, and the repository files `.editorconfig`, `.github/dependabot.yml` and `.github/CODEOWNERS`.
+- Creates, depending on the mode and flags, `tsconfig.json`, `biome.json`, `vitest.config.ts`, `lefthook.yml`, `commitlint.config.ts`, a build config (`tsdown.config.ts` or `vite.config.ts`), a `.github/workflows/.index.yml` that calls the reusable pipelines, and the repository files `.editorconfig`, `.github/dependabot.yml` and `.github/CODEOWNERS`.
 - Adds scripts such as `lint`, `type`, `test` and `build` to `package.json`, sets `"type": "module"`, and adds `@apollogeddon/forgejs` as a `devDependency`.
 - Creates a starter `src/index.ts` (or `index.html` and `src/main.ts` for websites) if none exists.
 
@@ -103,7 +103,7 @@ The full documentation is at [apollogeddon.github.io/forgejs](https://apollogedd
 - [Getting started](https://apollogeddon.github.io/forgejs/docs/getting-started): requirements, CLI flags and generated scripts.
 - [Configuration](https://apollogeddon.github.io/forgejs/docs/configuration): the files Forge.js writes and how to change them.
 - [Examples](https://apollogeddon.github.io/forgejs/docs/examples): common configuration and workflow recipes.
-- [Workflows](https://apollogeddon.github.io/forgejs/docs/workflows/overview): the reusable GitHub Actions workflows and their inputs.
+- [Workflows](https://apollogeddon.github.io/forgejs/docs/workflows/overview): the reusable GitHub Actions pipelines and their inputs.
 - [Migration](https://apollogeddon.github.io/forgejs/docs/migration): adopting Forge.js in a project that already has tooling.
 
 ## Contributing
