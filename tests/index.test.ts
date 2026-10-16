@@ -430,32 +430,67 @@ describe("CLI Init Command", () => {
     expect(jobs.publish?.with?.assets).toBe("debian-package");
   });
 
-  it("should replace an index.yml an earlier forgejs generated", () => {
-    const old = path.join(tempDir, ".github/workflows/index.yml");
-    fs.mkdirSync(path.dirname(old), { recursive: true });
-    fs.writeFileSync(old, "jobs:\n  library:\n    uses: apollogeddon/forgejs/.github/workflows/library.yml@main\n");
-    const output = execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --library`, { cwd: tempDir, encoding: "utf-8" });
-    expect(fs.existsSync(old)).toBe(false);
-    expect(output).toContain("Removed .github/workflows/index.yml");
-    expect(fs.existsSync(path.join(tempDir, ".github/workflows/.index.yml"))).toBe(true);
-  });
+  describe("an index.yml an earlier forgejs generated", () => {
+    const old = () => path.join(tempDir, ".github/workflows/index.yml");
+    const legacy = fs.readFileSync(path.resolve(__dirname, "fixtures/legacy/library.yml"), "utf-8");
+    const write = (content: string) => {
+      fs.mkdirSync(path.dirname(old()), { recursive: true });
+      fs.writeFileSync(old(), content);
+    };
+    const init = (args: string) =>
+      spawnSync("node", [TSX_CLI, CLI_SCRIPT, "init", ...args.split(" ").filter(Boolean)], {
+        cwd: tempDir,
+        encoding: "utf-8",
+      });
 
-  it("should keep the old index.yml on a dry run", () => {
-    const old = path.join(tempDir, ".github/workflows/index.yml");
-    fs.mkdirSync(path.dirname(old), { recursive: true });
-    fs.writeFileSync(old, "jobs:\n  ci:\n    uses: apollogeddon/forgejs/.github/workflows/service.yml@main\n");
-    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --dry-run`, { cwd: tempDir });
-    expect(fs.existsSync(old)).toBe(true);
-  });
+    it("is removed when it's exactly as init wrote it", () => {
+      write(legacy);
+      const result = init("--library");
+      expect(result.status).toBe(0);
+      expect(fs.existsSync(old())).toBe(false);
+      expect(result.stdout).toContain("Removed obsolete file: .github/workflows/index.yml");
+      expect(fs.existsSync(path.join(tempDir, ".github/workflows/.index.yml"))).toBe(true);
+    });
 
-  it("should leave a project's own index.yml, with a warning", () => {
-    const own = path.join(tempDir, ".github/workflows/index.yml");
-    fs.mkdirSync(path.dirname(own), { recursive: true });
-    fs.writeFileSync(own, "jobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm test\n");
-    const result = spawnSync("node", [TSX_CLI, CLI_SCRIPT, "init"], { cwd: tempDir, encoding: "utf-8" });
-    expect(result.status).toBe(0);
-    expect(fs.existsSync(own)).toBe(true);
-    expect(result.stderr).toContain("Left .github/workflows/index.yml");
+    it("is kept, with a warning, once it's been changed", () => {
+      const customised = legacy.replace("    with:\n", "    with:\n      runs_on: xerus\n");
+      write(customised);
+      const result = init("--library");
+      expect(result.status).toBe(0);
+      expect(fs.readFileSync(old(), "utf-8")).toBe(customised);
+      expect(result.stderr).toContain("has been changed since init wrote it");
+      expect(result.stdout).toContain("use --force to delete");
+    });
+
+    it("is removed with --force once it's been changed", () => {
+      write(legacy.replace("    with:\n", "    with:\n      runs_on: xerus\n"));
+      expect(init("--library --force").status).toBe(0);
+      expect(fs.existsSync(old())).toBe(false);
+    });
+
+    it("is kept on a dry run", () => {
+      write(legacy);
+      expect(init("--library --dry-run").status).toBe(0);
+      expect(fs.existsSync(old())).toBe(true);
+    });
+
+    // without a new workflow written, removing the old one would leave the project with no CI
+    it("is kept when .index.yml was kept", () => {
+      write(legacy);
+      fs.writeFileSync(path.join(tempDir, ".github/workflows/.index.yml"), "name: own\n");
+      const result = init("--library");
+      expect(result.status).toBe(0);
+      expect(fs.existsSync(old())).toBe(true);
+    });
+
+    it("is never removed when it's the project's own", () => {
+      const own = "jobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm test\n";
+      write(own);
+      const result = init("--force");
+      expect(result.status).toBe(0);
+      expect(fs.readFileSync(old(), "utf-8")).toBe(own);
+      expect(result.stderr).toContain("Left .github/workflows/index.yml");
+    });
   });
 
   it.each([
@@ -502,7 +537,8 @@ describe("CLI Init Command", () => {
   ])("should generate a least-privilege workflow that never cancels main (%s)", (flags) => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${flags}`, { cwd: tempDir });
     const workflow = readGeneratedWorkflow(tempDir);
-    expect(workflow.concurrency?.["cancel-in-progress"]).toContain("refs/heads/main");
+    // a run outside a pull request has a group of its own, so one on main is never cancelled
+    expect(workflow.concurrency?.group).toContain("github.head_ref || github.run_id");
     for (const [name, job] of Object.entries(workflow.jobs)) {
       // the called workflows only use GITHUB_TOKEN, which they get without inheriting every secret
       expect(job.secrets, `${name} passes secrets`).toBeUndefined();

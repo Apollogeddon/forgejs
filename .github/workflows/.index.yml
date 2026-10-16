@@ -11,14 +11,15 @@ on:
   # sent by the merge pipeline, as a merge it makes starts no push run on main
   repository_dispatch:
     types: [auto-merged]
-  # weekly, for the patch pipeline
+  # weekly, for the patch pipeline; a manual run patches too
   schedule:
     - cron: '17 3 * * 1'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  # never cancel a run on main mid-release, or the release is created but never published
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  # a pull request's newer run replaces its older one; every other run has a group of its own, so a run on
+  # main, running or queued, is never cancelled and a release is never created without being published
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 # Each job calls one pipeline, so the run page reads <pipeline> / <stage>. Pull requests run the checks
 # (library for the tool, website for docs/); main runs version, and on a release checks the tool again
@@ -86,7 +87,9 @@ jobs:
       packages: read
       pull-requests: write
 
-  # the tarball the release published, with its build provenance, so it can be checked with gh attestation verify
+  # the tarball the release published, with its build provenance, so it can be checked with gh attestation verify.
+  # A caller grants the union of what the called jobs ask for: package asks for packages: write alone, so only
+  # attest, which takes the caller's grant, holds id-token and attestations
   publish:
     needs: [version, library]
     if: >-
@@ -131,7 +134,7 @@ jobs:
       id-token: write
 
   patch:
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/patch.yml
     permissions:
       contents: write
@@ -141,7 +144,7 @@ jobs:
     name: patch (docs)
     # one at a time, so the second commits on top of the first
     needs: patch
-    if: ${{ !cancelled() && github.event_name == 'schedule' }}
+    if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     uses: ./.github/workflows/patch.yml
     with:
       working_directory: 'docs'

@@ -26,14 +26,15 @@ on:
   # sent by the merge pipeline, as a merge it makes starts no push run on main
   repository_dispatch:
     types: [auto-merged]
-  # weekly, for the patch pipeline
+  # weekly, for the patch pipeline; a manual run patches too
   schedule:
     - cron: '17 3 * * 1'
 
 concurrency:
-  group: \${{ github.workflow }}-\${{ github.ref }}
-  # never cancel a run on main mid-release, or the release is created but never published
-  cancel-in-progress: \${{ github.ref != 'refs/heads/main' }}
+  # a pull request's newer run replaces its older one; every other run has a group of its own, so a run on
+  # main, running or queued, is never cancelled and a release is never created without being published
+  group: \${{ github.workflow }}-\${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
 `;
@@ -151,7 +152,8 @@ export function indexWorkflow(cfg: IndexWorkflowOptions): string {
       if: `!cancelled() && needs.debian.result == 'success' && ${released}`,
       pipeline: "publish",
       with: { package: false, assets: "debian-package", tag_name: expr("needs.version.outputs.tag_name") },
-      permissions: { contents: "write" },
+      // packages: write only because the skipped package stage asks for it, which GitHub checks all the same
+      permissions: { contents: "write", packages: "write" },
     });
   }
 
@@ -170,8 +172,8 @@ export function indexWorkflow(cfg: IndexWorkflowOptions): string {
 
   jobs.push({
     id: "patch",
-    comment: "weekly, vulnerable dependencies updated on main",
-    if: "github.event_name == 'schedule'",
+    comment: "weekly or on a manual run, vulnerable dependencies updated on main",
+    if: "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'",
     pipeline: "patch",
     permissions: { contents: "write", packages: "read" },
   });
@@ -191,7 +193,7 @@ export function indexWorkflow(cfg: IndexWorkflowOptions): string {
   return header + jobs.map(render).join("\n");
 }
 
-// An index.yml from an earlier forgejs, which .index.yml replaces; one that calls nothing of forgejs's is the project's own
-export function isForgeIndexWorkflow(content: string): boolean {
+// A workflow that calls forgejs's pipelines, rather than one of the project's own
+export function callsForgejs(content: string): boolean {
   return /apollogeddon\/forgejs\/\.github\/workflows\//i.test(content);
 }

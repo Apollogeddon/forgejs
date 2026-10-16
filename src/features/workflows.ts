@@ -1,33 +1,29 @@
 import * as templates from "../templates/index.js";
 import type { InitConfig, PackageJson } from "../types.js";
 import type { IFileSystem } from "../utils/filesystem.js";
-import { createFile, type Feature } from "./types.js";
+import { createFile, type Feature, removeFile } from "./types.js";
 
 export const INDEX_WORKFLOW = ".github/workflows/.index.yml";
-const OLD_INDEX_WORKFLOW = ".github/workflows/index.yml";
 
-// Before .index.yml, forgejs generated index.yml; left in place it would run every pipeline twice. A
-// project's own index.yml, one calling nothing of forgejs's, stays, with a warning.
-export function removeOldIndexWorkflow(cwd: string, cfg: InitConfig, fs: IFileSystem): void {
-  const file = fs.join(cwd, OLD_INDEX_WORKFLOW);
-  if (!fs.existsSync(file)) return;
-  if (!templates.isForgeIndexWorkflow(fs.readFileSync(file, "utf-8"))) {
-    console.warn(
-      `⚠️  Left ${OLD_INDEX_WORKFLOW}, which doesn't call forgejs's pipelines: check it doesn't repeat ${INDEX_WORKFLOW}'s jobs.`,
-    );
-    return;
-  }
-  if (cfg.dryRun) {
-    console.log(`[DryRun] Would remove ${OLD_INDEX_WORKFLOW}, which ${INDEX_WORKFLOW} replaces`);
-    return;
-  }
-  try {
-    fs.unlinkSync(file);
-    console.log(`🗑️  Removed ${OLD_INDEX_WORKFLOW}, which ${INDEX_WORKFLOW} replaces`);
-  } catch (error) {
-    console.warn(
-      `⚠️  Failed to remove ${OLD_INDEX_WORKFLOW}: ${error instanceof Error ? error.message : String(error)}`,
-    );
+// Before .index.yml, forgejs generated index.yml (and, before 2.3.2, ci.yml and debian.yml); left in place, one
+// runs every pipeline twice. One exactly as an earlier forgejs wrote it goes; one calling forgejs's pipelines
+// that's been changed goes only with --force, as removeFile does; one calling none of them is the project's own.
+export function removeOldWorkflows(cwd: string, cfg: InitConfig, fs: IFileSystem): void {
+  for (const file of Object.keys(templates.LEGACY_WORKFLOWS)) {
+    const path = fs.join(cwd, file);
+    if (!fs.existsSync(path)) continue;
+    const content = fs.readFileSync(path, "utf-8");
+    if (templates.isLegacyWorkflow(file, content)) {
+      removeFile(cwd, file, { ...cfg, force: true }, fs);
+    } else if (templates.callsForgejs(content)) {
+      if (!cfg.force)
+        console.warn(`⚠️  ${file} calls forgejs's old pipelines and has been changed since init wrote it.`);
+      removeFile(cwd, file, cfg, fs);
+    } else if (file.endsWith("/index.yml")) {
+      console.warn(
+        `⚠️  Left ${file}, which doesn't call forgejs's pipelines: check it doesn't repeat ${INDEX_WORKFLOW}'s jobs.`,
+      );
+    }
   }
 }
 
@@ -71,8 +67,11 @@ export const WorkflowFeature: Feature = {
       testing: cfg.testing,
       versioning: cfg.versioning,
     });
-    ok = createFile(cwd, INDEX_WORKFLOW, workflow, cfg, fs) && ok;
-    removeOldIndexWorkflow(cwd, cfg, fs);
+    // only once .index.yml is written: a kept or failed one would leave the project with no CI, or the old one
+    const replacing = !fs.existsSync(fs.join(cwd, INDEX_WORKFLOW)) || cfg.force;
+    const written = createFile(cwd, INDEX_WORKFLOW, workflow, cfg, fs);
+    if (written && replacing) removeOldWorkflows(cwd, cfg, fs);
+    ok = written && ok;
     return ok;
   },
   cleanup: () => {},

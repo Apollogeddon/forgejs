@@ -54,9 +54,9 @@ on:
         value: ${{ jobs.package.outputs.artifact }}
 
 # GitHub checks a called workflow's permissions against its caller's before running any of it, even a job
-# that will be skipped, so each stage takes the caller's grant instead of asking for its own: a caller grants
-# packages: write for package, contents: write for assets, and id-token: write and attestations: write for
-# attest, only for the stages it turns on.
+# that will be skipped, so a caller grants the union of what the stages ask for. package, which holds the
+# publish token, asks for exactly what it needs; assets and attest ask for nothing and take the caller's grant,
+# so a caller grants contents: write, or id-token: write and attestations: write, only for the stage it turns on.
 
 jobs:
   package:
@@ -64,6 +64,9 @@ jobs:
     if: inputs.package
     runs-on: ${{ inputs.runs_on }}
     timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
     outputs:
       published: ${{ steps.publish.outputs.published }}
       artifact: ${{ steps.publish.outputs.artifact }}

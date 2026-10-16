@@ -205,6 +205,16 @@ describe("forgejs's own .index.yml", () => {
     expect(wf.jobs.pages?.with?.artifact_name).toBe(wf.jobs.website?.with?.artifact_name);
   });
 
+  it("has the same concurrency as a generated .index.yml", () => {
+    const generatedWf = yaml.load(generated[0]?.[1] ?? "") as { concurrency?: unknown };
+    expect((wf as { concurrency?: unknown }).concurrency).toEqual(generatedWf.concurrency);
+  });
+
+  it("patches on the weekly schedule and on a manual run", () => {
+    expect(wf.jobs.patch?.if).toBe("github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'");
+    expect(wf.jobs["patch-docs"]?.if).toContain("github.event_name == 'workflow_dispatch'");
+  });
+
   it("patches the tool and the docs one after the other", () => {
     expect(wf.jobs["patch-docs"]?.needs).toBe("patch");
     expect(wf.jobs["patch-docs"]?.with?.working_directory).toBe("docs");
@@ -226,10 +236,17 @@ describe.each(generated)("Generated .index.yml (%s)", (_name, text) => {
     expect(wf.on.repository_dispatch?.types).toEqual([sent]);
   });
 
-  it("never cancels a run on main", () => {
-    expect(String((wf as { concurrency?: Record<string, string> }).concurrency?.["cancel-in-progress"])).toContain(
-      "refs/heads/main",
-    );
+  // each run outside a pull request has a group of its own, so a queued run on main is never cancelled
+  it("cancels only a pull request's older run", () => {
+    expect((wf as { concurrency?: Record<string, unknown> }).concurrency).toEqual({
+      group: "${{ github.workflow }}-${{ github.head_ref || github.run_id }}",
+      "cancel-in-progress": true,
+    });
+  });
+
+  it("patches on the weekly schedule and on a manual run", () => {
+    expect(wf.jobs.patch?.if).toBe("${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}");
+    expect(Object.keys(wf.on)).toEqual(expect.arrayContaining(["schedule", "workflow_dispatch"]));
   });
 
   // only GitHub Pages and attestations need an OIDC token
@@ -311,8 +328,36 @@ describe("Generated .index.yml per mode", () => {
     ["uses: Apollogeddon/forgejs/.github/workflows/service.yml@main", true],
     ["uses: someone/else/.github/workflows/ci.yml@v1", false],
     ["runs-on: ubuntu-latest", false],
-  ])("recognises %j as forgejs's old index.yml: %s", (content, expected) => {
-    expect(templates.isForgeIndexWorkflow(content)).toBe(expected);
+  ])("recognises %j as calling forgejs: %s", (content, expected) => {
+    expect(templates.callsForgejs(content)).toBe(expected);
+  });
+});
+
+describe("Workflows an earlier forgejs generated", () => {
+  const fixtures = path.join(process.cwd(), "tests", "fixtures", "legacy");
+  const fixture = (name: string) => fs.readFileSync(path.join(fixtures, name), "utf-8");
+
+  // main's generator before the split pipelines, in each mode
+  it.each(["backend.yml", "library.yml", "website.yml", "debian.yml", "backend-docker.yml"])(
+    "knows main's index.yml for %s",
+    (name) => {
+      expect(templates.isLegacyWorkflow(".github/workflows/index.yml", fixture(name))).toBe(true);
+    },
+  );
+
+  it("knows the ci.yml releases before 2.3.2 wrote", () => {
+    expect(templates.isLegacyWorkflow(".github/workflows/ci.yml", fixture("ci-v2.1.1.yml"))).toBe(true);
+  });
+
+  it("ignores line endings, trailing spaces and blank lines", () => {
+    const text = fixture("library.yml").replace(/\n/g, "  \r\n\r\n");
+    expect(templates.isLegacyWorkflow(".github/workflows/index.yml", text)).toBe(true);
+  });
+
+  it("doesn't know a changed one, or one under another name", () => {
+    const changed = fixture("library.yml").replace("    with:\n", "    with:\n      runs_on: xerus\n");
+    expect(templates.isLegacyWorkflow(".github/workflows/index.yml", changed)).toBe(false);
+    expect(templates.isLegacyWorkflow(".github/workflows/build.yml", fixture("library.yml"))).toBe(false);
   });
 });
 
@@ -608,9 +653,12 @@ describe("pages.yml", () => {
 describe("publish.yml", () => {
   const wf = load("publish.yml");
 
-  // GitHub checks a called workflow's permissions before it runs, so asking for any would stop every caller that doesn't grant them
-  it("should take each stage's permissions from the caller", () => {
-    for (const job of Object.values(wf.jobs)) expect(job.permissions).toBeUndefined();
+  // the publish token's job holds nothing else; GitHub checks every job's permissions before a run, so the stages a
+  // caller may leave off ask for none and take the caller's grant
+  it("should give package only its own permissions, and assets and attest the caller's", () => {
+    expect(wf.jobs.package?.permissions).toEqual({ contents: "read", packages: "write" });
+    expect(wf.jobs.assets?.permissions).toBeUndefined();
+    expect(wf.jobs.attest?.permissions).toBeUndefined();
   });
 
   it("should publish the packed tarball and upload that same file", () => {

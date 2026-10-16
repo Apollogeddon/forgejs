@@ -1,0 +1,15 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  service:
+    uses: apollogeddon/forgejs/.github/workflows/service.yml@main
+    with:
+      node_version: '22'
+      auto_patch: true
+    secrets: inherit
