@@ -42,6 +42,14 @@ Add project-specific settings alongside `extends`; they take precedence over the
 
 The generated `tsconfig.json` extends the shared TypeScript config, so every project compiles with the same strictness settings. Add `compilerOptions` to override individual settings.
 
+The shared config sets `rootDir`, `outDir` and `paths` with `${configDir}`, which TypeScript reads as the directory of your `tsconfig.json`, not the package's. So `tsc` builds into your project's `dist/`, and `@/*` is an alias for your `src/*`:
+
+```ts
+import { greeting } from "@/util"; // src/util.ts
+```
+
+Vitest, Vite and tsdown read the alias from `tsconfig.json`, so it works in tests and builds too.
+
 ### Vitest: testing
 
 The generated `vitest.config.ts` merges the base configuration:

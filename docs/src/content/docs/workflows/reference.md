@@ -67,7 +67,14 @@ In that mode release-please tags the release before the push's checks run. If th
 
 *Security and static analysis.*
 
-1. **`secure`**: Gitleaks secret scan (skip with `enable_secrets: false`) and an OSV-Scanner dependency scan. The OSV-Scanner scan reports findings in the log but doesn't fail the job.
+1. **`secure`**: Gitleaks secret scan (skip with `enable_secrets: false`) and an OSV-Scanner dependency scan. On a pull request, a high or critical finding (a CVSS score of 7 or more, or GitHub's rating when an advisory has no score) fails the job, so a change can't add one. Elsewhere, such as on `main` or a release, it's an error annotation that doesn't fail the job: an advisory published against a dependency you already have shouldn't stop releases, and the `patch` job, which only runs when the checks pass, can then update it. Lower findings are warning annotations, and every finding is listed in the job summary. If the scanner can't run, for example because OSV's API is unreachable, the job warns and passes. To accept a finding you can't fix yet, list it in an [`osv-scanner.toml`](https://google.github.io/osv-scanner/configuration/) beside the lockfile:
+
+   ```toml
+   [[IgnoredVulns]]
+   id = "GHSA-xxxx-xxxx-xxxx"
+   ignoreUntil = 2026-12-31
+   reason = "No fixed version yet; the vulnerable function isn't called"
+   ```
 2. **`linting`**: `npm ci`, then `biome ci` and `npm run type`. Runs `website.yml`'s [pre-build command](#generating-content-before-the-build) first, if set.
 
 ## testing.yml
@@ -76,7 +83,7 @@ In that mode release-please tags the release before the push's checks run. If th
 
 1. Calls → `quality.yml`.
 2. **`testing`**: Runs the Vitest suite (skip with `run_tests: false`) and uploads the coverage report as `coverage-<artifact_name>`. *(Needs: quality)*
-3. **`build`**: Writes `build_env_vars` to `.env`, runs the build, and uploads the result as the `artifact_name` artifact. With `website.yml`'s [site checks](#site-checks) turned on, it then checks the built site's links and accessibility. *(Needs: quality; runs alongside testing)*
+3. **`build`**: Writes `build_env_vars` to `.env`, runs the build, then the project's `publint` and `docs:check` scripts when it defines them, and uploads the result as the `artifact_name` artifact. With `website.yml`'s [site checks](#site-checks) turned on, it then checks the built site's links and accessibility. *(Needs: quality; runs alongside testing)*
 4. **`patch`**: On `main` with `auto_patch` enabled, runs `osv-scanner fix` against `package-lock.json` and commits any security patches. *(Needs: quality, testing, build)*
 
 ## version.yml
@@ -93,7 +100,7 @@ Outputs `new_release_published`, `version` and `tag_name` for the delivery jobs:
 
 *Dependabot auto-merge.*
 
-1. **`auto-merge`**: For pull requests opened by Dependabot, enables GitHub's auto-merge so the PR merges once required checks pass. If the PR can already be merged, it merges it straight away. It squash-merges, so release-please lists each update once: a merge commit repeats the pull request's title, and release-please reads that as a second change. Merge your own pull requests the same way, with **Squash and merge**. GitHub Actions updates (branches starting `dependabot/github_actions/`) are skipped and left for a person to merge: they change workflow files, which `GITHUB_TOKEN` can't merge. Once the pull request has merged, it sends the `auto-merged` `repository_dispatch` event, so a workflow listening for it runs on `main`: a merge made with `GITHUB_TOKEN` starts no push run. When it enabled auto-merge rather than merging, it waits up to 12 minutes for the merge before sending it. See [Secrets](/forgejs/docs/workflows/overview#secrets).
+1. **`auto-merge`**: For pull requests opened by Dependabot, when Dependabot also made the latest change (someone else's push to its branch waits for a person), enables GitHub's auto-merge so the PR merges once required checks pass. If the PR can already be merged, it merges it straight away. It squash-merges, so release-please lists each update once: a merge commit repeats the pull request's title, and release-please reads that as a second change. Merge your own pull requests the same way, with **Squash and merge**. GitHub Actions updates (branches starting `dependabot/github_actions/`) are skipped and left for a person to merge: they change workflow files, which `GITHUB_TOKEN` can't merge. Once the pull request has merged, it sends the `auto-merged` `repository_dispatch` event, so a workflow listening for it runs on `main`: a merge made with `GITHUB_TOKEN` starts no push run. When it enabled auto-merge rather than merging, it waits up to 12 minutes for the merge before sending it. See [Secrets](/forgejs/docs/workflows/overview#secrets).
 
 ## review.yml
 
@@ -117,7 +124,7 @@ The pipeline workflows call it on Dependabot's pull requests as they open, befor
 3. Calls → `merge.yml` to auto-merge Dependabot PRs once testing passes. *(Needs: testing)*
 4. Calls → `version.yml` to trigger a release on the main branch. Skip with `enable_versioning: false`. *(Needs: testing)*
 
-Pass `run_tests: false` to skip the test suite. Every pipeline workflow accepts `run_tests` and `enable_versioning`, and `init` sets them for `--no-testing` and `--no-version`.
+Pass `run_tests: false` to skip the test suite. Every pipeline workflow accepts `run_tests` and `enable_versioning`, and `init` sets them for `--no-testing` and `--no-versioning`.
 
 ## library.yml
 

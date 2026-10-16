@@ -118,7 +118,7 @@ The pipeline workflows (`service.yml`, `library.yml`, `debian.yml` and `website.
 | `auto_patch` | `true` | On `main`, run `osv-scanner fix` and commit any dependency security patches |
 | `build_env_vars` | `''` | Lines written to `.env` before the build |
 | `run_tests` | `true` | Run the Vitest suite; `init --no-testing` sets it to `false` |
-| `enable_versioning` | `true` | Run release-please; `init --no-version` sets it to `false` |
+| `enable_versioning` | `true` | Run release-please; `init --no-versioning` sets it to `false` |
 | `test_on_push` | `true` | Run the checks on pushes too; see [Checking once per change](/forgejs/docs/workflows/reference#checking-once-per-change) |
 | `test_release_prs` | `true` | Run the checks on release-please's release pull requests |
 | `reviewers` | `''` | Comma-separated logins to request a review of Dependabot's and release-please's pull requests from; empty means the repository's owner. See [`review.yml`](/forgejs/docs/workflows/reference#reviewyml) |

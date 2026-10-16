@@ -71,7 +71,7 @@ describe("CLI Init with MockFileSystem", () => {
     debian: false,
     docker: false,
     testing: true,
-    version: true,
+    versioning: true,
     linting: true,
   };
 
