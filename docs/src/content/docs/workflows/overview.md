@@ -33,6 +33,8 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+  repository_dispatch:
+    types: [auto-merged]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -125,7 +127,14 @@ The pipeline workflows (`service.yml`, `library.yml`, `debian.yml` and `website.
 
 None. The workflows use only the run's `GITHUB_TOKEN`, which a called workflow gets without `secrets: inherit`. It installs `@apollogeddon` packages from GitHub Packages, publishes libraries there, and drives release-please and Dependabot auto-merge. Don't add `secrets: inherit`: it hands every repository secret to a workflow that lives in another repository. `website.yml` takes one optional secret, `GH_TOKEN`, for a [pre-build command](/forgejs/docs/workflows/reference#generating-content-before-the-build); pass it by name if you need it.
 
-GitHub doesn't start workflow runs for events made with `GITHUB_TOKEN`. So release-please's release pull requests don't run your checks on their own (they wait for approval, or a push to the branch), and the push a Dependabot auto-merge makes to `main` doesn't run the pipeline until the next push.
+GitHub doesn't start workflow runs for events made with `GITHUB_TOKEN`. So release-please's release pull requests don't run your checks on their own (they wait for approval, or a push to the branch), and the push a Dependabot auto-merge makes to `main` doesn't run the pipeline either. The auto-merge job therefore sends a `repository_dispatch` event, `auto-merged`, once the pull request has merged: one of the two events `GITHUB_TOKEN` may start a run with. Listen for it next to `push` and `pull_request`, as `init` does, so `main` is checked and release-please opens or updates its release pull request:
+
+```yaml
+  repository_dispatch:
+    types: [auto-merged]
+```
+
+The event runs on the default branch. A workflow that doesn't listen for it ignores it, and `main` waits for the next push as before.
 
 ## Required permissions
 
