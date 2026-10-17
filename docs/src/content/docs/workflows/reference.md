@@ -38,13 +38,13 @@ The three share their first four stages, job for job:
 | :--- | :--- | :--- |
 | `runs_on` | `'ubuntu-latest'` | Runner label for every job |
 | `working_directory` | `'.'` | Directory holding `package.json`, relative to the repository root without a leading `./` |
-| `node_version` | `''` | Node.js version for every job. Empty reads the project's `.nvmrc`, and without one uses Node.js 24; see [Node.js version](/forgejs/docs/configuration#nodejs-version) |
+| `node_version` | `''` | Node.js version for every job. Empty reads the project's `.nvmrc`, and without one uses forgejs's default; see [Node.js version](/forgejs/docs/configuration#nodejs-version) |
 | `enable_secrets` | `true` | Run the Gitleaks secret scan |
 | `run_tests` | `true` | Run the test stage; `init --no-testing` sets it to `false` |
 | `build_env_vars` | `''` | Lines written to `.env` before the build |
 | `artifact_name` | `'dist'` | Name of the build artifact, which `publish`, `debian` and `pages` download |
 | `ref` | `''` | Commit, branch or tag to check and build; empty means the commit that triggered the run |
-| `setup_go` | `''` | Go to install before `pre_build_command`: a version, e.g. `1.25.x`, or a `go.mod`, `go.work`, `.go-version` or `.tool-versions` path from the repository root; empty installs none |
+| `setup_go` | `''` | Go to install before `pre_build_command`: a version, e.g. `stable`, or a `go.mod`, `go.work`, `.go-version` or `.tool-versions` path from the repository root; empty installs none |
 | `pre_build_command` | `''` | Shell command run in `working_directory` before `npm ci`, in every stage that installs |
 
 `website.yml` also takes:
@@ -124,13 +124,14 @@ jobs:
 
 *release-please.*
 
-1. **`release`**: On `main`, opens or updates the release pull request from Conventional Commits, and creates the tag and GitHub release when it merges. A `working_directory` other than `.` becomes release-please's `path`, so a package in a monorepo is versioned on its own, tagged with its `package.json` name (`api-v1.2.3`). If the project has a `.github/release.json` and `.github/.release.json` under `working_directory`, release-please runs from them instead (see [release-please: versioning](/forgejs/docs/configuration#release-please-versioning)). The stage checks out only that `.github` directory to look for them. When it opened or updated a release pull request, it requests a review on it from `reviewers`, as `merge.yml` does on Dependabot's.
+1. **`release`**: On `main`, opens or updates the release pull request from Conventional Commits, and creates the tag and GitHub release when it merges. A `working_directory` other than `.` becomes release-please's `path`, so a package in a monorepo is versioned on its own, tagged with its `package.json` name (`api-vX.Y.Z`). If the project has a `.github/release.json` and `.github/.release.json` under `working_directory`, release-please runs from them instead (see [release-please: versioning](/forgejs/docs/configuration#release-please-versioning)). The stage checks out only that `.github` directory to look for them. When it opened or updated a release pull request, it requests a review on it from `reviewers`, as `merge.yml` does on Dependabot's.
 
 Outputs `new_release_published` (`'true'` or `'false'`), `version` and `tag_name`: those of the `working_directory` package, not of any other package released in the same run.
 
 | Input | Default | Description |
 | :--- | :--- | :--- |
 | `working_directory` | `'.'` | The package to release |
+| `node_version` | `''` | Node.js version; empty reads the project's `.nvmrc`, else forgejs's default |
 | `reviewers` | `''` | Comma-separated logins to request a review of the release pull request from; empty means the repository's owner |
 
 ### Checking a release
@@ -178,6 +179,8 @@ Outputs `published` (`'true'` when this run published the package) and `package_
 
 | Input | Default | Description |
 | :--- | :--- | :--- |
+| `working_directory` | `'.'` | Directory holding `package.json` |
+| `node_version` | `''` | Node.js version; empty reads the project's `.nvmrc`, else forgejs's default |
 | `artifact_name` | `'dist'` | The build artifact to pack |
 | `package` | `true` | Publish to GitHub Packages; needs `packages: write` |
 | `assets` | `''` | An artifact whose files to attach to the release; needs `contents: write` |
@@ -192,6 +195,10 @@ Outputs `published` (`'true'` when this run published the package) and `package_
 
 `init --website` calls it on a release, or on every push to `main` without versioning. It deploys whatever `npm run build` writes to `dist/`.
 
+| Input | Default | Description |
+| :--- | :--- | :--- |
+| `artifact_name` | `'dist'` | The build artifact to deploy |
+
 ## debian.yml
 
 *Debian packaging.*
@@ -201,6 +208,14 @@ Outputs `published` (`'true'` when this run published the package) and `package_
 
 `init --debian` runs it on pull requests and on a release, and on a release attaches the `.deb` to the GitHub release through `publish.yml`'s `assets`.
 
+Outputs `package_artifact`, the name of the artifact holding the `.deb` (`debian-package`), for `publish.yml`'s `assets`.
+
+| Input | Default | Description |
+| :--- | :--- | :--- |
+| `working_directory` | `'.'` | Directory holding `package.json` |
+| `node_version` | `''` | Node.js version; empty reads the project's `.nvmrc`, else forgejs's default |
+| `artifact_name` | `'dist'` | The build artifact `service.yml` uploaded |
+
 ## docker.yml
 
 *Builds a Docker image for any number of platforms and publishes it to GitHub Container Registry.*
@@ -208,7 +223,7 @@ Outputs `published` (`'true'` when this run published the package) and `package_
 `init --docker` adds it to `.index.yml` as its own `docker` job after the checks, so projects without Docker don't carry it. It builds on pull requests, so a broken Dockerfile fails the PR's checks and stops a Dependabot merge, and builds and pushes on a release.
 
 1. **`build`**: Builds every platform but a native arm64 one, in one build: `linux/amd64` natively and every other platform with QEMU. When `push` is `true`, it pushes them untagged, by digest.
-2. **`build (arm64)`**: With `native_arm` (on by default) and `linux/arm64` in `platforms`, builds arm64 on GitHub's native Arm runner (`ubuntu-24.04-arm`), and pushes it by digest the same way.
+2. **`build (arm64)`**: With `native_arm` (on by default) and `linux/arm64` in `platforms`, builds arm64 on GitHub's native Arm runner, and pushes it by digest the same way.
 3. **`push`**: When `push` is `true`, combines what the builds pushed into one multi-platform manifest tagged `X.Y.Z`, `X.Y`, `X` (omitted for `0.x` versions), `sha-<commit>` and `latest`. *(Needs: build, build (arm64))*
 
 Images carry their provenance (`mode=max`) and SBOM as BuildKit attestations in the image index itself, so they need no `attest` stage; `docker buildx imagetools inspect <image> --format '{{ json .Provenance }}'` shows them.
@@ -229,7 +244,7 @@ The generated Dockerfiles build platform-independent work once on the build host
 
 | Image | Platforms |
 | :--- | :--- |
-| Backend (`node:24-slim`, running as the non-root `node` user) | `linux/amd64`, `linux/arm64`, `linux/arm/v7`, `linux/ppc64le` |
+| Backend (`node:<version>-slim`, running as the non-root `node` user) | `linux/amd64`, `linux/arm64`, `linux/arm/v7`, `linux/ppc64le` |
 | Website (`nginx:stable-alpine`) | `linux/amd64`, `linux/arm64`, `linux/arm/v6`, `linux/arm/v7`, `linux/386`, `linux/ppc64le`, `linux/riscv64`, `linux/s390x` |
 
 Building locally needs a token with `read:packages` so `npm ci` can install `@apollogeddon` packages: `NODE_AUTH_TOKEN=<token> npm run docker:build`. Podman's Windows client can't pass build secrets, so on Windows with Podman run the build from inside the Podman machine or WSL.
@@ -241,6 +256,11 @@ Building locally needs a token with `read:packages` so `npm ci` can install `@ap
 1. **`update`**: On `main`, runs `osv-scanner fix` against `package-lock.json` in `working_directory`, then `npm install`, and commits any changes as `fix(deps): patch vulnerabilities via osv-scanner`. It checks out the tip of `main`, so a second call in the same run (forgejs patches its docs site after the tool) commits on top of the first.
 
 The commit is made with `GITHUB_TOKEN`, so it starts no run of its own: release-please picks it up on the next push to `main`.
+
+| Input | Default | Description |
+| :--- | :--- | :--- |
+| `working_directory` | `'.'` | Directory holding `package.json` and `package-lock.json` |
+| `node_version` | `''` | Node.js version; empty reads the project's `.nvmrc`, else forgejs's default |
 
 ## merge.yml
 
@@ -255,26 +275,3 @@ The generated `merge` job passes `checks_passed` as whether every check job befo
 | :--- | :--- | :--- |
 | `reviewers` | `''` | Comma-separated logins to request a review from; empty means the repository's owner |
 | `checks_passed` | `false` | Whether the pull request's checks passed in this run; `squash` only runs when they did |
-
-## Inputs that moved
-
-Before 6.0, `library.yml`, `service.yml`, `website.yml` and `debian.yml` each ran a whole pipeline: checks, review requests, the Dependabot merge, release-please and delivery. Each is now one part, and `.index.yml` decides when each part runs, so a hand-written caller moves these inputs:
-
-| Old input | Now |
-| :--- | :--- |
-| `test_on_push`, `test_release_prs` | Gone: the root job's `if` decides (see [Checking a release](#checking-a-release)) |
-| `enable_versioning` | Gone: call `version.yml`, or leave it out |
-| `auto_patch` | Gone: call `patch.yml` from a scheduled, manual or `auto-merged` run |
-| `publish` (`library.yml`) | Gone: call `publish.yml` |
-| `reviewers` | `version.yml`'s and `merge.yml`'s `reviewers` |
-| `auto_merge`, `review_dependabot` (`website.yml`) | Gone: call `merge.yml` once per run |
-| `run_tests`, `enable_secrets`, `node_version`, `working_directory`, `build_env_vars`, `artifact_name`, `runs_on` | Unchanged, on the check pipelines |
-| `ref`, `setup_go`, `pre_build_command`, `GH_TOKEN` | Unchanged on `website.yml`, and now on `library.yml` and `service.yml` too |
-| `debian.yml`'s check inputs | Pass them to `service.yml`; `debian.yml` takes `working_directory`, `node_version`, `artifact_name` and `runs_on` |
-
-| Old output | Now |
-| :--- | :--- |
-| `new_release_published`, `version`, `tag_name` (`service.yml`, `website.yml`, `debian.yml`) | `version.yml`'s |
-| `published`, `package_artifact` (`library.yml`) | `publish.yml`'s |
-
-`testing.yml`, `quality.yml`, `review.yml` and `attest.yml` are gone: their jobs are the check pipelines' stages, `merge.yml`'s and `version.yml`'s review requests, and `publish.yml`'s `attest`.

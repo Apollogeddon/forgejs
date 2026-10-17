@@ -20,7 +20,7 @@ const icons: Record<string, string> = {
 const features = [
   {
     title: "Standardised tooling",
-    body: "Shared Biome, TypeScript and Vitest configs give every project the same checks from day one, and updates keep them current.",
+    body: "Shared lint, type-check and test configs give every project the same checks from day one, and updates keep them current.",
     icon: "settings",
   },
   {
@@ -63,23 +63,6 @@ const steps = [
 }`,
   },
 ];
-
-const tools = [
-  { name: "Biome", lang: "Rust", replaces: "ESLint, Prettier" },
-  { name: "Vitest", lang: "JS", replaces: "Jest, Mocha" },
-  { name: "Publint", lang: "JS", replaces: "manual export checks" },
-  { name: "Lefthook", lang: "Go", replaces: "Husky, lint-staged" },
-  { name: "release-please", lang: "JS", replaces: "manual tagging" },
-  { name: "Commitlint", lang: "JS", replaces: "manual commit review" },
-  { name: "tsdown", lang: "Rust", replaces: "Webpack, Rollup, Babel" },
-  { name: "Snodeb", lang: "JS", replaces: "pkg, nexe" },
-];
-
-const langChip: Record<string, string> = {
-  Rust: "bg-orange-500/10 text-orange-300 border-orange-500/20",
-  Go: "bg-sky-500/10 text-sky-300 border-sky-500/20",
-  JS: "bg-amber-500/10 text-amber-300 border-amber-500/20",
-};
 ---
 
 <Base
@@ -104,7 +87,7 @@ const langChip: Record<string, string> = {
       >
         <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400"
         ></span>
-        Node.js 22 · npm · forgejs
+        Node.js · npm · forgejs
       </span>
 
       <h1
@@ -272,43 +255,6 @@ const langChip: Record<string, string> = {
             <polyline points="12 5 19 12 12 19"></polyline>
           </svg>
         </a>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── Toolchain ────────────────────────────────────────────────────────── -->
-  <section>
-    <div class="mx-auto max-w-5xl px-4 py-20 sm:px-6">
-      <h2
-        class="text-center text-3xl font-bold tracking-tight text-zinc-50"
-      >
-        The toolchain
-      </h2>
-      <p class="mx-auto mt-3 max-w-xl text-center text-zinc-400">
-        Fast tools, pinned by Forge.js and run through npm scripts.
-      </p>
-
-      <div class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {
-          tools.map((t) => (
-            <div class="rounded-xl border border-zinc-800 bg-zinc-900 p-5 transition-colors hover:border-zinc-700">
-              <div class="flex items-start justify-between gap-2">
-                <h3 class="font-semibold text-zinc-100">{t.name}</h3>
-                <span
-                  class:list={[
-                    "shrink-0 rounded border px-1.5 py-0.5 text-xs font-medium",
-                    langChip[t.lang],
-                  ]}
-                >
-                  {t.lang}
-                </span>
-              </div>
-              <p class="mt-2 text-xs leading-relaxed text-zinc-500">
-                Replaces {t.replaces}
-              </p>
-            </div>
-          ))
-        }
       </div>
     </div>
   </section>

@@ -122,9 +122,9 @@ The other modes differ only in their jobs:
 - `--no-versioning` leaves out `version` and `publish`: the checks, and a website's deploy, run on every push to `main` instead.
 - `--no-linting` needs nothing: the `lint` stage skips Biome when the project has no `biome.json`.
 
-### Upgrading from `index.yml`
+### An existing `index.yml`
 
-Before 6.0, `init` generated `.github/workflows/index.yml` (and before 2.3.2, `ci.yml` and `debian.yml`), which called `library.yml`, `service.yml`, `website.yml` or `debian.yml` as one job. Once `init` has written `.index.yml`, it removes such a file when it's exactly as an earlier release generated it, ignoring line endings, trailing spaces and blank lines. One you've changed since, say to set `runs_on`, is kept with a warning until you run `init --force`: move your changes to `.index.yml` first. An `index.yml` that calls none of forgejs's workflows is your own and is never removed; check it doesn't repeat `.index.yml`'s jobs. Nothing is removed when `init` kept an existing `.index.yml`. See [Inputs that moved](/forgejs/docs/workflows/reference#inputs-that-moved) for a hand-written caller.
+If `.github/workflows/index.yml` (or `ci.yml` or `debian.yml`) calls forgejs's pipelines, `init` removes it once it has written `.index.yml`, so the same checks don't run twice. It removes the file only when it's exactly as `init` generated it, ignoring line endings, trailing spaces and blank lines. One you've changed, say to set `runs_on`, is kept with a warning until you run `init --force`: move your changes to `.index.yml` first. A workflow that calls none of forgejs's pipelines is your own and is never removed; check it doesn't repeat `.index.yml`'s jobs. Nothing is removed when `init` kept an existing `.index.yml`.
 
 ## Secrets
 
