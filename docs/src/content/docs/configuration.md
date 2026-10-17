@@ -172,7 +172,7 @@ module.exports = defineSnodebConfig({
 
 ## Node.js version
 
-A project's Node.js version lives in `.nvmrc`, which `init` writes with `24` and nvm, fnm and `actions/setup-node` all read. `init` also sets `engines.node` to `>=24` in `package.json`, unless the project already has one.
+A project's Node.js version lives in `.nvmrc`, which `init` writes with `24`, or the version `--node` gives, and nvm, fnm and `actions/setup-node` all read. `init` also sets `engines.node` to `>=24` in `package.json`, unless the project already has one; `--node` replaces it.
 
 Every pipeline stage that sets up Node.js picks the version in this order:
 

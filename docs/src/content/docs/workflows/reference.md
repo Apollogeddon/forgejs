@@ -131,6 +131,7 @@ Outputs `new_release_published` (`'true'` or `'false'`), `version` and `tag_name
 | Input | Default | Description |
 | :--- | :--- | :--- |
 | `working_directory` | `'.'` | The package to release |
+| `node_version` | `''` | Node.js version; empty reads the project's `.nvmrc`, else Node.js 24 |
 | `reviewers` | `''` | Comma-separated logins to request a review of the release pull request from; empty means the repository's owner |
 
 ### Checking a release
@@ -178,6 +179,8 @@ Outputs `published` (`'true'` when this run published the package) and `package_
 
 | Input | Default | Description |
 | :--- | :--- | :--- |
+| `working_directory` | `'.'` | Directory holding `package.json` |
+| `node_version` | `''` | Node.js version; empty reads the project's `.nvmrc`, else Node.js 24 |
 | `artifact_name` | `'dist'` | The build artifact to pack |
 | `package` | `true` | Publish to GitHub Packages; needs `packages: write` |
 | `assets` | `''` | An artifact whose files to attach to the release; needs `contents: write` |
@@ -192,6 +195,10 @@ Outputs `published` (`'true'` when this run published the package) and `package_
 
 `init --website` calls it on a release, or on every push to `main` without versioning. It deploys whatever `npm run build` writes to `dist/`.
 
+| Input | Default | Description |
+| :--- | :--- | :--- |
+| `artifact_name` | `'dist'` | The build artifact to deploy |
+
 ## debian.yml
 
 *Debian packaging.*
@@ -200,6 +207,14 @@ Outputs `published` (`'true'` when this run published the package) and `package_
 2. **`test`**: Reads the `.deb` back with `dpkg-deb`: its control fields and file list, so a broken package fails before it ships. *(Needs: build)*
 
 `init --debian` runs it on pull requests and on a release, and on a release attaches the `.deb` to the GitHub release through `publish.yml`'s `assets`.
+
+Outputs `package_artifact`, the name of the artifact holding the `.deb` (`debian-package`), for `publish.yml`'s `assets`.
+
+| Input | Default | Description |
+| :--- | :--- | :--- |
+| `working_directory` | `'.'` | Directory holding `package.json` |
+| `node_version` | `''` | Node.js version; empty reads the project's `.nvmrc`, else Node.js 24 |
+| `artifact_name` | `'dist'` | The build artifact `service.yml` uploaded |
 
 ## docker.yml
 
@@ -241,6 +256,11 @@ Building locally needs a token with `read:packages` so `npm ci` can install `@ap
 1. **`update`**: On `main`, runs `osv-scanner fix` against `package-lock.json` in `working_directory`, then `npm install`, and commits any changes as `fix(deps): patch vulnerabilities via osv-scanner`. It checks out the tip of `main`, so a second call in the same run (forgejs patches its docs site after the tool) commits on top of the first.
 
 The commit is made with `GITHUB_TOKEN`, so it starts no run of its own: release-please picks it up on the next push to `main`.
+
+| Input | Default | Description |
+| :--- | :--- | :--- |
+| `working_directory` | `'.'` | Directory holding `package.json` and `package-lock.json` |
+| `node_version` | `''` | Node.js version; empty reads the project's `.nvmrc`, else Node.js 24 |
 
 ## merge.yml
 
