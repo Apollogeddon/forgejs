@@ -76,7 +76,7 @@ Forge.js never removes scripts, and only overwrites the ones it manages when you
 
 ### Run in a monorepo package
 
-Point the pipelines at a subdirectory with `working_directory`, given relative to the repository root without a leading `./` or trailing `/`. `version.yml` releases that package on its own: release-please only counts commits under the directory, and tags its releases with the package's name (`api-v1.2.3`):
+Point the pipelines at a subdirectory with `working_directory`, given relative to the repository root without a leading `./` or trailing `/`. `version.yml` releases that package on its own: release-please only counts commits under the directory, and tags its releases with the package's name (`api-vX.Y.Z`):
 
 ```yaml
 jobs:
@@ -105,7 +105,7 @@ Pass it to `patch.yml` too, and to `publish.yml` for a library.
 
 ### Test across Node.js versions
 
-Call a check pipeline from a matrix to run its stages on several Node.js versions. The run page names each call `service (22)`, `service (24)`:
+Call a check pipeline from a matrix to run its stages on several Node.js versions. The run page names each call after its version, such as `service (lts/*)`:
 
 ```yaml
 jobs:
@@ -113,7 +113,7 @@ jobs:
     name: service (${{ matrix.node }})
     strategy:
       matrix:
-        node: ['22', '24']
+        node: ['lts/-1', 'lts/*']
     uses: apollogeddon/forgejs/.github/workflows/service.yml@main
     permissions:
       contents: read
@@ -122,7 +122,7 @@ jobs:
     with:
       node_version: ${{ matrix.node }}
       # artifact names must be unique per run
-      artifact_name: dist-node-${{ matrix.node }}
+      artifact_name: dist-node-${{ strategy.job-index }}
 ```
 
 ### Set build-time environment variables

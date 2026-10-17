@@ -124,7 +124,7 @@ The other modes differ only in their jobs:
 
 ### Upgrading from `index.yml`
 
-Before 6.0, `init` generated `.github/workflows/index.yml` (and before 2.3.2, `ci.yml` and `debian.yml`), which called `library.yml`, `service.yml`, `website.yml` or `debian.yml` as one job. Once `init` has written `.index.yml`, it removes such a file when it's exactly as an earlier release generated it, ignoring line endings, trailing spaces and blank lines. One you've changed since, say to set `runs_on`, is kept with a warning until you run `init --force`: move your changes to `.index.yml` first. An `index.yml` that calls none of forgejs's workflows is your own and is never removed; check it doesn't repeat `.index.yml`'s jobs. Nothing is removed when `init` kept an existing `.index.yml`. See [Inputs that moved](/forgejs/docs/workflows/reference#inputs-that-moved) for a hand-written caller.
+A project `init` set up before `.index.yml` has a `.github/workflows/index.yml` (or a `ci.yml` and `debian.yml`), which calls `library.yml`, `service.yml`, `website.yml` or `debian.yml` as one job. Once `init` has written `.index.yml`, it removes such a file when it's exactly as `init` generated it, ignoring line endings, trailing spaces and blank lines. One you've changed since, say to set `runs_on`, is kept with a warning until you run `init --force`: move your changes to `.index.yml` first. An `index.yml` that calls none of forgejs's workflows is your own and is never removed; check it doesn't repeat `.index.yml`'s jobs. Nothing is removed when `init` kept an existing `.index.yml`. See [Inputs that moved](/forgejs/docs/workflows/reference#inputs-that-moved) for a hand-written caller.
 
 ## Secrets
 

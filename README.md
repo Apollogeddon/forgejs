@@ -22,11 +22,11 @@
 
 <br />
 
-Forge.js (`@apollogeddon/forgejs`) is a project-scaffolding CLI for TypeScript and Node.js. Its `init` command sets up a backend, library or website with a standard toolchain (Biome, Vitest, tsdown or Vite, Lefthook, commitlint, release-please) and a GitHub Actions pipeline built from reusable workflows. It keeps your Biome, TypeScript and Vitest setup in one place: the generated configs extend base configs shipped in the package, so upgrading one dependency upgrades every project.
+Forge.js (`@apollogeddon/forgejs`) is a project-scaffolding CLI for TypeScript and Node.js. Its `init` command sets up a backend, library or website with a standard toolchain and a GitHub Actions pipeline built from reusable workflows. It keeps your lint, type-check and test setup in one place: the generated configs extend base configs shipped in the package, so upgrading the package upgrades every project.
 
 ## Requirements
 
-- Node.js 24 or later
+- Node.js
 - Git, for the generated Lefthook hooks
 - A GitHub token with the `read:packages` scope: the package is published to GitHub Packages, not the public npm registry
 
@@ -70,27 +70,9 @@ npm install
 
 Existing files and scripts are kept unless you pass `--force`. Preview changes with `--dry-run`. See [Getting started](https://apollogeddon.github.io/forgejs/docs/getting-started) for every flag and script.
 
-## The toolchain
-
-| Category | Tool |
-| :--- | :--- |
-| Linting and formatting | [Biome](https://biomejs.dev/) |
-| Dependency scanning | [OSV-Scanner](https://osv.dev/) |
-| Secret scanning (CI) | [Gitleaks](https://github.com/gitleaks/gitleaks) |
-| Testing | [Vitest](https://vitest.dev/) |
-| Bundling | [tsdown](https://tsdown.dev/) for backends and libraries, [Vite](https://vite.dev/) for websites |
-| Git hooks | [Lefthook](https://github.com/evilmartians/lefthook) |
-| Commit messages | [commitlint](https://commitlint.js.org/) with Conventional Commits |
-| Releases | [release-please](https://github.com/googleapis/release-please) |
-| Containers (`--docker`) | Multi-platform [Docker Buildx](https://docs.docker.com/build/) images, pushed to GitHub Container Registry on release |
-| Debian packages (`--debian`) | [Snodeb](https://www.npmjs.com/package/snodeb) |
-| Website checks (CI, opt-in) | [lychee](https://lychee.cli.rs/) for links and [axe](https://github.com/dequelabs/axe-core) for accessibility |
-
-OSV-Scanner is not an npm package: CI downloads it, and the local `npm run security` script needs `osv-scanner` on your `PATH`.
-
 ## Keeping projects up to date
 
-Biome, Vitest, tsdown, Vite, Lefthook, commitlint, Publint and Snodeb are dependencies of `@apollogeddon/forgejs`, so their versions are pinned and tested together. The generated `biome.json`, `tsconfig.json` and other configs extend the base configs shipped in `@apollogeddon/forgejs/configs/`, so upgrading the package upgrades the tools and their configuration in one step:
+The generated `biome.json`, `tsconfig.json` and other configs extend the base configs shipped in `@apollogeddon/forgejs/configs/`, so upgrading the package upgrades the tools and their configuration in one step:
 
 ```bash
 npm install --save-dev @apollogeddon/forgejs@latest
