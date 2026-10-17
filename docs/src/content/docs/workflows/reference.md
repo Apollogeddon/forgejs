@@ -275,26 +275,3 @@ The generated `merge` job passes `checks_passed` as whether every check job befo
 | :--- | :--- | :--- |
 | `reviewers` | `''` | Comma-separated logins to request a review from; empty means the repository's owner |
 | `checks_passed` | `false` | Whether the pull request's checks passed in this run; `squash` only runs when they did |
-
-## Inputs that moved
-
-`library.yml`, `service.yml`, `website.yml` and `debian.yml` used to each run a whole pipeline: checks, review requests, the Dependabot merge, release-please and delivery. Each is now one part, and `.index.yml` decides when each part runs, so a hand-written caller moves these inputs:
-
-| Old input | Now |
-| :--- | :--- |
-| `test_on_push`, `test_release_prs` | Gone: the root job's `if` decides (see [Checking a release](#checking-a-release)) |
-| `enable_versioning` | Gone: call `version.yml`, or leave it out |
-| `auto_patch` | Gone: call `patch.yml` from a scheduled, manual or `auto-merged` run |
-| `publish` (`library.yml`) | Gone: call `publish.yml` |
-| `reviewers` | `version.yml`'s and `merge.yml`'s `reviewers` |
-| `auto_merge`, `review_dependabot` (`website.yml`) | Gone: call `merge.yml` once per run |
-| `run_tests`, `enable_secrets`, `node_version`, `working_directory`, `build_env_vars`, `artifact_name`, `runs_on` | Unchanged, on the check pipelines |
-| `ref`, `setup_go`, `pre_build_command`, `GH_TOKEN` | Unchanged on `website.yml`, and now on `library.yml` and `service.yml` too |
-| `debian.yml`'s check inputs | Pass them to `service.yml`; `debian.yml` takes `working_directory`, `node_version`, `artifact_name` and `runs_on` |
-
-| Old output | Now |
-| :--- | :--- |
-| `new_release_published`, `version`, `tag_name` (`service.yml`, `website.yml`, `debian.yml`) | `version.yml`'s |
-| `published`, `package_artifact` (`library.yml`) | `publish.yml`'s |
-
-`testing.yml`, `quality.yml`, `review.yml` and `attest.yml` are gone: their jobs are the check pipelines' stages, `merge.yml`'s and `version.yml`'s review requests, and `publish.yml`'s `attest`.
