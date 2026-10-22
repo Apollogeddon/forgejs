@@ -304,6 +304,8 @@ describe("CLI Init Command", () => {
   it.each([
     ["--backend --website", /one mode/],
     ["--website --debian", /debian/i],
+    ["--website --windows", /windows builds are not available for website mode/i],
+    ["--website --macos", /macos builds are not available for website mode/i],
     ["--testing --no-testing", /--testing and --no-testing/],
     ["--all --no-all", /--all and --no-all/],
   ])("should exit 2 for the invalid combination %s", (flags, reason) => {
@@ -394,6 +396,30 @@ describe("CLI Init Command", () => {
     expect(docker.needs).toEqual(["version", pipeline]);
     expect(docker.permissions?.packages).toBe("write");
     expect(String(docker.with?.version)).toBe("${{ needs.version.outputs.version }}");
+  });
+
+  it.each([
+    ["--backend", "service"],
+    ["--library", "library"],
+  ])("should test and build on Windows and macOS with %s --windows --macos", (mode, pipeline) => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${mode} --windows --macos`, { cwd: tempDir });
+    const checks = readGeneratedWorkflow(tempDir).jobs[pipeline];
+    expect(checks?.with).toMatchObject({ test_windows: "windows-latest", test_macos: "macos-latest" });
+  });
+
+  it.each([
+    ["--windows", "test_windows", "test_macos"],
+    ["--macos", "test_macos", "test_windows"],
+  ])("should pass only the stage %s asks for", (flag, on, off) => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${flag}`, { cwd: tempDir });
+    const checks = readGeneratedWorkflow(tempDir).jobs.service;
+    expect(checks?.with?.[on]).toBeDefined();
+    expect(checks?.with?.[off]).toBeUndefined();
+  });
+
+  it("should leave Windows and macOS off without --windows and --macos", () => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --library`, { cwd: tempDir });
+    expect(fs.readFileSync(path.join(tempDir, ".github/workflows/.index.yml"), "utf-8")).not.toMatch(/test_(windows|macos)/);
   });
 
   it("should not add a docker job without --docker", () => {
@@ -491,6 +517,8 @@ describe("CLI Init Command", () => {
     "--library --no-testing --no-versioning",
     "--website --docker --no-testing --no-versioning",
     "--debian --docker --no-testing --no-versioning",
+    "--backend --windows --macos --no-testing",
+    "--library --windows --macos",
   ])("should only pass inputs the called workflows declare (%s)", (flags) => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${flags}`, { cwd: tempDir });
     for (const [name, job] of Object.entries(readGeneratedWorkflow(tempDir).jobs)) {

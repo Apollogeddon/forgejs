@@ -82,8 +82,11 @@ for (const mode of ["library", "service", "website"] as const) {
     for (const docker of [false, true]) {
       for (const versioning of [true, false]) {
         for (const testing of [true, false]) {
-          const name = `${mode}${debian ? " debian" : ""}${docker ? " docker" : ""}${versioning ? "" : " no-versioning"}${testing ? "" : " no-testing"}`;
-          MODES.push([name, { mode, debian, docker, versioning, testing }]);
+          // --windows and --macos, which website.yml has no stages for, both on or both off
+          for (const os of mode === "website" ? [false] : [false, true]) {
+            const name = `${mode}${debian ? " debian" : ""}${docker ? " docker" : ""}${os ? " windows macos" : ""}${versioning ? "" : " no-versioning"}${testing ? "" : " no-testing"}`;
+            MODES.push([name, { mode, debian, docker, windows: os, macos: os, versioning, testing }]);
+          }
         }
       }
     }
@@ -337,6 +340,8 @@ describe("Generated .index.yml per mode", () => {
           mode: "service",
           debian: false,
           docker: false,
+          windows: false,
+          macos: false,
           testing: true,
           versioning: true,
           ...cfg,
@@ -359,6 +364,16 @@ describe("Generated .index.yml per mode", () => {
   it("turns off the test stage for --no-testing", () => {
     expect(jobsOf({ testing: false }).service?.with).toEqual({ run_tests: false });
     expect(jobsOf({}).service?.with).toBeUndefined();
+  });
+
+  it.each(["library", "service"] as const)("tests and builds %s on Windows and macOS only when asked", (mode) => {
+    expect(jobsOf({ mode, windows: true })[mode]?.with).toEqual({ test_windows: "windows-latest" });
+    expect(jobsOf({ mode, macos: true })[mode]?.with).toEqual({ test_macos: "macos-latest" });
+    expect(jobsOf({ mode, windows: true, macos: true, testing: false })[mode]?.with).toEqual({
+      run_tests: false,
+      test_windows: "windows-latest",
+      test_macos: "macos-latest",
+    });
   });
 
   it("attests a library's release, which needs the signing permissions", () => {
@@ -703,9 +718,16 @@ describe("Check pipelines", () => {
     });
   });
 
-  // generated workflows leave them off, as Windows and macOS minutes cost more on a private repository
-  it("should leave the extra test runs off in generated workflows, and on in forgejs's own", () => {
-    for (const [, text] of generated) expect(text).not.toMatch(/test_(windows|macos|versions)/);
+  // generated workflows leave them off unless init --windows or --macos asked, as Windows and macOS minutes
+  // cost more on a private repository
+  it("should leave the extra test runs off in generated workflows unless asked, and on in forgejs's own", () => {
+    for (const [name, text] of generated) {
+      expect(text).not.toContain("test_versions");
+      if (name.includes("windows")) {
+        expect(text).toContain("      test_windows: windows-latest\n");
+        expect(text).toContain("      test_macos: macos-latest\n");
+      } else expect(text).not.toMatch(/test_(windows|macos)/);
+    }
     expect(load(".index.yml").jobs.library?.with).toMatchObject({
       test_windows: "windows-latest",
       test_macos: "macos-latest",

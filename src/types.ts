@@ -6,6 +6,9 @@ export interface InitConfig {
   website: boolean;
   debian: boolean;
   docker: boolean;
+  // test and build on Windows and macOS in CI too
+  windows: boolean;
+  macos: boolean;
   testing: boolean;
   versioning: boolean;
   linting: boolean;

@@ -78,6 +78,8 @@ npx @apollogeddon/forgejs init [options]
 | `--all`, `--no-all` | Turn every standard feature on or off. An explicit flag such as `--testing` still wins. |
 | `--docker` | Add a `Dockerfile` and a container build in CI. Not available with `--library`. |
 | `--debian` | Add Snodeb `.deb` packaging. Not available with `--library` or `--website`. |
+| `--windows` | Test and build on Windows too in CI. Not available with `--website`. |
+| `--macos` | Test and build on macOS too in CI. Not available with `--website`. |
 | `--force` | Overwrite existing config files and scripts, and remove config files for disabled features. |
 | `--dry-run` | Show what would change without writing anything. |
 | `--node <version>` | The project's Node.js version, a major or a full version: written to `.nvmrc` and `engines.node`, replacing what was there, and to the base images of a new Dockerfile (an existing one is kept, with a warning, unless you pass `--force`). Without it, `init` uses the version `.nvmrc` already pins, else forgejs's default. |

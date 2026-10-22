@@ -170,6 +170,10 @@ module.exports = defineSnodebConfig({
 });
 ```
 
+### Windows and macOS
+
+`--windows` and `--macos` add no files: they set `test_windows: windows-latest` and `test_macos: macos-latest` on the checks job in `.index.yml`, so the `library` or `service` pipeline also runs the tests and the build on that system and uploads the build as its own artifact. A website has no such stages, so `init` refuses them with `--website`. Without them, CI runs on Linux only, as a private repository pays more for Windows and macOS minutes. To pass a runner's environment, a shorter suite or a setup script, edit the job's inputs instead; see [Windows and macOS](/forgejs/docs/workflows/reference#windows-and-macos).
+
 ## Node.js version
 
 A project's Node.js version lives in `.nvmrc`, which `init` writes with forgejs's default, or the version `--node` gives, and nvm, fnm and `actions/setup-node` all read. `init` also sets `engines.node` to that version or newer in `package.json`, unless the project already has one; `--node` replaces it.

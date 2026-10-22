@@ -8,6 +8,9 @@ export interface IndexWorkflowOptions {
   mode: PipelineMode;
   debian: boolean;
   docker: boolean;
+  // test and build on Windows and macOS too; only library and service checks have the stages
+  windows: boolean;
+  macos: boolean;
   testing: boolean;
   versioning: boolean;
 }
@@ -82,8 +85,15 @@ function render(job: PipelineJob): string {
 // Disabled standard features become pipeline inputs, so CI doesn't run what the project doesn't have:
 // --no-testing turns off the test stage. --no-versioning leaves out the version job, and with it the
 // release testing and publish; --no-linting needs nothing, as the lint stage skips Biome without a biome.json.
-export function withPipelineInputs(cfg: Pick<IndexWorkflowOptions, "testing">): Record<string, boolean> {
-  return cfg.testing ? {} : { run_tests: false };
+// --windows and --macos turn on those stages, which a private repository pays more for, so they're opt-in.
+export function withPipelineInputs(
+  cfg: Pick<IndexWorkflowOptions, "testing" | "windows" | "macos">,
+): Record<string, string | boolean> {
+  return {
+    ...(cfg.testing ? {} : { run_tests: false }),
+    ...(cfg.windows ? { test_windows: "windows-latest" } : {}),
+    ...(cfg.macos ? { test_macos: "macos-latest" } : {}),
+  };
 }
 
 // Docker is a job of its own after the checks, so projects without it don't carry a permanently

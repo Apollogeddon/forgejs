@@ -120,6 +120,7 @@ The other modes differ only in their jobs:
 | `--debian` | `version`, `service`, `debian`, `publish` (the `.deb` attached to the release), `merge` |
 
 - `--docker` adds a `docker` job after the checks: it builds on pull requests, and builds and pushes on a release. `merge` waits for it, so a broken image stops a Dependabot merge.
+- `--windows` passes `test_windows: windows-latest` and `--macos` passes `test_macos: macos-latest` to a backend's or library's checks, which then test and build on that system too (see [Windows and macOS](/forgejs/docs/workflows/reference#windows-and-macos)).
 - `--no-testing` passes `run_tests: false` to the checks, which skips their `test` stage.
 - `--no-versioning` leaves out `version` and `publish`: the checks, and a website's deploy, run on every push to `main` instead.
 - `--no-linting` needs nothing: the `lint` stage skips Biome when the project has no `biome.json`.

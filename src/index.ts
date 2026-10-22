@@ -14,6 +14,8 @@ const options = {
   // Optional opt-in features
   debian: { type: "boolean" },
   docker: { type: "boolean" },
+  windows: { type: "boolean" },
+  macos: { type: "boolean" },
 
   // Standard features: each has an explicit --no-<x> negation, since node:util's
   // parseArgs has no built-in negation support for boolean flags.
@@ -122,6 +124,8 @@ const config = {
 
   debian: !!values.debian,
   docker: !!values.docker,
+  windows: !!values.windows,
+  macos: !!values.macos,
 
   ...(values.path === undefined ? {} : { target: values.path }),
   ...(values.node === undefined ? {} : { node: values.node }),
@@ -136,7 +140,12 @@ if (config.library) {
   if (config.debian) invalid("Debian packaging is not available for Library mode.");
 }
 
-if (config.website && config.debian) invalid("Debian packaging is not available for Website mode.");
+if (config.website) {
+  if (config.debian) invalid("Debian packaging is not available for Website mode.");
+  // website.yml has no Windows or macOS stages: a site builds the same anywhere
+  if (config.windows) invalid("Windows builds are not available for Website mode.");
+  if (config.macos) invalid("macOS builds are not available for Website mode.");
+}
 
 process.exit(init(config));
 
@@ -158,6 +167,8 @@ Standard Features (Enabled by default; disable with --no-<feature> or --no-all):
 Optional Features:
   --docker          Setup Docker configuration
   --debian          Setup Debian packaging (snodeb)
+  --windows         Test and build on Windows in CI too (not for --website)
+  --macos           Test and build on macOS in CI too (not for --website)
 
 Options:
   --all             Enable all standard features [Default]
