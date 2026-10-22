@@ -21,10 +21,9 @@ interface Ecosystem {
   group: string;
   // only these update types are grouped; others get a pull request each
   updateTypes?: string[];
-  ignore?: string[];
 }
 
-const ecosystem = ({ name, prefix, group, updateTypes = [], ignore = [] }: Ecosystem) =>
+const ecosystem = ({ name, prefix, group, updateTypes = [] }: Ecosystem) =>
   [
     `  - package-ecosystem: "${name}"`,
     `    directory: "/"`,
@@ -37,7 +36,6 @@ const ecosystem = ({ name, prefix, group, updateTypes = [], ignore = [] }: Ecosy
     ...(updateTypes.length ? [`        update-types:`, ...updateTypes.map((t) => `          - "${t}"`)] : []),
     `    commit-message:`,
     `      prefix: "${prefix}"`,
-    ...(ignore.length ? [`    ignore:`, ...ignore.map((d) => `      - dependency-name: "${d}"`)] : []),
     `    cooldown:`,
     `      default-days: 3`,
   ].join("\n");
@@ -45,8 +43,8 @@ const ecosystem = ({ name, prefix, group, updateTypes = [], ignore = [] }: Ecosy
 export function dependabotConfig(docker: boolean): string {
   const ecosystems: Ecosystem[] = [
     { name: "npm", prefix: "fix(deps)", group: "dependencies", updateTypes: ["minor", "patch"] },
-    // the reusable workflows are called at @main, which has no versions to propose
-    { name: "github-actions", prefix: "chore(ci)", group: "actions", ignore: ["apollogeddon/forgejs"] },
+    // the actions, and forgejs's pipelines at the release tag init called them at
+    { name: "github-actions", prefix: "chore(ci)", group: "actions" },
   ];
   if (docker) {
     ecosystems.push({ name: "docker", prefix: "fix(deps)", group: "docker", updateTypes: ["minor", "patch"] });

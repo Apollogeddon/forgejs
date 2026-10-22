@@ -101,6 +101,40 @@ describe("Workflow files", () => {
   });
 });
 
+describe("Workflow hardening", () => {
+  // a tag can be moved to other code; a commit can't
+  it.each(files)("%s pins every action to a commit, with the version as a comment", (file) => {
+    const uses = [...read(file).matchAll(/^\s*(?:- )?uses: (.+)$/gm)].map((match) => String(match[1]));
+    for (const ref of uses) {
+      if (ref.startsWith("./")) continue;
+      expect(ref, file).toMatch(/^[\w.-]+\/[\w./-]+@[0-9a-f]{40} # v\d+\.\d+\.\d+$/);
+    }
+  });
+
+  // a job gets nothing it doesn't ask for; publish's assets and attest take the caller's grant on purpose
+  it.each(files)("%s grants nothing by default, unless a job takes the caller's grant", (file) => {
+    const wf = load(file) as Workflow & { permissions?: unknown };
+    if (file === "publish.yml") expect(wf.permissions).toBeUndefined();
+    else expect(wf.permissions).toEqual({});
+  });
+
+  it("calls the pipelines at a release's tag, or at main from any other build", () => {
+    expect(templates.pipelineRef("7.0.0")).toBe("v7.0.0");
+    expect(templates.pipelineRef("10.2.31")).toBe("v10.2.31");
+    for (const version of ["7.1.0-rc.1", "0.0.0-dev", "", undefined]) expect(templates.pipelineRef(version)).toBe("main");
+    const text = templates.indexWorkflow({ mode: "library", debian: false, docker: false, testing: true, versioning: true, version: "7.0.0" });
+    const uses = Object.values((yaml.load(text) as Workflow).jobs).map((job) => job.uses);
+    for (const ref of uses) expect(ref).toMatch(/^apollogeddon\/forgejs\/\.github\/workflows\/\w+\.yml@v7\.0\.0$/);
+    expect(text).toContain("permissions: {}");
+  });
+
+  // Dependabot proposes the next release's tag, so it mustn't ignore forgejs's pipelines
+  it("lets Dependabot bump the pipelines' tag", () => {
+    expect(templates.dependabotConfig(true)).not.toContain("apollogeddon/forgejs");
+    expect(read("../dependabot.yml")).not.toContain("apollogeddon/forgejs");
+  });
+});
+
 describe.each(pipelines)("Pipeline %s", (file) => {
   const pipeline = file.replace(/\.yml$/, "");
   const wf = load(file);
@@ -258,6 +292,7 @@ describe.each(generated)("Generated .index.yml (%s)", (_name, text) => {
 
   it("calls forgejs's pipelines at @main, with inputs they declare and the permissions they need", () => {
     expectWiring("generated", wf, (uses) => {
+      // a development build's; a release's is its tag, as pipelineRef says
       const match = uses.match(/^apollogeddon\/forgejs\/\.github\/workflows\/([\w-]+\.yml)@main$/);
       return match?.[1];
     });
@@ -271,7 +306,7 @@ describe.each(generated)("Generated .index.yml (%s)", (_name, text) => {
   // each run outside a pull request has a group of its own, so a queued run on main is never cancelled
   it("cancels only a pull request's older run", () => {
     expect((wf as { concurrency?: Record<string, unknown> }).concurrency).toEqual({
-      group: "${{ github.workflow }}-${{ github.head_ref || github.run_id }}",
+      group: "${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}",
       "cancel-in-progress": true,
     });
   });
@@ -487,6 +522,8 @@ describe("version.yml", () => {
     expect(app?.with).toEqual({
       "client-id": "${{ inputs.app_client_id }}",
       "private-key": "${{ secrets.APP_PRIVATE_KEY }}",
+      "permission-contents": "write",
+      "permission-pull-requests": "write",
     });
     const steps = job?.steps ?? [];
     expect(steps.indexOf(app as Step)).toBeLessThan(steps.indexOf(release() as Step));
@@ -534,7 +571,7 @@ describe("Node.js version resolution", () => {
     if (!content.includes("actions/setup-node")) continue;
 
     it(`should resolve the version before every setup-node in ${file}`, () => {
-      const setups = content.match(/uses: actions\/setup-node@\S+\n\s+with:\n\s+node-version: (.+)/g) ?? [];
+      const setups = content.match(/uses: actions\/setup-node@\S+(?: # \S+)?\n\s+with:\n\s+node-version: (.+)/g) ?? [];
       expect(setups.length).toBeGreaterThan(0);
       for (const setup of setups) expect(setup).toContain("${{ steps.node.outputs.version }}");
       const resolves = content.match(/else version=(\S+)/g) ?? [];
@@ -713,7 +750,7 @@ describe("Website site checks", () => {
 
   it("should check only internal links unless asked for external ones", () => {
     const args = String(checkStep("Check links")?.with?.args);
-    expect(checkStep("Check links")?.uses).toMatch(/^lycheeverse\/lychee-action@v\d+$/);
+    expect(checkStep("Check links")?.uses).toMatch(/^lycheeverse\/lychee-action@[0-9a-f]{40}$/);
     expect(args).toContain("${{ !inputs.check_external_links && '--offline' || '' }}");
     expect(args).toContain("--root-dir '${{ steps.site.outputs.root }}'");
     expect(checkStep("Check links")?.with?.fail).toBe(true);
@@ -793,7 +830,7 @@ describe("publish.yml", () => {
     expect(attest?.needs).toEqual(["package", "assets"]);
     expect(attest?.if).toContain("inputs.attest");
     expect(wf.on.workflow_call?.inputs?.attest?.default).toBe(false);
-    expect(attest?.steps?.at(-1)?.uses).toMatch(/^actions\/attest-build-provenance@v\d+$/);
+    expect(attest?.steps?.at(-1)?.uses).toMatch(/^actions\/attest-build-provenance@[0-9a-f]{40}$/);
     expect(attest?.steps?.at(-1)?.with?.["subject-path"]).toBe("${{ runner.temp }}/attest/*");
   });
 

@@ -64,7 +64,5 @@ updates:
           - "*"
     commit-message:
       prefix: "chore(ci)"
-    ignore:
-      - dependency-name: "apollogeddon/forgejs"
     cooldown:
       default-days: 3

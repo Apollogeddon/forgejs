@@ -1,6 +1,7 @@
 import * as templates from "../templates/index.js";
 import type { InitConfig, PackageJson } from "../types.js";
 import type { IFileSystem } from "../utils/filesystem.js";
+import { forgejsVersion } from "../versions.js";
 import { createFile, type Feature, removeFile } from "./types.js";
 
 export const INDEX_WORKFLOW = ".github/workflows/.index.yml";
@@ -66,6 +67,7 @@ export const WorkflowFeature: Feature = {
       docker: cfg.docker,
       testing: cfg.testing,
       versioning: cfg.versioning,
+      version: forgejsVersion,
     });
     // only once .index.yml is written: a kept or failed one would leave the project with no CI, or the old one
     const replacing = !fs.existsSync(fs.join(cwd, INDEX_WORKFLOW)) || cfg.force;

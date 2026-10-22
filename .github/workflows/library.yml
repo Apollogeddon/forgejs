@@ -75,6 +75,9 @@ on:
         description: "A token pre_build_command can use, as GH_TOKEN"
         required: false
 
+# nothing by default: every job asks for what it needs
+permissions: {}
+
 jobs:
   lint:
     name: lint
@@ -88,7 +91,7 @@ jobs:
         working-directory: ${{ inputs.working_directory }}
     steps:
       - name: Check out
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
@@ -104,7 +107,7 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Set up Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ steps.node.outputs.version }}
           cache: 'npm'
@@ -113,7 +116,7 @@ jobs:
           scope: "@${{ github.repository_owner }}"
       - name: Set up Go
         if: inputs.setup_go != ''
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           # a path names a file to read the version from, anything else is the version itself
           go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
@@ -154,14 +157,14 @@ jobs:
         working-directory: ${{ inputs.working_directory }}
     steps:
       - name: Check out
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
           fetch-depth: 0
       - name: Scan with Gitleaks
         if: inputs.enable_secrets
-        uses: gitleaks/gitleaks-action@v3
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # a pinned release, checked against the checksums it was published with
@@ -195,7 +198,7 @@ jobs:
           "$RUNNER_TEMP/osv-scanner/osv-scanner" scan source -r --format json --output-file "$RUNNER_TEMP/osv.json" . || status=$?
           echo "status=$status" >> "$GITHUB_OUTPUT"
       - name: Report OSV findings
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           OSV_STATUS: ${{ steps.osv.outputs.status }}
           OSV_REPORT: ${{ runner.temp }}/osv.json
@@ -260,7 +263,7 @@ jobs:
       # repositories need GitHub Code Security for it
       - name: Review dependencies
         if: github.event_name == 'pull_request' && github.event.repository.private == false
-        uses: actions/dependency-review-action@v5
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
           fail-on-severity: high
 
@@ -279,7 +282,7 @@ jobs:
         working-directory: ${{ inputs.working_directory }}
     steps:
       - name: Check out
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
@@ -295,7 +298,7 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Set up Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ steps.node.outputs.version }}
           cache: 'npm'
@@ -304,7 +307,7 @@ jobs:
           scope: "@${{ github.repository_owner }}"
       - name: Set up Go
         if: inputs.setup_go != ''
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           # a path names a file to read the version from, anything else is the version itself
           go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
@@ -325,7 +328,7 @@ jobs:
         run: npm test
       - name: Upload coverage
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-${{ inputs.artifact_name }}
           path: ${{ inputs.working_directory }}/coverage
@@ -348,7 +351,7 @@ jobs:
         working-directory: ${{ inputs.working_directory }}
     steps:
       - name: Check out
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
@@ -364,7 +367,7 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Set up Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ steps.node.outputs.version }}
           cache: 'npm'
@@ -373,7 +376,7 @@ jobs:
           scope: "@${{ github.repository_owner }}"
       - name: Set up Go
         if: inputs.setup_go != ''
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           # a path names a file to read the version from, anything else is the version itself
           go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
@@ -407,7 +410,7 @@ jobs:
         working-directory: ${{ inputs.working_directory }}
     steps:
       - name: Check out
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
@@ -423,7 +426,7 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Set up Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ steps.node.outputs.version }}
           cache: 'npm'
@@ -432,7 +435,7 @@ jobs:
           scope: "@${{ github.repository_owner }}"
       - name: Set up Go
         if: inputs.setup_go != ''
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           # a path names a file to read the version from, anything else is the version itself
           go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
@@ -471,7 +474,7 @@ jobs:
         working-directory: ${{ inputs.working_directory }}
     steps:
       - name: Check out
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
@@ -486,7 +489,7 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Set up Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ steps.node.outputs.version }}
           cache: 'npm'
@@ -495,7 +498,7 @@ jobs:
           scope: "@${{ github.repository_owner }}"
       - name: Set up Go
         if: inputs.setup_go != ''
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           # a path names a file to read the version from, anything else is the version itself
           go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
@@ -529,7 +532,7 @@ jobs:
         working-directory: ${{ inputs.working_directory }}
     steps:
       - name: Check out
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
@@ -545,7 +548,7 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Set up Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ steps.node.outputs.version }}
           cache: 'npm'
@@ -554,7 +557,7 @@ jobs:
           scope: "@${{ github.repository_owner }}"
       - name: Set up Go
         if: inputs.setup_go != ''
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           # a path names a file to read the version from, anything else is the version itself
           go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
@@ -586,7 +589,7 @@ jobs:
           npm run --if-present publint
           npm run --if-present docs:check
       - name: Upload the build
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ inputs.artifact_name }}
           path: ${{ inputs.working_directory }}/dist

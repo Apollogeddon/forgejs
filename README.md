@@ -78,6 +78,8 @@ The generated `biome.json`, `tsconfig.json` and other configs extend the base co
 npm install --save-dev @apollogeddon/forgejs@latest
 ```
 
+The generated `.github/workflows/.index.yml` calls forgejs's pipelines at the release that wrote it, such as `@v7.0.0`; Dependabot proposes the next release's tag as a GitHub Actions update.
+
 ## Documentation
 
 The full documentation is at [apollogeddon.github.io/forgejs](https://apollogeddon.github.io/forgejs):

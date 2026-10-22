@@ -10,9 +10,18 @@ export interface IndexWorkflowOptions {
   docker: boolean;
   testing: boolean;
   versioning: boolean;
+  // the forgejs version writing the workflow: a release's pipelines are called at its tag, anything else at main
+  version?: string;
 }
 
 export const FORGEJS_WORKFLOWS = "apollogeddon/forgejs/.github/workflows";
+
+// A release's tag, so a project keeps the pipelines it was generated with until Dependabot proposes the next
+// one; a development or pre-release build has no tag of its own yet. Not a commit SHA, as a release's commit
+// doesn't exist when its version is built, and an immutable release locks the tag instead.
+export function pipelineRef(version: string | undefined): string {
+  return version !== undefined && /^\d+\.\d+\.\d+$/.test(version) ? `v${version}` : "main";
+}
 
 const header = `\
 name: index
@@ -30,8 +39,11 @@ on:
 concurrency:
   # a pull request's newer run replaces its older one; every other run has a group of its own, so a run on
   # main, running or queued, is never cancelled and a release is never created without being published
-  group: \${{ github.workflow }}-\${{ github.head_ref || github.run_id }}
+  group: \${{ github.workflow }}-\${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
+
+# nothing by default: every job grants what its pipeline needs
+permissions: {}
 
 jobs:
 `;
@@ -54,13 +66,13 @@ export interface PipelineJob {
   permissions: Record<string, "read" | "write">;
 }
 
-function render(job: PipelineJob): string {
+function render(job: PipelineJob, ref: string): string {
   const lines = job.comment ? [`  # ${job.comment}`] : [];
   lines.push(`  ${job.id}:`);
   if (job.needs?.length)
     lines.push(`    needs: ${job.needs.length === 1 ? job.needs[0] : `[${job.needs.join(", ")}]`}`);
   if (job.if) lines.push(`    if: ${expr(job.if)}`);
-  lines.push(`    uses: ${FORGEJS_WORKFLOWS}/${job.pipeline}.yml@main`);
+  lines.push(`    uses: ${FORGEJS_WORKFLOWS}/${job.pipeline}.yml@${ref}`);
   const inputs = Object.entries(job.with ?? {});
   if (inputs.length) {
     lines.push("    with:");
@@ -191,7 +203,8 @@ export function indexWorkflow(cfg: IndexWorkflowOptions): string {
     permissions: { contents: "write", "pull-requests": "write" },
   });
 
-  return header + jobs.map(render).join("\n");
+  const ref = pipelineRef(cfg.version);
+  return header + jobs.map((job) => render(job, ref)).join("\n");
 }
 
 // A workflow that calls forgejs's pipelines, rather than one of the project's own

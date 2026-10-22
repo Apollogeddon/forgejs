@@ -1,16 +1,12 @@
-import { createRequire } from "node:module";
 import * as features from "./features/index.js";
 import { setDependency } from "./features/types.js";
 import type { InitConfig, PackageJson } from "./types.js";
 import type { IFileSystem } from "./utils/filesystem.js";
 import { NodeFileSystem } from "./utils/filesystem.js";
 import { slug } from "./utils/names.js";
+import { ownPackageJson } from "./versions.js";
 
-// core.ts and the tsdown bundle output are both one directory below repo root, so
-// "../package.json" resolves in both - don't move this into a deeper-nested file.
-const require = createRequire(import.meta.url);
-const ownPackageJson = require("../package.json") as { name: string; version: string };
-export const forgejsVersion = ownPackageJson.version;
+export { forgejsVersion } from "./versions.js";
 
 export function init(cfg: InitConfig, fs: IFileSystem = new NodeFileSystem()): number {
   const cwd = cfg.target === undefined ? fs.cwd() : fs.resolve(cfg.target);
