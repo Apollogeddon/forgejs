@@ -42,7 +42,7 @@ A project without versioning has no release to wait for: its checks run on every
 
 `init` writes `.github/workflows/.index.yml` for the selected mode. Every one starts with the same triggers, concurrency rule and default permissions: a newer push to a pull request cancels the run it replaces, and every other run has a concurrency group of its own, so a run on `main`, running or queued, is never cancelled and a release is never created without being published. The workflow grants nothing by default, and each job grants only what its pipeline needs.
 
-It calls the pipelines at the tag of the forgejs release that wrote it, such as `@v7.0.0` below, so a project's CI only changes when it moves to a new release; a development or pre-release build of forgejs writes `@main` instead. Dependabot's GitHub Actions updates propose each new forgejs release's tag, and a person merges them, as `merge` leaves workflow changes alone. Every action the pipelines use is pinned to a commit.
+It calls the pipelines at `@main`, so a project gets every change to them as soon as it's merged, without an update to propose; Dependabot's GitHub Actions updates leave forgejs's pipelines alone. Every action the pipelines use is pinned to a commit.
 
 ```yaml
 name: index
@@ -69,7 +69,7 @@ permissions: {}
 jobs:
   version:
     if: ${{ github.event_name != 'pull_request' }}
-    uses: apollogeddon/forgejs/.github/workflows/version.yml@v7.0.0
+    uses: apollogeddon/forgejs/.github/workflows/version.yml@main
     with:
       app_client_id: ${{ vars.RELEASE_APP_CLIENT_ID }}
     secrets:
@@ -81,7 +81,7 @@ jobs:
   library:
     needs: version
     if: ${{ !cancelled() && (github.event_name == 'pull_request' || needs.version.outputs.new_release_published == 'true') }}
-    uses: apollogeddon/forgejs/.github/workflows/library.yml@v7.0.0
+    uses: apollogeddon/forgejs/.github/workflows/library.yml@main
     permissions:
       contents: read
       packages: read
@@ -90,7 +90,7 @@ jobs:
   publish:
     needs: [version, library]
     if: ${{ !cancelled() && needs.library.result == 'success' && needs.version.outputs.new_release_published == 'true' }}
-    uses: apollogeddon/forgejs/.github/workflows/publish.yml@v7.0.0
+    uses: apollogeddon/forgejs/.github/workflows/publish.yml@main
     with:
       attest: ${{ github.event.repository.private == false }}
     permissions:
@@ -102,7 +102,7 @@ jobs:
   merge:
     needs: library
     if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]' }}
-    uses: apollogeddon/forgejs/.github/workflows/merge.yml@v7.0.0
+    uses: apollogeddon/forgejs/.github/workflows/merge.yml@main
     with:
       checks_passed: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
     permissions:

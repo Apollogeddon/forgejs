@@ -5,11 +5,10 @@ import os from "node:os";
 import path from "node:path";
 import * as yaml from "js-yaml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { pipelineRef } from "../src/templates/workflows.js";
-import { forgejsVersion, NODE_VERSION } from "../src/versions.js";
+import { NODE_VERSION } from "../src/versions.js";
 
 const CLI_SCRIPT = path.resolve(__dirname, "../src/index.ts");
-// Generated .index.yml calls these pipelines at this version's tag; this repo is what the tag will serve
+// Generated .index.yml calls these pipelines at @main; this repo is what @main serves
 const REPO_WORKFLOWS = path.resolve(__dirname, "../.github/workflows");
 
 // Invoking the local tsx binary directly, rather than `npx tsx` from an unrelated tempDir cwd,
@@ -235,14 +234,14 @@ describe("CLI Init Command", () => {
     expect(fs.existsSync(path.join(tempDir, "vitest.config.ts"))).toBe(true);
 
     expect(readGeneratedWorkflow(tempDir).jobs.library?.uses).toBe(
-      `apollogeddon/forgejs/.github/workflows/library.yml@${pipelineRef(forgejsVersion)}`,
+      "apollogeddon/forgejs/.github/workflows/library.yml@main",
     );
   });
 
   it("should setup service workflow for backend", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
     expect(readGeneratedWorkflow(tempDir).jobs.service?.uses).toBe(
-      `apollogeddon/forgejs/.github/workflows/service.yml@${pipelineRef(forgejsVersion)}`,
+      "apollogeddon/forgejs/.github/workflows/service.yml@main",
     );
   });
 
@@ -391,7 +390,7 @@ describe("CLI Init Command", () => {
   ])("should add a docker job after the checks for %s --docker", (mode, pipeline) => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${mode} --docker`, { cwd: tempDir });
     const docker = readGeneratedWorkflow(tempDir).jobs.docker;
-    expect(docker.uses).toBe(`apollogeddon/forgejs/.github/workflows/docker.yml@${pipelineRef(forgejsVersion)}`);
+    expect(docker.uses).toBe("apollogeddon/forgejs/.github/workflows/docker.yml@main");
     expect(docker.needs).toEqual(["version", pipeline]);
     expect(docker.permissions?.packages).toBe("write");
     expect(String(docker.with?.version)).toBe("${{ needs.version.outputs.version }}");

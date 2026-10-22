@@ -1,11 +1,3 @@
-import { createRequire } from "node:module";
-
-// versions.ts and the tsdown bundle output are both one directory below repo root, so
-// "../package.json" resolves in both - don't move this into a deeper-nested file.
-const require = createRequire(import.meta.url);
-export const ownPackageJson = require("../package.json") as { name: string; version: string };
-export const forgejsVersion = ownPackageJson.version;
-
 // The Node.js major a new project pins in .nvmrc and engines, and the workflows' fallback when a
 // project has no .nvmrc. Raise it here; a test keeps the workflows' fallback in step.
 export const NODE_VERSION = "24";

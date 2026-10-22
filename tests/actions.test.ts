@@ -118,20 +118,10 @@ describe("Workflow hardening", () => {
     else expect(wf.permissions).toEqual({});
   });
 
-  it("calls the pipelines at a release's tag, or at main from any other build", () => {
-    expect(templates.pipelineRef("7.0.0")).toBe("v7.0.0");
-    expect(templates.pipelineRef("10.2.31")).toBe("v10.2.31");
-    for (const version of ["7.1.0-rc.1", "0.0.0-dev", "", undefined]) expect(templates.pipelineRef(version)).toBe("main");
-    const text = templates.indexWorkflow({ mode: "library", debian: false, docker: false, testing: true, versioning: true, version: "7.0.0" });
-    const uses = Object.values((yaml.load(text) as Workflow).jobs).map((job) => job.uses);
-    for (const ref of uses) expect(ref).toMatch(/^apollogeddon\/forgejs\/\.github\/workflows\/\w+\.yml@v7\.0\.0$/);
-    expect(text).toContain("permissions: {}");
-  });
-
-  // Dependabot proposes the next release's tag, so it mustn't ignore forgejs's pipelines
-  it("lets Dependabot bump the pipelines' tag", () => {
-    expect(templates.dependabotConfig(true)).not.toContain("apollogeddon/forgejs");
-    expect(read("../dependabot.yml")).not.toContain("apollogeddon/forgejs");
+  // projects track the pipelines at main on purpose, which has no versions for Dependabot to propose
+  it("leaves forgejs's pipelines out of Dependabot's updates", () => {
+    expect(templates.dependabotConfig(true)).toContain('- dependency-name: "apollogeddon/forgejs"');
+    expect(read("../dependabot.yml")).toContain('- dependency-name: "apollogeddon/forgejs"');
   });
 });
 
@@ -292,7 +282,6 @@ describe.each(generated)("Generated .index.yml (%s)", (_name, text) => {
 
   it("calls forgejs's pipelines at @main, with inputs they declare and the permissions they need", () => {
     expectWiring("generated", wf, (uses) => {
-      // a development build's; a release's is its tag, as pipelineRef says
       const match = uses.match(/^apollogeddon\/forgejs\/\.github\/workflows\/([\w-]+\.yml)@main$/);
       return match?.[1];
     });
@@ -309,6 +298,10 @@ describe.each(generated)("Generated .index.yml (%s)", (_name, text) => {
       group: "${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}",
       "cancel-in-progress": true,
     });
+  });
+
+  it("grants nothing by default, as every job grants what its pipeline needs", () => {
+    expect((wf as { permissions?: unknown }).permissions).toEqual({});
   });
 
   // Dependabot security updates fix vulnerable dependencies through pull requests, so nothing runs on a schedule

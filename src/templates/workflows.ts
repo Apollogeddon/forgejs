@@ -10,18 +10,9 @@ export interface IndexWorkflowOptions {
   docker: boolean;
   testing: boolean;
   versioning: boolean;
-  // the forgejs version writing the workflow: a release's pipelines are called at its tag, anything else at main
-  version?: string;
 }
 
 export const FORGEJS_WORKFLOWS = "apollogeddon/forgejs/.github/workflows";
-
-// A release's tag, so a project keeps the pipelines it was generated with until Dependabot proposes the next
-// one; a development or pre-release build has no tag of its own yet. Not a commit SHA, as a release's commit
-// doesn't exist when its version is built, and an immutable release locks the tag instead.
-export function pipelineRef(version: string | undefined): string {
-  return version !== undefined && /^\d+\.\d+\.\d+$/.test(version) ? `v${version}` : "main";
-}
 
 const header = `\
 name: index
@@ -66,13 +57,13 @@ export interface PipelineJob {
   permissions: Record<string, "read" | "write">;
 }
 
-function render(job: PipelineJob, ref: string): string {
+function render(job: PipelineJob): string {
   const lines = job.comment ? [`  # ${job.comment}`] : [];
   lines.push(`  ${job.id}:`);
   if (job.needs?.length)
     lines.push(`    needs: ${job.needs.length === 1 ? job.needs[0] : `[${job.needs.join(", ")}]`}`);
   if (job.if) lines.push(`    if: ${expr(job.if)}`);
-  lines.push(`    uses: ${FORGEJS_WORKFLOWS}/${job.pipeline}.yml@${ref}`);
+  lines.push(`    uses: ${FORGEJS_WORKFLOWS}/${job.pipeline}.yml@main`);
   const inputs = Object.entries(job.with ?? {});
   if (inputs.length) {
     lines.push("    with:");
@@ -203,8 +194,7 @@ export function indexWorkflow(cfg: IndexWorkflowOptions): string {
     permissions: { contents: "write", "pull-requests": "write" },
   });
 
-  const ref = pipelineRef(cfg.version);
-  return header + jobs.map((job) => render(job, ref)).join("\n");
+  return header + jobs.map(render).join("\n");
 }
 
 // A workflow that calls forgejs's pipelines, rather than one of the project's own
