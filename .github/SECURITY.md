@@ -18,3 +18,5 @@ This repository's CI runs on every pull request and again before each release:
 - **OSV-Scanner** scans dependencies for known vulnerabilities.
 
 **Dependabot** proposes dependency updates weekly, with a 3-day cooldown after a version is published. The cooldown gives time for a compromised release to be caught and yanked upstream before it is proposed here.
+
+**Dependabot security updates** (Settings → Code security → Dependabot security updates) open a pull request for each dependency with a known vulnerability as soon as a fixed version exists. They replace the weekly `patch` job, which committed `osv-scanner fix`'s changes straight to `main`.

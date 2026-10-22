@@ -170,7 +170,7 @@ jobs:
           mv "osv-scanner_linux_$arch" osv-scanner
           chmod +x osv-scanner
       # A high or critical finding (CVSS 7 or more) fails a pull request; elsewhere it's annotated
-      # instead, so releases and the patch pipeline that fixes it still run. Accept one with an
+      # instead, so releases still run while a Dependabot security update fixes it. Accept one with an
       # IgnoredVulns entry in an osv-scanner.toml beside the lockfile
       - name: Scan with OSV
         id: osv
@@ -237,7 +237,7 @@ jobs:
             if (blocking && process.env.OSV_ENFORCE === 'true') {
               core.setFailed(`${found}: update the packages, or record an accepted one in osv-scanner.toml`);
             } else if (blocking) {
-              core.warning(`${found}: this fails pull requests until they're updated, as the patch job may do`, { title: 'OSV scan' });
+              core.warning(`${found}: this fails pull requests until they're updated, as a Dependabot security update does`, { title: 'OSV scan' });
             } else {
               core.info(`${rows.length} found, none high or critical`);
             }

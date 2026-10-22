@@ -18,7 +18,7 @@ Every pipeline takes a `runs_on` input, default `ubuntu-latest`, for each of its
 The three share their first four stages, job for job:
 
 1. **`lint`**: `npm ci`, then `biome ci` (skipped without a `biome.json`) and `npm run type`.
-2. **`scan`**: Gitleaks secret scan (skip with `enable_secrets: false`) and an OSV-Scanner dependency scan. On a pull request, a high or critical finding (a CVSS score of 7 or more, or GitHub's rating when an advisory has no score) fails the stage, so a change can't add one. Elsewhere, such as on a release, it's an error annotation that doesn't fail it: an advisory published against a dependency you already have shouldn't stop releases, and the weekly `patch` pipeline can update it. Lower findings are warning annotations, and every finding is listed in the job summary. The stage installs a pinned OSV-Scanner release and checks it against the checksums published with it, failing if either download or the check fails. If the scanner can't finish, for example because OSV's API is unreachable, the stage fails a pull request, which mustn't merge unchecked, and elsewhere warns and passes. To accept a finding you can't fix yet, list it in an [`osv-scanner.toml`](https://google.github.io/osv-scanner/configuration/) beside the lockfile:
+2. **`scan`**: Gitleaks secret scan (skip with `enable_secrets: false`) and an OSV-Scanner dependency scan. On a pull request, a high or critical finding (a CVSS score of 7 or more, or GitHub's rating when an advisory has no score) fails the stage, so a change can't add one. Elsewhere, such as on a release, it's an error annotation that doesn't fail it: an advisory published against a dependency you already have shouldn't stop releases, and a [Dependabot security update](/forgejs/docs/workflows/overview#vulnerable-dependencies) can fix it. Lower findings are warning annotations, and every finding is listed in the job summary. The stage installs a pinned OSV-Scanner release and checks it against the checksums published with it, failing if either download or the check fails. If the scanner can't finish, for example because OSV's API is unreachable, the stage fails a pull request, which mustn't merge unchecked, and elsewhere warns and passes. To accept a finding you can't fix yet, list it in an [`osv-scanner.toml`](https://google.github.io/osv-scanner/configuration/) beside the lockfile:
 
    ```toml
    [[IgnoredVulns]]
@@ -251,16 +251,17 @@ Building locally needs a token with `read:packages` so `npm ci` can install `@ap
 
 ## patch.yml
 
-*Security patches: weekly, on a manual run, and after a Dependabot merge.*
+*Retired.*
 
-1. **`update`**: On `main`, runs `osv-scanner fix` against `package-lock.json` in `working_directory`, then `npm install`, and commits any changes as `fix(deps): patch vulnerabilities via osv-scanner`. It checks out the tip of `main`, so a second call in the same run (forgejs patches its docs site after the tool) commits on top of the first.
+1. **`update`**: Changes nothing, and asks for no permissions: it only warns that Dependabot security updates replace it, and that the `patch` job can be removed from `.index.yml`.
 
-The commit is made with `GITHUB_TOKEN`, so it starts no run of its own: release-please picks it up on the next push to `main`.
+It used to run `osv-scanner fix` and commit the result straight to `main`. Dependabot security updates now fix vulnerable dependencies through pull requests, which are checked before they merge; turn them on as [Vulnerable dependencies](/forgejs/docs/workflows/overview#vulnerable-dependencies) describes. The pipeline and its inputs stay so that a workflow still calling it doesn't fail.
 
 | Input | Default | Description |
 | :--- | :--- | :--- |
-| `working_directory` | `'.'` | Directory holding `package.json` and `package-lock.json` |
-| `node_version` | `''` | Node.js version; empty reads the project's `.nvmrc`, else forgejs's default |
+| `runs_on` | `'ubuntu-latest'` | Runner label |
+| `working_directory` | `'.'` | Unused |
+| `node_version` | `''` | Unused |
 
 ## merge.yml
 

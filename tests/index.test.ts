@@ -398,7 +398,7 @@ describe("CLI Init Command", () => {
 
   it("should not add a docker job without --docker", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
-    expect(Object.keys(readGeneratedWorkflow(tempDir).jobs)).toEqual(["version", "service", "patch", "merge"]);
+    expect(Object.keys(readGeneratedWorkflow(tempDir).jobs)).toEqual(["version", "service", "merge"]);
   });
 
   it("should package a Debian backend after its checks", () => {

@@ -81,7 +81,7 @@ Point the pipelines at a subdirectory with `working_directory`, given relative t
 ```yaml
 jobs:
   version:
-    if: ${{ github.event_name != 'pull_request' && github.event_name != 'schedule' }}
+    if: ${{ github.event_name != 'pull_request' }}
     uses: apollogeddon/forgejs/.github/workflows/version.yml@main
     with:
       working_directory: 'packages/api'
@@ -101,7 +101,7 @@ jobs:
       pull-requests: write
 ```
 
-Pass it to `patch.yml` too, and to `publish.yml` for a library.
+Pass it to `publish.yml` too for a library.
 
 ### Test across Node.js versions
 

@@ -1,6 +1,6 @@
 // The generated .github/workflows/.index.yml: each job calls one forgejs pipeline, so a run page reads
-// <pipeline> / <stage>. Pull requests run the checks, main runs release-please and, on a release, the checks
-// again before shipping, and a weekly run patches vulnerable dependencies.
+// <pipeline> / <stage>. Pull requests run the checks, and main runs release-please and, on a release, the checks
+// again before shipping. Dependabot security updates, a repository setting, fix vulnerable dependencies.
 
 export type PipelineMode = "library" | "service" | "website";
 
@@ -26,9 +26,6 @@ on:
   # sent by the merge pipeline, as a merge it makes starts no push run on main
   repository_dispatch:
     types: [auto-merged]
-  # weekly, for the patch pipeline; a manual run and an auto-merged dispatch patch too
-  schedule:
-    - cron: '17 3 * * 1'
 
 concurrency:
   # a pull request's newer run replaces its older one; every other run has a group of its own, so a run on
@@ -101,7 +98,7 @@ export function indexWorkflow(cfg: IndexWorkflowOptions): string {
     jobs.push({
       id: "version",
       comment: "release-please, on main",
-      if: "github.event_name != 'pull_request' && github.event_name != 'schedule'",
+      if: "github.event_name != 'pull_request'",
       pipeline: "version",
       permissions: { contents: "write", "pull-requests": "write" },
     });
@@ -113,9 +110,7 @@ export function indexWorkflow(cfg: IndexWorkflowOptions): string {
       ? "a pull request's checks, and on main a release's, before it ships"
       : "the checks, on pull requests and every push to main",
     ...(cfg.versioning ? { needs: ["version"] } : {}),
-    if: cfg.versioning
-      ? `!cancelled() && (github.event_name == 'pull_request' || ${released})`
-      : "github.event_name != 'schedule'",
+    ...(cfg.versioning ? { if: `!cancelled() && (github.event_name == 'pull_request' || ${released})` } : {}),
     pipeline: checks,
     with: withPipelineInputs(cfg),
     permissions: { contents: "read", packages: "read", "pull-requests": "write" },
@@ -173,14 +168,6 @@ export function indexWorkflow(cfg: IndexWorkflowOptions): string {
       permissions: { pages: "write", "id-token": "write" },
     });
   }
-
-  jobs.push({
-    id: "patch",
-    comment: "vulnerable dependencies updated on main: weekly, on a manual run, and after a Dependabot merge",
-    if: "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch'",
-    pipeline: "patch",
-    permissions: { contents: "write", packages: "read" },
-  });
 
   jobs.push({
     id: "merge",

@@ -70,9 +70,6 @@ const STAGES: Record<string, string[]> = {
 // a stage, or a stage with a variant in brackets
 const inVocabulary = (pipeline: string, name: string) =>
   (STAGES[pipeline] ?? []).includes(name) || (STAGES[pipeline] ?? []).includes(name.replace(/ \([^)]+\)$/, ""));
-// a manual run patches too, and so does the auto-merged dispatch, straight after a Dependabot merge
-const PATCH_EVENTS =
-  "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch'";
 // a missing field, as on a scheduled run, falls back to the private behaviour, which always works
 const PUBLIC = "github.event.repository.private == false";
 const kebab = (name: string) => name.replace(/[()]/g, "").trim().replace(/\s+/g, "-");
@@ -219,14 +216,9 @@ describe("forgejs's own .index.yml", () => {
     expect((wf as { concurrency?: unknown }).concurrency).toEqual(generatedWf.concurrency);
   });
 
-  it("patches on the weekly schedule, a manual run and an auto-merged dispatch", () => {
-    expect(wf.jobs.patch?.if).toBe(PATCH_EVENTS);
-    expect(wf.jobs["patch-docs"]?.if).toBe(`\${{ !cancelled() && (${PATCH_EVENTS}) }}`);
-  });
-
-  it("patches the tool and the docs one after the other", () => {
-    expect(wf.jobs["patch-docs"]?.needs).toBe("patch");
-    expect(wf.jobs["patch-docs"]?.with?.working_directory).toBe("docs");
+  // Dependabot security updates fix vulnerable dependencies through pull requests instead
+  it("no longer patches main", () => {
+    expect(Object.values(wf.jobs).map((job) => job.uses)).not.toContain("./.github/workflows/patch.yml");
   });
 });
 
@@ -253,9 +245,11 @@ describe.each(generated)("Generated .index.yml (%s)", (_name, text) => {
     });
   });
 
-  it("patches on the weekly schedule, a manual run and an auto-merged dispatch", () => {
-    expect(wf.jobs.patch?.if).toBe(`\${{ ${PATCH_EVENTS} }}`);
-    expect(Object.keys(wf.on)).toEqual(expect.arrayContaining(["schedule", "workflow_dispatch"]));
+  // Dependabot security updates fix vulnerable dependencies through pull requests, so nothing runs on a schedule
+  it("no longer patches main, or runs on a schedule", () => {
+    expect(wf.jobs.patch).toBeUndefined();
+    expect(Object.keys(wf.on)).toEqual(["push", "pull_request", "workflow_dispatch", "repository_dispatch"]);
+    expect(text).not.toContain("schedule");
   });
 
   // only GitHub Pages and attestations need an OIDC token
@@ -290,13 +284,13 @@ describe("Generated .index.yml per mode", () => {
     ).jobs;
 
   it.each([
-    [{ mode: "library" as const }, ["version", "library", "publish", "patch", "merge"]],
-    [{ mode: "service" as const }, ["version", "service", "patch", "merge"]],
-    [{ mode: "website" as const }, ["version", "website", "pages", "patch", "merge"]],
-    [{ mode: "service" as const, debian: true }, ["version", "service", "debian", "publish", "patch", "merge"]],
-    [{ mode: "service" as const, docker: true }, ["version", "service", "docker", "patch", "merge"]],
-    [{ mode: "library" as const, versioning: false }, ["library", "patch", "merge"]],
-    [{ mode: "website" as const, versioning: false }, ["website", "pages", "patch", "merge"]],
+    [{ mode: "library" as const }, ["version", "library", "publish", "merge"]],
+    [{ mode: "service" as const }, ["version", "service", "merge"]],
+    [{ mode: "website" as const }, ["version", "website", "pages", "merge"]],
+    [{ mode: "service" as const, debian: true }, ["version", "service", "debian", "publish", "merge"]],
+    [{ mode: "service" as const, docker: true }, ["version", "service", "docker", "merge"]],
+    [{ mode: "library" as const, versioning: false }, ["library", "merge"]],
+    [{ mode: "website" as const, versioning: false }, ["website", "pages", "merge"]],
   ])("%j has the jobs %j", (cfg, jobs) => {
     expect(Object.keys(jobsOf(cfg))).toEqual(jobs);
   });
@@ -731,6 +725,19 @@ describe("publish.yml", () => {
   });
 });
 
+describe("patch.yml", () => {
+  const wf = load("patch.yml");
+
+  // a project still calling it at @main mustn't break, and is told what replaces it
+  it("should keep its inputs, and only warn that Dependabot security updates replace it", () => {
+    expect(Object.keys(wf.on.workflow_call?.inputs ?? {})).toEqual(["runs_on", "working_directory", "node_version"]);
+    expect(Object.keys(wf.jobs)).toEqual(["update"]);
+    expect(wf.jobs.update?.permissions).toEqual({});
+    expect(wf.jobs.update?.steps).toHaveLength(1);
+    expect(wf.jobs.update?.steps?.[0]?.run).toMatch(/^echo "::warning .*Dependabot security updates.*\.index\.yml/);
+  });
+});
+
 describe("Main's pipeline after an auto-merge", () => {
   const merge = read("merge.yml");
   const sent = merge.match(/DISPATCH_TYPE: ([\w-]+)/)?.[1];
@@ -808,7 +815,7 @@ describe("OSV scan", () => {
     expect(report?.env?.OSV_ENFORCE).toBe("${{ github.event_name == 'pull_request' }}");
   });
 
-  it("should annotate a high finding outside a pull request, so the patch pipeline still runs", async () => {
+  it("should annotate a high finding outside a pull request, so a release still runs", async () => {
     const calls = await runReport(1, [{ ...lockfile(), packages: [finding("GHSA-high", "9.8")] }], false);
     expect(calls.error).toEqual([expect.stringContaining("GHSA-high")]);
     expect(calls.setFailed).toEqual([]);
