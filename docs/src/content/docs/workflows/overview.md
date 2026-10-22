@@ -86,9 +86,13 @@ jobs:
     needs: [version, library]
     if: ${{ !cancelled() && needs.library.result == 'success' && needs.version.outputs.new_release_published == 'true' }}
     uses: apollogeddon/forgejs/.github/workflows/publish.yml@main
+    with:
+      attest: ${{ github.event.repository.private == false }}
     permissions:
       contents: read
       packages: write
+      id-token: write
+      attestations: write
 
   patch:
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' }}
@@ -150,3 +154,10 @@ Each root job grants what its pipeline's stages need, and nothing else:
 GitHub checks a called workflow's permissions against the caller's before running anything, even a job that would be skipped. So a caller grants the union of what a pipeline's stages ask for. In `publish.yml`, `package` asks for exactly `contents: read` and `packages: write`, so it never holds more, and every caller grants those (the `--debian` one too, though its `package` stage is off). `assets` and `attest` ask for nothing and take the caller's grant, so a caller grants `contents: write`, or `id-token: write` and `attestations: write`, only for the stage it turns on.
 
 For GitHub Pages, set **Settings → Pages → Source** to **GitHub Actions**.
+
+## Private repositories on GitHub Free
+
+Every pipeline works in a private repository on a free plan. Two things a free plan offers only to public repositories switch on only when the repository is public, checked with `github.event.repository.private == false`, which is also false when the run's event carries no repository, so such a run does what a private repository can:
+
+- **Artifact attestations**: the library `publish` job passes `attest` only then. A private repository needs GitHub Enterprise Cloud for them.
+- **GitHub Pages**: the `pages` job deploys only then. On a paid plan, which serves Pages from a private repository, drop the check from its `if`.

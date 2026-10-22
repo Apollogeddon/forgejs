@@ -150,13 +150,13 @@ With **Require branches to be up to date before merging** turned on, every pull 
 2. **`assets`**: With `assets` set to an artifact's name, attaches its files to the GitHub release `tag_name` names, replacing any of the same name. The generated `--debian` workflow attaches the `.deb` this way.
 3. **`attest`**: With `attest`, attests the build provenance of the published tarball and the attached files with [`actions/attest-build-provenance`](https://github.com/actions/attest-build-provenance): a signed statement, kept by GitHub, of the repository, commit and workflow run that built them. *(Needs: package, assets)*
 
-npm's own `--provenance` flag only works with the public npm registry, which GitHub Packages isn't, so a library attests the tarball it published instead. Artifact attestations are free in public repositories; a private repository needs GitHub Enterprise Cloud, so `attest` is off by default. To turn it on, grant the `publish` job the two extra permissions:
+npm's own `--provenance` flag only works with the public npm registry, which GitHub Packages isn't, so a library attests the tarball it published instead. Artifact attestations are free in public repositories; a private repository needs GitHub Enterprise Cloud, so `attest` is off by default. The generated library `publish` job turns it on only when the repository is public, and grants the two extra permissions it needs:
 
 ```yaml
   publish:
     # ...as generated
     with:
-      attest: true
+      attest: ${{ github.event.repository.private == false }}
     permissions:
       contents: read
       packages: write
@@ -193,7 +193,7 @@ Outputs `published` (`'true'` when this run published the package) and `package_
 
 1. **`deploy`**: Downloads the `artifact_name` build artifact, which `website.yml` uploaded earlier in the run, and deploys it to GitHub Pages. Deploys run one at a time, in the `pages-deploy` concurrency group: a newer deploy waits for a running one, and replaces one still waiting. The group isn't `pages`, the one GitHub's starter Pages workflow uses at workflow level, as a job sharing its caller's group deadlocks.
 
-`init --website` calls it on a release, or on every push to `main` without versioning. It deploys whatever `npm run build` writes to `dist/`.
+`init --website` calls it on a release, or on every push to `main` without versioning, when the repository is public: GitHub Pages on a free plan serves only public repositories. On a paid plan, drop `github.event.repository.private == false` from the generated `pages` job's condition to deploy a private one. It deploys whatever `npm run build` writes to `dist/`.
 
 | Input | Default | Description |
 | :--- | :--- | :--- |

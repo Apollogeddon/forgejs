@@ -40,6 +40,8 @@ jobs:
 `;
 
 const released = "needs.version.outputs.new_release_published == 'true'";
+// false when the field is missing, as on a scheduled run, so that falls back to what a private repository can do
+const PUBLIC = "github.event.repository.private == false";
 
 // a GitHub Actions expression, kept out of template literals' own placeholder syntax
 const expr = (expression: string) => ["$", "{{ ", expression, " }}"].join("");
@@ -138,11 +140,13 @@ export function indexWorkflow(cfg: IndexWorkflowOptions): string {
   if (cfg.versioning && cfg.mode === "library") {
     jobs.push({
       id: "publish",
-      comment: "the release's package, to GitHub Packages",
+      comment:
+        "the release's package, to GitHub Packages, attested only from a public repository, as a free plan needs",
       needs: ["version", checks],
       if: `!cancelled() && needs.${checks}.result == 'success' && ${released}`,
       pipeline: "publish",
-      permissions: { contents: "read", packages: "write" },
+      with: { attest: expr(PUBLIC) },
+      permissions: { contents: "read", packages: "write", "id-token": "write", attestations: "write" },
     });
   } else if (cfg.versioning && cfg.debian) {
     jobs.push({
@@ -160,11 +164,11 @@ export function indexWorkflow(cfg: IndexWorkflowOptions): string {
   if (cfg.mode === "website") {
     jobs.push({
       id: "pages",
-      comment: cfg.versioning ? "a release, to GitHub Pages" : "every change to main, to GitHub Pages",
+      comment: `${cfg.versioning ? "a release" : "every change to main"}, to GitHub Pages, which a free plan serves only from a public repository; a paid plan can drop that check`,
       needs: cfg.versioning ? ["version", checks] : [checks],
       if: cfg.versioning
-        ? `!cancelled() && needs.${checks}.result == 'success' && ${released}`
-        : "github.ref == 'refs/heads/main' && github.event_name != 'pull_request'",
+        ? `!cancelled() && needs.${checks}.result == 'success' && ${released} && ${PUBLIC}`
+        : `github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && ${PUBLIC}`,
       pipeline: "pages",
       permissions: { pages: "write", "id-token": "write" },
     });

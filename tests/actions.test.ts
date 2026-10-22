@@ -73,6 +73,8 @@ const inVocabulary = (pipeline: string, name: string) =>
 // a manual run patches too, and so does the auto-merged dispatch, straight after a Dependabot merge
 const PATCH_EVENTS =
   "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch'";
+// a missing field, as on a scheduled run, falls back to the private behaviour, which always works
+const PUBLIC = "github.event.repository.private == false";
 const kebab = (name: string) => name.replace(/[()]/g, "").trim().replace(/\s+/g, "-");
 
 const MODES: Array<[string, templates.IndexWorkflowOptions]> = [];
@@ -194,11 +196,11 @@ describe("forgejs's own .index.yml", () => {
     });
   });
 
-  it("checks the tool as a library and the docs as a website, and attests what it publishes", () => {
+  it("checks the tool as a library and the docs as a website, and attests what it publishes when public", () => {
     expect(wf.jobs.library?.uses).toBe("./.github/workflows/library.yml");
     expect(wf.jobs.website?.uses).toBe("./.github/workflows/website.yml");
     expect(wf.jobs.website?.with?.working_directory).toBe("docs");
-    expect(wf.jobs.publish?.with?.attest).toBe(true);
+    expect(wf.jobs.publish?.with?.attest).toBe(`\${{ ${PUBLIC} }}`);
     expect(wf.jobs.publish?.permissions).toEqual({
       contents: "read",
       packages: "write",
@@ -206,6 +208,10 @@ describe("forgejs's own .index.yml", () => {
       attestations: "write",
     });
     expect(wf.jobs.pages?.with?.artifact_name).toBe(wf.jobs.website?.with?.artifact_name);
+  });
+
+  it("deploys the docs only from a public repository, as a free plan needs", () => {
+    expect(wf.jobs.pages?.if).toContain(PUBLIC);
   });
 
   it("has the same concurrency as a generated .index.yml", () => {
@@ -253,10 +259,18 @@ describe.each(generated)("Generated .index.yml (%s)", (_name, text) => {
   });
 
   // only GitHub Pages and attestations need an OIDC token
-  it("asks for id-token only to deploy Pages", () => {
+  it("asks for id-token only to deploy Pages or attest a library", () => {
     for (const [id, job] of Object.entries(wf.jobs)) {
-      if (id !== "pages") expect(job.permissions?.["id-token"], id).toBeUndefined();
+      const attests = id === "publish" && job.with?.attest !== undefined;
+      if (id !== "pages" && !attests) expect(job.permissions?.["id-token"], id).toBeUndefined();
     }
+  });
+
+  // a free plan offers both only to public repositories
+  it("deploys Pages and attests only from a public repository", () => {
+    if (wf.jobs.pages) expect(wf.jobs.pages.if).toContain(PUBLIC);
+    if (wf.jobs.publish?.with?.attest !== undefined) expect(wf.jobs.publish.with.attest).toBe(`\${{ ${PUBLIC} }}`);
+    expect(text).not.toContain("!github.event.repository.private");
   });
 });
 
@@ -292,6 +306,17 @@ describe("Generated .index.yml per mode", () => {
     expect(jobsOf({}).service?.with).toBeUndefined();
   });
 
+  it("attests a library's release, which needs the signing permissions", () => {
+    const publish = jobsOf({ mode: "library" }).publish;
+    expect(publish?.with).toEqual({ attest: `\${{ ${PUBLIC} }}` });
+    expect(publish?.permissions).toEqual({
+      contents: "read",
+      packages: "write",
+      "id-token": "write",
+      attestations: "write",
+    });
+  });
+
   it("checks a release before shipping it, and every pull request", () => {
     expect(jobsOf({ mode: "library" }).library?.if).toContain("needs.version.outputs.new_release_published == 'true'");
     expect(jobsOf({ mode: "library" }).library?.if).toContain("github.event_name == 'pull_request'");
@@ -314,7 +339,7 @@ describe("Generated .index.yml per mode", () => {
 
   it("deploys every change to main when the site isn't versioned", () => {
     expect(jobsOf({ mode: "website", versioning: false }).pages?.if).toBe(
-      "${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}",
+      `\${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && ${PUBLIC} }}`,
     );
   });
 

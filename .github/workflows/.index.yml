@@ -97,7 +97,8 @@ jobs:
       needs.version.outputs.new_release_published == 'true'
     uses: ./.github/workflows/publish.yml
     with:
-      attest: true
+      # artifact attestations need a public repository on a free plan
+      attest: ${{ github.event.repository.private == false }}
     permissions:
       contents: read
       packages: write
@@ -123,9 +124,12 @@ jobs:
       packages: read
       pull-requests: write
 
+  # GitHub Pages needs a public repository on a free plan; a paid plan can drop the visibility check
   pages:
     needs: website
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: >-
+      github.ref == 'refs/heads/main' && github.event_name != 'pull_request' &&
+      github.event.repository.private == false
     uses: ./.github/workflows/pages.yml
     with:
       artifact_name: 'pages-dist'

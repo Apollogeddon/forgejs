@@ -519,8 +519,9 @@ describe("CLI Init Command", () => {
     for (const [name, job] of Object.entries(workflow.jobs)) {
       // the called workflows only use GITHUB_TOKEN, which they get without inheriting every secret
       expect(job.secrets, `${name} passes secrets`).toBeUndefined();
-      // only GitHub Pages needs an OIDC token
-      if (name !== "pages") expect(job.permissions?.["id-token"], `${name} asks for id-token`).toBeUndefined();
+      // only GitHub Pages and a library's attestations need an OIDC token
+      const attests = name === "publish" && flags === "--library";
+      if (name !== "pages" && !attests) expect(job.permissions?.["id-token"], `${name} asks for id-token`).toBeUndefined();
     }
   });
 
