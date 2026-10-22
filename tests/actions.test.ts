@@ -164,7 +164,13 @@ function expectWiring(caller: string, wf: Workflow, resolve: (uses: string) => s
     }
     const secrets = Object.keys(called.on.workflow_call?.secrets ?? {});
     for (const secret of Object.keys(job.secrets ?? {})) expect(secrets).toContain(secret);
-    expect(job.secrets, `${caller}:${id} passes secrets`).toBeUndefined();
+    // only the release app's key, and only by name: never secrets: inherit
+    if (pipeline === "version") {
+      expect(job.secrets, `${caller}:${id}`).toEqual({ APP_PRIVATE_KEY: "${{ secrets.RELEASE_APP_PRIVATE_KEY }}" });
+      expect(job.with?.app_client_id, `${caller}:${id}`).toBe("${{ vars.RELEASE_APP_CLIENT_ID }}");
+    } else {
+      expect(job.secrets, `${caller}:${id} passes secrets`).toBeUndefined();
+    }
     expectGrantCovers(`${caller}:${id}`, job, called);
   }
   // every pipeline output a job reads is one its pipeline declares
@@ -183,6 +189,11 @@ describe("forgejs's own .index.yml", () => {
     expectWiring(".index.yml", wf, (uses) =>
       uses.startsWith("./.github/workflows/") ? path.basename(uses) : undefined,
     );
+  });
+
+  // with an app's token the release pull request starts a run, which should check it
+  it("checks release-please's pull requests like any other", () => {
+    expect(read(".index.yml")).not.toContain("release-please--");
   });
 
   it("keeps its change detection as a root job", () => {
@@ -445,6 +456,23 @@ describe("version.yml", () => {
   });
 
   // releases_created is true when any package is released, so it only counts for the root package
+  // a pull request opened with GITHUB_TOKEN starts no workflows, so the release pull request's checks never run
+  it("should release with a GitHub App's token only when one is set", () => {
+    const inputs = wf.on.workflow_call?.inputs ?? {};
+    expect(inputs.app_client_id?.default).toBe("");
+    expect(wf.on.workflow_call?.secrets?.APP_PRIVATE_KEY?.required).toBe(false);
+    const app = job?.steps?.find((s) => s.id === "app");
+    expect(app?.if).toBe("inputs.app_client_id != ''");
+    expect(app?.uses).toMatch(/^actions\/create-github-app-token@/);
+    expect(app?.with).toEqual({
+      "client-id": "${{ inputs.app_client_id }}",
+      "private-key": "${{ secrets.APP_PRIVATE_KEY }}",
+    });
+    const steps = job?.steps ?? [];
+    expect(steps.indexOf(app as Step)).toBeLessThan(steps.indexOf(release() as Step));
+    expect(release()?.with?.token).toBe("${{ steps.app.outputs.token || secrets.GITHUB_TOKEN }}");
+  });
+
   it("should not report another package's release as this one's", () => {
     const published = String(wf.on.workflow_call?.outputs?.new_release_published?.value);
     expect(published).toContain("inputs.working_directory == '.' && (jobs.release.outputs.releases_created");

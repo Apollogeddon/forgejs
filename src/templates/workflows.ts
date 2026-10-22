@@ -50,6 +50,7 @@ export interface PipelineJob {
   if?: string;
   pipeline: string;
   with?: Record<string, string | boolean>;
+  secrets?: Record<string, string>;
   permissions: Record<string, "read" | "write">;
 }
 
@@ -64,6 +65,11 @@ function render(job: PipelineJob): string {
   if (inputs.length) {
     lines.push("    with:");
     for (const [key, value] of inputs) lines.push(`      ${key}: ${value}`);
+  }
+  const secrets = Object.entries(job.secrets ?? {});
+  if (secrets.length) {
+    lines.push("    secrets:");
+    for (const [key, value] of secrets) lines.push(`      ${key}: ${value}`);
   }
   lines.push("    permissions:");
   for (const [key, value] of Object.entries(job.permissions)) lines.push(`      ${key}: ${value}`);
@@ -97,9 +103,13 @@ export function indexWorkflow(cfg: IndexWorkflowOptions): string {
   if (cfg.versioning) {
     jobs.push({
       id: "version",
-      comment: "release-please, on main",
+      comment:
+        "release-please, on main; with a GitHub App's token once RELEASE_APP_CLIENT_ID is set, so its pull requests run the checks",
       if: "github.event_name != 'pull_request'",
       pipeline: "version",
+      // empty until the variable and secret are set, which leaves release-please on GITHUB_TOKEN
+      with: { app_client_id: expr("vars.RELEASE_APP_CLIENT_ID") },
+      secrets: { APP_PRIVATE_KEY: expr("secrets.RELEASE_APP_PRIVATE_KEY") },
       permissions: { contents: "write", "pull-requests": "write" },
     });
   }

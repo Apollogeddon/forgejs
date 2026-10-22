@@ -24,6 +24,15 @@ on:
         required: false
         type: string
         default: ''
+      app_client_id:
+        description: "A GitHub App's client ID, whose token release-please uses instead of GITHUB_TOKEN so the release pull request runs the checks; needs the APP_PRIVATE_KEY secret. Empty uses GITHUB_TOKEN"
+        required: false
+        type: string
+        default: ''
+    secrets:
+      APP_PRIVATE_KEY:
+        description: "The private key of the GitHub App app_client_id names"
+        required: false
     outputs:
       new_release_published:
         description: "Whether a new release was published"
@@ -77,6 +86,15 @@ jobs:
             echo "file=$github/release.json" >> "$GITHUB_OUTPUT"
             echo "manifest=$github/.release.json" >> "$GITHUB_OUTPUT"
           fi
+      # a pull request opened with GITHUB_TOKEN starts no workflows, so the release pull request's checks never
+      # run; one opened with an app's token does
+      - name: Create the GitHub App's token
+        id: app
+        if: inputs.app_client_id != ''
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ inputs.app_client_id }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
       # with a config, release-please reads the packages and options from it;
       # without one, it releases working_directory as a Node.js package
       - name: Release
@@ -88,7 +106,7 @@ jobs:
           manifest-file: ${{ steps.config.outputs.manifest }}
           # empty means the repository root; a config keys its packages by path instead
           path: ${{ steps.config.outputs.file == '' && inputs.working_directory != '.' && inputs.working_directory || '' }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app.outputs.token || secrets.GITHUB_TOKEN }}
 
       # CODEOWNERS only requests reviews in a private repository on a paid plan, so the release
       # pull request asks for one here instead, on any plan

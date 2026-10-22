@@ -124,7 +124,7 @@ jobs:
 
 *release-please.*
 
-1. **`release`**: On `main`, opens or updates the release pull request from Conventional Commits, and creates the tag and GitHub release when it merges. A `working_directory` other than `.` becomes release-please's `path`, so a package in a monorepo is versioned on its own, tagged with its `package.json` name (`api-vX.Y.Z`). If the project has a `.github/release.json` and `.github/.release.json` under `working_directory`, release-please runs from them instead (see [release-please: versioning](/forgejs/docs/configuration#release-please-versioning)). The stage checks out only that `.github` directory to look for them. When it opened or updated a release pull request, it requests a review on it from `reviewers`, as `merge.yml` does on Dependabot's.
+1. **`release`**: On `main`, opens or updates the release pull request from Conventional Commits, and creates the tag and GitHub release when it merges. A `working_directory` other than `.` becomes release-please's `path`, so a package in a monorepo is versioned on its own, tagged with its `package.json` name (`api-vX.Y.Z`). If the project has a `.github/release.json` and `.github/.release.json` under `working_directory`, release-please runs from them instead (see [release-please: versioning](/forgejs/docs/configuration#release-please-versioning)). The stage checks out only that `.github` directory to look for them. When it opened or updated a release pull request, it requests a review on it from `reviewers`, as `merge.yml` does on Dependabot's. With `app_client_id` and the `APP_PRIVATE_KEY` secret, release-please uses that GitHub App's token rather than `GITHUB_TOKEN`, so its release pull request starts the checks; see [Release pull requests' checks](/forgejs/docs/workflows/overview#release-pull-requests-checks).
 
 Outputs `new_release_published` (`'true'` or `'false'`), `version` and `tag_name`: those of the `working_directory` package, not of any other package released in the same run.
 
@@ -133,12 +133,15 @@ Outputs `new_release_published` (`'true'` or `'false'`), `version` and `tag_name
 | `working_directory` | `'.'` | The package to release |
 | `node_version` | `''` | Node.js version; empty reads the project's `.nvmrc`, else forgejs's default |
 | `reviewers` | `''` | Comma-separated logins to request a review of the release pull request from; empty means the repository's owner |
+| `app_client_id` | `''` | A GitHub App's client ID, whose token release-please uses; empty uses `GITHUB_TOKEN` |
+
+It takes one optional secret, `APP_PRIVATE_KEY`, the private key of the App `app_client_id` names.
 
 ### Checking a release
 
 A push to `main` runs `version` first, and only when it makes a release does `.index.yml` run the checks again, and then the publish, image push or deploy that ships what they built. So each change is checked on its pull request and once more as part of a release, not on every push.
 
-release-please tags the release before those checks run. If they fail, the tag and the GitHub release exist with nothing published, and need putting right by hand. The generated `.index.yml` therefore checks release pull requests too, so the release is checked with exactly what its merge ships. release-please opens them with `GITHUB_TOKEN`, which doesn't start workflow runs, so approve the run (or push to the branch) before merging one.
+release-please tags the release before those checks run. If they fail, the tag and the GitHub release exist with nothing published, and need putting right by hand. The generated `.index.yml` therefore checks release pull requests too, so the release is checked with exactly what its merge ships. A release pull request opened with `GITHUB_TOKEN` starts no workflow run, so either give release-please a [GitHub App's token](/forgejs/docs/workflows/overview#release-pull-requests-checks), or push to the branch before merging one.
 
 With **Require branches to be up to date before merging** turned on, every pull request is checked again before it merges; skipped jobs count as passed for required status checks.
 

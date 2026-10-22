@@ -60,7 +60,7 @@ type GeneratedWorkflow = {
       uses?: string;
       needs?: string | string[];
       with?: Record<string, unknown>;
-      secrets?: unknown;
+      secrets?: Record<string, string>;
       permissions?: Record<string, string>;
     }
   >;
@@ -517,8 +517,10 @@ describe("CLI Init Command", () => {
     // a run outside a pull request has a group of its own, so one on main is never cancelled
     expect(workflow.concurrency?.group).toContain("github.head_ref || github.run_id");
     for (const [name, job] of Object.entries(workflow.jobs)) {
-      // the called workflows only use GITHUB_TOKEN, which they get without inheriting every secret
-      expect(job.secrets, `${name} passes secrets`).toBeUndefined();
+      // the called workflows only use GITHUB_TOKEN, which they get without inheriting every secret, and
+      // version the release app's key, by name
+      if (name === "version") expect(Object.keys(job.secrets ?? {})).toEqual(["APP_PRIVATE_KEY"]);
+      else expect(job.secrets, `${name} passes secrets`).toBeUndefined();
       // only GitHub Pages and a library's attestations need an OIDC token
       const attests = name === "publish" && flags === "--library";
       if (name !== "pages" && !attests) expect(job.permissions?.["id-token"], `${name} asks for id-token`).toBeUndefined();

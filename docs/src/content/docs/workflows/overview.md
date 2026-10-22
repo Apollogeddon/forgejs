@@ -66,6 +66,10 @@ jobs:
   version:
     if: ${{ github.event_name != 'pull_request' }}
     uses: apollogeddon/forgejs/.github/workflows/version.yml@main
+    with:
+      app_client_id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+    secrets:
+      APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
     permissions:
       contents: write
       pull-requests: write
@@ -122,9 +126,19 @@ If `.github/workflows/index.yml` (or `ci.yml` or `debian.yml`) calls forgejs's p
 
 ## Secrets
 
-None. The pipelines use only the run's `GITHUB_TOKEN`, which a called workflow gets without `secrets: inherit`. It installs `@apollogeddon` packages from GitHub Packages, publishes libraries there, and drives release-please and the Dependabot merge. Don't add `secrets: inherit`: it hands every repository secret to a workflow that lives in another repository. The check pipelines take one optional secret, `GH_TOKEN`, for a [pre-build command](/forgejs/docs/workflows/reference#generating-content-before-the-build); pass it by name if you need it.
+None are required. The pipelines use the run's `GITHUB_TOKEN`, which a called workflow gets without `secrets: inherit`, and the `version` job passes one optional secret, a GitHub App's key, by name; see [Release pull requests' checks](#release-pull-requests-checks). It installs `@apollogeddon` packages from GitHub Packages, publishes libraries there, and drives release-please and the Dependabot merge. Don't add `secrets: inherit`: it hands every repository secret to a workflow that lives in another repository. The check pipelines take one optional secret, `GH_TOKEN`, for a [pre-build command](/forgejs/docs/workflows/reference#generating-content-before-the-build); pass it by name if you need it.
 
-GitHub doesn't start workflow runs for events made with `GITHUB_TOKEN`. So release-please's release pull requests don't run your checks on their own (they wait for approval, or a push to the branch), and the push a Dependabot merge makes to `main` doesn't run the pipeline either. The `merge` pipeline therefore sends a `repository_dispatch` event, `auto-merged`, once the pull request has merged: one of the two events `GITHUB_TOKEN` may start a run with. `.index.yml` listens for it, so `main` runs `version` and release-please opens or updates its release pull request. The event runs on the default branch.
+GitHub doesn't start workflow runs for events made with `GITHUB_TOKEN`. So release-please's release pull requests don't run your checks on their own unless it uses a GitHub App's token, and the push a Dependabot merge makes to `main` doesn't run the pipeline either. The `merge` pipeline therefore sends a `repository_dispatch` event, `auto-merged`, once the pull request has merged: one of the two events `GITHUB_TOKEN` may start a run with. `.index.yml` listens for it, so `main` runs `version` and release-please opens or updates its release pull request. The event runs on the default branch.
+
+### Release pull requests' checks
+
+A release pull request opened with `GITHUB_TOKEN` starts no workflow run, so its checks never run until someone pushes to its branch. Give release-please a GitHub App's token instead, and they run like any other pull request's:
+
+1. Create a GitHub App (**Settings → Developer settings → GitHub Apps → New GitHub App**, under your account or organisation). It needs no webhook. Under **Repository permissions**, give it **Contents: Read and write** and **Pull requests: Read and write**.
+2. Generate a private key for it, and install it on the repository.
+3. In the repository's **Settings → Secrets and variables → Actions**, add the App's client ID as the variable `RELEASE_APP_CLIENT_ID`, and the private key's contents as the secret `RELEASE_APP_PRIVATE_KEY`.
+
+The generated `version` job passes both to `version.yml` as `app_client_id` and `APP_PRIVATE_KEY`. Until they're set, both are empty and release-please uses `GITHUB_TOKEN`, as before.
 
 ## Required permissions
 
