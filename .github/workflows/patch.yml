@@ -59,12 +59,29 @@ jobs:
           cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
           registry-url: 'https://npm.pkg.github.com'
           scope: "@${{ github.repository_owner }}"
+      # a pinned release, checked against the checksums it was published with
+      - name: Install OSV-Scanner
+        env:
+          OSV_SCANNER_VERSION: v2.7.0
+          ARCH: ${{ runner.arch }}
+        run: |
+          case "$ARCH" in
+            X64) arch=amd64 ;;
+            ARM64) arch=arm64 ;;
+            *) echo "::error::OSV-Scanner has no Linux build for $ARCH"; exit 1 ;;
+          esac
+          dir="$RUNNER_TEMP/osv-scanner"
+          mkdir -p "$dir"
+          cd "$dir"
+          base="https://github.com/google/osv-scanner/releases/download/$OSV_SCANNER_VERSION"
+          curl -fsSLO "$base/osv-scanner_linux_$arch"
+          curl -fsSLO "$base/osv-scanner_SHA256SUMS"
+          sha256sum -c --ignore-missing osv-scanner_SHA256SUMS
+          mv "osv-scanner_linux_$arch" osv-scanner
+          chmod +x osv-scanner
       - name: Update vulnerable dependencies
         run: |
-          curl -L https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o osv-scanner
-          chmod +x osv-scanner
-          ./osv-scanner fix --non-interactive --strategy=in-place -L package-lock.json
-          rm osv-scanner
+          "$RUNNER_TEMP/osv-scanner/osv-scanner" fix --non-interactive --strategy=in-place -L package-lock.json
           npm install --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -787,6 +787,20 @@ describe("OSV scan", () => {
     groups: [{ ids: [id], max_severity: maxSeverity }],
   });
 
+  it("should install a pinned release, verified against its checksums, before the scan", () => {
+    const list = steps("library.yml", "scan");
+    const index = (name: string) => list.findIndex((s) => s.name === name);
+    expect(index("Install OSV-Scanner")).toBe(index("Scan with OSV") - 1);
+    const install = list[index("Install OSV-Scanner")];
+    expect(install?.env?.OSV_SCANNER_VERSION).toMatch(/^v\d+\.\d+\.\d+$/);
+    expect(install?.run).toContain('curl -fsSLO "$base/osv-scanner_linux_$arch"');
+    expect(install?.run).toContain("sha256sum -c --ignore-missing osv-scanner_SHA256SUMS");
+    expect(install?.run).not.toContain("latest");
+    expect(scan?.run).toContain('"$RUNNER_TEMP/osv-scanner/osv-scanner" scan source');
+    // nothing else downloads an unpinned scanner
+    for (const file of files) expect(read(file), file).not.toContain("releases/latest/download/osv-scanner");
+  });
+
   it("should never swallow the scanner's result", () => {
     expect(scan?.run).not.toContain("|| true");
     expect(scan?.run).toContain("--format json");
@@ -828,11 +842,21 @@ describe("OSV scan", () => {
     expect(calls.warning).toEqual([]);
   });
 
+  // a pull request can't merge unchecked, but an outage at OSV mustn't stop a release
   it.each([
     [127, []],
     [1, null],
-  ])("should warn, not fail, when the scanner exits %i with %j results", async (status, results) => {
+  ])("should fail a pull request when the scanner exits %i with %j results", async (status, results) => {
     const calls = await runReport(status, results);
+    expect(calls.setFailed).toEqual([expect.stringContaining("couldn't finish")]);
+    expect(calls.warning).toEqual([]);
+  });
+
+  it.each([
+    [127, []],
+    [1, null],
+  ])("should warn, not fail, elsewhere when the scanner exits %i with %j results", async (status, results) => {
+    const calls = await runReport(status, results, false);
     expect(calls.warning).toEqual([expect.stringContaining("couldn't finish")]);
     expect(calls.setFailed).toEqual([]);
   });
