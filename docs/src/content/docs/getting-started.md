@@ -128,6 +128,7 @@ A default `init` (backend) produces:
 │   ├── dependabot.yml        # weekly updates with a 3-day cooldown
 │   └── workflows/.index.yml  # CI/CD: one job per forgejs pipeline
 ├── .editorconfig
+├── .gitattributes            # LF on every platform
 ├── .nvmrc                    # the project's Node.js version, read by nvm, setup-node and CI
 ├── src/
 │   └── index.ts

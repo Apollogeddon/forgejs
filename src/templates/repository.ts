@@ -1,5 +1,9 @@
 // Repository files every project gets: editor settings, Dependabot and code owners.
 
+// LF in the working tree on every platform, as Biome formats with LF and a Windows checkout would get CRLF
+export const gitattributes = `* text=auto eol=lf
+`;
+
 export const editorconfig = `root = true
 
 [*]

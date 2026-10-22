@@ -732,6 +732,17 @@ describe("CLI Init Command", () => {
     }
   });
 
+  // LF on every platform, so a Windows checkout reads the same; a project's own rules are never replaced
+  it("should write .gitattributes, and keep a project's own even with --force", () => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
+    const attributes = path.join(tempDir, ".gitattributes");
+    expect(fs.readFileSync(attributes, "utf-8")).toBe("* text=auto eol=lf\n");
+
+    fs.writeFileSync(attributes, "*.psd filter=lfs diff=lfs merge=lfs -text\n");
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --force`, { cwd: tempDir });
+    expect(fs.readFileSync(attributes, "utf-8")).toBe("*.psd filter=lfs diff=lfs merge=lfs -text\n");
+  });
+
   it("should add Docker to the Dependabot config with --docker", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --docker`, { cwd: tempDir });
     const dependabot = yaml.load(fs.readFileSync(path.join(tempDir, ".github/dependabot.yml"), "utf-8")) as {

@@ -18,6 +18,8 @@ export const BaseFeature: Feature = {
     const tsconfig = cfg.website ? templates.websiteTsconfigConfig : templates.tsconfigConfig;
     let ok = createFile(cwd, "tsconfig.json", tsconfig, cfg, fs);
     ok = createFile(cwd, ".editorconfig", templates.editorconfig, cfg, fs) && ok;
+    // never replaced: a project's own rules, such as Git LFS ones, live there too
+    ok = createFileIfMissing(cwd, ".gitattributes", templates.gitattributes, cfg, fs) && ok;
     // The one place the project's Node.js version lives: nvm, setup-node and CI all read it
     ok = createFile(cwd, ".nvmrc", `${node}\n`, pin, fs) && ok;
 

@@ -193,6 +193,7 @@ So moving a project to another version is one edit to `.nvmrc`. The generated Do
 | File | What it does |
 | :--- | :--- |
 | `.editorconfig` | LF line endings, UTF-8, 2-space indent and 120 columns, matching the Biome config |
+| `.gitattributes` | LF in the working tree on every platform, so a Windows checkout reads the same; written once, never overwritten, so your own rules (Git LFS, say) are safe |
 | `.github/dependabot.yml` | Weekly npm and GitHub Actions updates, plus Docker with `--docker`. Minor and patch updates are grouped into one pull request, and each update waits 3 days after it's published before it's proposed, so a compromised release has time to be caught upstream. The `merge` pipeline requests your review on them and squash-merges each one once CI passes, majors included. |
 | `.github/CODEOWNERS` | `* @owner`, so every pull request someone else opens, Dependabot's and release-please's included, requests your review and shows in your review requests. It doesn't block merging. |
 
