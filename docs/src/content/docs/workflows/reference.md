@@ -29,7 +29,7 @@ The three share their first four stages, job for job:
 
 3. **`test`**: The test suite (skip with `run_tests: false`), with the coverage report uploaded as `coverage-<artifact_name>`. *(Needs: lint, scan)*
 
-   `library.yml` and `service.yml` can run the tests elsewhere too, each as a stage of its own alongside `test`, without uploading coverage: **`test (windows)`** on the runner `test_windows` names, **`test (macos)`** on the one `test_macos` names, and **`test (<version>)`** on Linux for each Node.js version in `test_versions`. All three are off by default, and the generated `.index.yml` doesn't set them, as Windows and macOS minutes cost more on a private repository. forgejs's own CI sets all three.
+   `library.yml` and `service.yml` can also test and build on Windows and macOS, as the **`test (windows)`** and **`test (macos)`** stages (see [Windows and macOS](#windows-and-macos)), and run the tests on Linux on other Node.js versions, as a **`test (<version>)`** stage for each one in `test_versions`. Each runs alongside `test`, without uploading coverage. All are off by default, and the generated `.index.yml` doesn't set them, as Windows and macOS minutes cost more on a private repository. forgejs's own CI sets all three.
 4. **`build`**: Writes `build_env_vars` to `.env`, runs the build, then the project's `publint` and `docs:check` scripts when it defines them, and uploads `dist/` as the `artifact_name` artifact. *(Needs: lint, scan; runs alongside test)*
 
 `website.yml` adds:
@@ -48,8 +48,9 @@ The three share their first four stages, job for job:
 | `ref` | `''` | Commit, branch or tag to check and build; empty means the commit that triggered the run |
 | `setup_go` | `''` | Go to install before `pre_build_command`: a version, e.g. `stable`, or a `go.mod`, `go.work`, `.go-version` or `.tool-versions` path from the repository root; empty installs none |
 | `pre_build_command` | `''` | Shell command run in `working_directory` before `npm ci`, in every stage that installs |
-| `test_windows` | `''` | `library.yml` and `service.yml`: run the tests on Windows too, on this runner label, e.g. `windows-latest`; empty skips it |
-| `test_macos` | `''` | `library.yml` and `service.yml`: run the tests on macOS too, on this runner label, e.g. `macos-latest`; empty skips it |
+| `test_windows`, `test_macos` | `''` | `library.yml` and `service.yml`: test and build on Windows or macOS too; see [Windows and macOS](#windows-and-macos) |
+| `extra_test_script` | `'test'` | `library.yml` and `service.yml`: the npm script the Windows and macOS stages test with, such as a shorter `test:short` |
+| `setup_script` | `''` | `library.yml` and `service.yml`: a [setup script](#setup-scripts), run before installing and building on Windows and macOS |
 | `test_versions` | `''` | `library.yml` and `service.yml`: a JSON array of other Node.js versions to run the tests on, on Linux, e.g. `'["26"]'`; empty skips them |
 
 `website.yml` also takes:
@@ -65,6 +66,38 @@ The three share their first four stages, job for job:
 | `accessibility_impact` | `'serious'` | The lowest axe impact that fails the check: `minor`, `moderate`, `serious` or `critical` |
 
 Each takes one optional secret, `GH_TOKEN`, for `pre_build_command`.
+
+### Windows and macOS
+
+The `test` and `build` stages run on `runs_on` alone. To test and build on Windows or macOS too, set `test_windows` or `test_macos` to a runner label, or to a JSON object:
+
+| Key | Purpose |
+| :--- | :--- |
+| `runs_on` | Runner label; defaults to `windows-latest` or `macos-latest` |
+| `env` | Environment variables for the setup script, the install, the tests and the build, e.g. `{"NODE_OPTIONS": "--max-old-space-size=4096"}`; single-line values |
+
+```yaml
+    with:
+      test_macos: macos-latest
+      test_windows: '{"runs_on": "windows-latest", "env": {"NODE_OPTIONS": "--max-old-space-size=4096"}}'
+      extra_test_script: 'test:short'
+      setup_script: '.github/setup.sh'
+```
+
+Each runs the [setup script](#setup-scripts), then `pre_build_command` and `npm ci`, then `npm run <extra_test_script>` (skipped with `run_tests: false`), then writes `build_env_vars` and runs `npm run build`, and uploads `dist/` as the `<artifact_name>-windows` or `<artifact_name>-macos` artifact, when the build wrote one. The `env` applies to the tests and the build alike, so the tests run the same way as the build the stage makes. Every `run` step uses bash, Git Bash on Windows. Empty, the default, skips the stage.
+
+### Setup scripts
+
+`setup_script` is a script in your repository, run with `bash` on Windows and macOS before anything is installed or built. Use it for what a platform needs that `npm ci` can't install, such as a system library from Homebrew or an installer on Windows. It runs in `working_directory`, after the `env` is set. `RUNNER_OS` (`macOS` or `Windows`) says where it runs, and `GITHUB_TOKEN` holds the job's read-only token, e.g. for the GitHub API's rate limit. It can export variables to later steps through `$GITHUB_ENV` and add to `PATH` through `$GITHUB_PATH`. To run PowerShell on Windows, call it from the script:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+case "$RUNNER_OS" in
+  macOS) brew install pkg-config ;;
+  Windows) pwsh -NoProfile -File .github/setup-windows.ps1 ;;
+esac
+```
 
 ### Building another commit
 

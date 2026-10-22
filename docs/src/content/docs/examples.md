@@ -105,7 +105,7 @@ Pass it to `publish.yml` too for a library.
 
 ### Test across Node.js versions
 
-`library.yml` and `service.yml` run the tests on other Node.js versions, and on Windows and macOS, when asked:
+`library.yml` and `service.yml` run the tests on other Node.js versions, and test and build on Windows and macOS (see [Windows and macOS](/forgejs/docs/workflows/reference#windows-and-macos)), when asked:
 
 ```yaml
   service:

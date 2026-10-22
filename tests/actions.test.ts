@@ -32,6 +32,8 @@ type Job = {
   outputs?: Record<string, string>;
   concurrency?: { group?: string; "cancel-in-progress"?: boolean };
   steps?: Step[];
+  "runs-on"?: string;
+  defaults?: { run?: { shell?: string; "working-directory"?: string } };
 };
 type Workflow = {
   name?: string;
@@ -635,25 +637,70 @@ describe("Check pipelines", () => {
     expect(list[index("Set up Go")]?.if).toBe("inputs.setup_go != ''");
   });
 
-  // the same names and meaning as forgego's: a runner label, or empty to skip
-  it.each(["library.yml", "service.yml"])("should test on Windows, macOS and other Node.js versions when asked in %s", (file) => {
+  // the same names and meaning as forgego's: a runner label or a JSON object, or empty to skip
+  it.each(["library.yml", "service.yml"])("should test on other Node.js versions when asked in %s", (file) => {
+    const wf = load(file);
+    expect(wf.on.workflow_call?.inputs?.test_versions?.default).toBe("");
+    const job = wf.jobs["test-versions"];
+    expect(job?.name).toBe("test (${{ matrix.version }})");
+    expect(job?.if).toBe("inputs.run_tests && inputs.test_versions != ''");
+    expect(job?.needs).toEqual(["lint", "scan"]);
+    expect(job?.steps?.at(-1)?.run).toBe("npm test");
+    // only the test stage uploads coverage
+    expect(job?.steps?.some((s) => s.uses?.startsWith("actions/upload-artifact"))).toBe(false);
+    expect(String(read(file))).toContain("INPUT: ${{ matrix.version }}");
+  });
+
+  describe.each(["library.yml", "service.yml"])("Windows and macOS in %s", (file) => {
     const wf = load(file);
     const inputs = wf.on.workflow_call?.inputs ?? {};
-    for (const input of ["test_windows", "test_macos", "test_versions"]) expect(inputs[input]?.default, input).toBe("");
-    expect(wf.jobs["test-windows"]?.name).toBe("test (windows)");
-    expect(wf.jobs["test-windows"]?.if).toBe("inputs.run_tests && inputs.test_windows != ''");
-    expect(wf.jobs["test-macos"]?.name).toBe("test (macos)");
-    expect(wf.jobs["test-macos"]?.if).toBe("inputs.run_tests && inputs.test_macos != ''");
-    expect(wf.jobs["test-versions"]?.name).toBe("test (${{ matrix.version }})");
-    expect(wf.jobs["test-versions"]?.if).toBe("inputs.run_tests && inputs.test_versions != ''");
-    for (const id of ["test-windows", "test-macos", "test-versions"]) {
-      const job = wf.jobs[id];
-      expect(job?.needs, id).toEqual(["lint", "scan"]);
-      expect(job?.steps?.at(-1)?.run, id).toBe("npm test");
+
+    it("should take forgego's inputs, with the same defaults", () => {
+      expect(inputs.test_windows?.default).toBe("");
+      expect(inputs.test_macos?.default).toBe("");
+      expect(inputs.extra_test_script?.default).toBe("test");
+      expect(inputs.setup_script?.default).toBe("");
+    });
+
+    it.each([
+      ["windows", "windows-latest"],
+      ["macos", "macos-latest"],
+    ])("should test and build on %s when asked", (os, runner) => {
+      const job = wf.jobs[`test-${os}`];
+      const input = `inputs.test_${os}`;
+      expect(job?.name).toBe(`test (${os})`);
+      // the stage builds too, so it runs without the tests
+      expect(job?.if).toBe(`${input} != ''`);
+      expect(job?.needs).toEqual(["lint", "scan"]);
+      expect(job?.["runs-on"]).toBe(
+        `\${{ startsWith(${input}, '{') && (fromJSON(${input}).runs_on || '${runner}') || ${input} }}`,
+      );
+      expect(job?.defaults?.run?.shell).toBe("bash");
+      const steps = job?.steps ?? [];
+      const at = (name: string) => steps.findIndex((s) => s.name === name);
+      const step = (name: string) => steps[at(name)];
+
+      // the env is set for the whole stage, from the input through the environment
+      expect(step("Set the runner's environment")?.if).toBe(`startsWith(${input}, '{')`);
+      expect(step("Set the runner's environment")?.env?.TARGET).toBe(`\${{ ${input} }}`);
+      expect(step("Set the runner's environment")?.run).toContain('>> "$GITHUB_ENV"');
+      expect(step("Run the setup script")?.if).toBe("inputs.setup_script != ''");
+      expect(step("Run the setup script")?.env?.SCRIPT).toBe("${{ inputs.setup_script }}");
+      expect(step("Run the setup script")?.run).toBe('bash "$SCRIPT"');
+      expect(at("Set the runner's environment")).toBeLessThan(at("Run the setup script"));
+      expect(at("Run the setup script")).toBeLessThan(at("Install dependencies"));
+
+      expect(step("Test")?.if).toBe("inputs.run_tests");
+      expect(step("Test")?.env?.SCRIPT).toBe("${{ inputs.extra_test_script }}");
+      expect(step("Test")?.run).toBe('npm run "$SCRIPT"');
+      expect(at("Test")).toBeLessThan(at("Build"));
+      expect(step("Build")?.run).toBe("npm run build");
+      const upload = step("Upload the build");
+      expect(upload?.with?.name).toBe(`\${{ inputs.artifact_name }}-${os}`);
+      expect(upload?.with?.["if-no-files-found"]).toBe("ignore");
       // only the test stage uploads coverage
-      expect(job?.steps?.some((s) => s.uses?.startsWith("actions/upload-artifact")), id).toBe(false);
-    }
-    expect(String(read(file))).toContain("INPUT: ${{ matrix.version }}");
+      expect(steps.filter((s) => s.uses?.startsWith("actions/upload-artifact"))).toHaveLength(1);
+    });
   });
 
   // generated workflows leave them off, as Windows and macOS minutes cost more on a private repository

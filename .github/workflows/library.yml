@@ -56,12 +56,22 @@ on:
         type: string
         default: ''
       test_windows:
-        description: "Run the tests on Windows too: a runner label, e.g. windows-latest; empty skips it"
+        description: "Test and build on Windows too: a runner label, or a JSON object {\"runs_on\", \"env\"} whose env is set for both, e.g. {\"runs_on\": \"windows-latest\", \"env\": {\"NODE_OPTIONS\": \"--max-old-space-size=4096\"}}; empty skips it"
         required: false
         type: string
         default: ''
       test_macos:
-        description: "Run the tests on macOS too: a runner label, e.g. macos-latest; empty skips it"
+        description: "Test and build on macOS too: a runner label, or a JSON object {\"runs_on\", \"env\"} whose env is set for both; empty skips it"
+        required: false
+        type: string
+        default: ''
+      extra_test_script:
+        description: "The npm script the Windows and macOS stages test with, e.g. a shorter test:short"
+        required: false
+        type: string
+        default: 'test'
+      setup_script:
+        description: "A script, relative to working_directory, run with bash before installing and building on Windows and macOS; RUNNER_OS says where, and it can export through GITHUB_ENV and GITHUB_PATH"
         required: false
         type: string
         default: ''
@@ -334,14 +344,14 @@ jobs:
           path: ${{ inputs.working_directory }}/coverage
           if-no-files-found: ignore
 
-  # The tests on Windows, macOS and other Node.js versions, each when asked. The test stage's run on Linux
-  # uploads the coverage report, so these don't
+  # The tests, with extra_test_script, and the build on Windows and macOS, each when asked, after the setup
+  # script. The test stage's run on Linux uploads the coverage report, so these don't
   test-windows:
     name: test (windows)
-    if: inputs.run_tests && inputs.test_windows != ''
+    if: inputs.test_windows != ''
     needs: [lint, scan]
-    runs-on: ${{ inputs.test_windows }}
-    timeout-minutes: 20
+    runs-on: ${{ startsWith(inputs.test_windows, '{') && (fromJSON(inputs.test_windows).runs_on || 'windows-latest') || inputs.test_windows }}
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: read
@@ -382,6 +392,18 @@ jobs:
           go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
           go-version-file: ${{ (endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
           cache: false
+      # a JSON object's env, for the tests and the build alike
+      - name: Set the runner's environment
+        if: startsWith(inputs.test_windows, '{')
+        env:
+          TARGET: ${{ inputs.test_windows }}
+        run: jq -r '(.env // {}) | to_entries[] | "\(.key)=\(.value)"' <<< "$TARGET" >> "$GITHUB_ENV"
+      - name: Run the setup script
+        if: inputs.setup_script != ''
+        env:
+          SCRIPT: ${{ inputs.setup_script }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash "$SCRIPT"
       # generates what the install, checks or build need, e.g. content made by another tool
       - name: Run the pre-build command
         if: inputs.pre_build_command != ''
@@ -394,19 +416,37 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Test
-        run: npm test
+        if: inputs.run_tests
+        env:
+          SCRIPT: ${{ inputs.extra_test_script }}
+        run: npm run "$SCRIPT"
+      - name: Write the build environment
+        if: inputs.build_env_vars != ''
+        # through the environment, so the value is never parsed as part of the script
+        env:
+          BUILD_ENV_VARS: ${{ inputs.build_env_vars }}
+        run: printf '%s\n' "$BUILD_ENV_VARS" >> .env
+      - name: Build
+        run: npm run build
+      - name: Upload the build
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ inputs.artifact_name }}-windows
+          path: ${{ inputs.working_directory }}/dist
+          if-no-files-found: ignore
 
   test-macos:
     name: test (macos)
-    if: inputs.run_tests && inputs.test_macos != ''
+    if: inputs.test_macos != ''
     needs: [lint, scan]
-    runs-on: ${{ inputs.test_macos }}
-    timeout-minutes: 20
+    runs-on: ${{ startsWith(inputs.test_macos, '{') && (fromJSON(inputs.test_macos).runs_on || 'macos-latest') || inputs.test_macos }}
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: read
     defaults:
       run:
+        shell: bash
         working-directory: ${{ inputs.working_directory }}
     steps:
       - name: Check out
@@ -441,6 +481,18 @@ jobs:
           go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
           go-version-file: ${{ (endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
           cache: false
+      # a JSON object's env, for the tests and the build alike
+      - name: Set the runner's environment
+        if: startsWith(inputs.test_macos, '{')
+        env:
+          TARGET: ${{ inputs.test_macos }}
+        run: jq -r '(.env // {}) | to_entries[] | "\(.key)=\(.value)"' <<< "$TARGET" >> "$GITHUB_ENV"
+      - name: Run the setup script
+        if: inputs.setup_script != ''
+        env:
+          SCRIPT: ${{ inputs.setup_script }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash "$SCRIPT"
       # generates what the install, checks or build need, e.g. content made by another tool
       - name: Run the pre-build command
         if: inputs.pre_build_command != ''
@@ -453,8 +505,26 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Test
-        run: npm test
+        if: inputs.run_tests
+        env:
+          SCRIPT: ${{ inputs.extra_test_script }}
+        run: npm run "$SCRIPT"
+      - name: Write the build environment
+        if: inputs.build_env_vars != ''
+        # through the environment, so the value is never parsed as part of the script
+        env:
+          BUILD_ENV_VARS: ${{ inputs.build_env_vars }}
+        run: printf '%s\n' "$BUILD_ENV_VARS" >> .env
+      - name: Build
+        run: npm run build
+      - name: Upload the build
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ inputs.artifact_name }}-macos
+          path: ${{ inputs.working_directory }}/dist
+          if-no-files-found: ignore
 
+  # the tests on other Node.js versions, on Linux, when asked
   test-versions:
     name: test (${{ matrix.version }})
     if: inputs.run_tests && inputs.test_versions != ''
