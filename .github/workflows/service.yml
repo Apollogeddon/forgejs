@@ -241,6 +241,13 @@ jobs:
             } else {
               core.info(`${rows.length} found, none high or critical`);
             }
+      # flags a pull request that adds a dependency with a known high or critical vulnerability; private
+      # repositories need GitHub Code Security for it
+      - name: Review dependencies
+        if: github.event_name == 'pull_request' && github.event.repository.private == false
+        uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: high
 
 
   test:

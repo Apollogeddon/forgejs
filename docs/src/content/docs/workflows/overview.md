@@ -166,7 +166,15 @@ Earlier versions ran a `patch` job weekly that committed `osv-scanner fix`'s cha
 
 ## Private repositories on GitHub Free
 
-Every pipeline works in a private repository on a free plan. Two things a free plan offers only to public repositories switch on only when the repository is public, checked with `github.event.repository.private == false`, which is also false when the run's event carries no repository, so such a run does what a private repository can:
+Every pipeline works in a private repository on a free plan. What a free plan offers only to public repositories switches on only when the repository is public, checked with `github.event.repository.private == false`, which is also false when the run's event carries no repository, so such a run does what a private repository can:
 
 - **Artifact attestations**: the library `publish` job passes `attest` only then. A private repository needs GitHub Enterprise Cloud for them.
 - **GitHub Pages**: the `pages` job deploys only then. On a paid plan, which serves Pages from a private repository, drop the check from its `if`.
+- **Dependency review**: the `scan` stage reviews a pull request's dependency changes only then. A private repository needs GitHub Code Security for it.
+
+On a public repository, also turn on two things GitHub offers free there, in **Settings → Code security**:
+
+- **CodeQL**: under **Code scanning**, choose **Set up → Default**, with JavaScript/TypeScript and GitHub Actions as its languages.
+- **Secret scanning push protection**, which blocks a push that contains a secret.
+
+On a private repository on a free plan neither is available; the `scan` stage's Gitleaks and OSV-Scanner cover secrets and vulnerable dependencies instead.

@@ -145,7 +145,7 @@ function expectGrantCovers(caller: string, job: Job, callee: Workflow) {
 function expectWiring(caller: string, wf: Workflow, resolve: (uses: string) => string | undefined) {
   for (const [id, job] of Object.entries(wf.jobs)) {
     if (!job.uses) {
-      expect(id).toBe("changes");
+      expect(["changes", "scorecard"]).toContain(id);
       continue;
     }
     const callee = resolve(job.uses);
@@ -194,6 +194,24 @@ describe("forgejs's own .index.yml", () => {
   // with an app's token the release pull request starts a run, which should check it
   it("checks release-please's pull requests like any other", () => {
     expect(read(".index.yml")).not.toContain("release-please--");
+  });
+
+  // only the tool's own repository is scored, never a generated project
+  it("scores itself with Scorecard from main and weekly, only when public", () => {
+    const scorecard = wf.jobs.scorecard;
+    expect(scorecard?.name).toBe("scorecard");
+    expect(scorecard?.if).toContain("github.event_name == 'push' && github.ref == 'refs/heads/main' && " + PUBLIC);
+    expect(scorecard?.if).toContain("github.event_name == 'schedule' && github.repository_visibility == 'public'");
+    expect(scorecard?.permissions).toEqual({ contents: "read", "security-events": "write", actions: "read" });
+    const [, score, upload] = scorecard?.steps ?? [];
+    expect(score?.uses).toMatch(/^ossf\/scorecard-action@/);
+    expect(score?.with?.publish_results).toBe(false);
+    expect(upload?.uses).toMatch(/^github\/codeql-action\/upload-sarif@/);
+    expect(upload?.with?.sarif_file).toBe(score?.with?.results_file);
+    expect(Object.keys(wf.on)).toContain("schedule");
+    // the weekly run only scores
+    expect(wf.jobs.changes?.if).toBe("github.event_name != 'schedule'");
+    for (const text of generated.map(([, text]) => text)) expect(text).not.toContain("scorecard");
   });
 
   it("keeps its change detection as a root job", () => {
@@ -834,6 +852,14 @@ describe("OSV scan", () => {
     expect(scan?.run).toContain('"$RUNNER_TEMP/osv-scanner/osv-scanner" scan source');
     // nothing else downloads an unpinned scanner
     for (const file of files) expect(read(file), file).not.toContain("releases/latest/download/osv-scanner");
+  });
+
+  // private repositories need GitHub Code Security for it
+  it("should review a public repository's pull request's dependencies", () => {
+    const review = step("library.yml", "scan", "Review dependencies");
+    expect(review?.if).toBe(`github.event_name == 'pull_request' && ${PUBLIC}`);
+    expect(review?.uses).toMatch(/^actions\/dependency-review-action@/);
+    expect(review?.with?.["fail-on-severity"]).toBe("high");
   });
 
   it("should never swallow the scanner's result", () => {

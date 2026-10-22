@@ -11,6 +11,9 @@ on:
   # sent by the merge pipeline, as a merge it makes starts no push run on main
   repository_dispatch:
     types: [auto-merged]
+  # weekly, for scorecard
+  schedule:
+    - cron: '17 3 * * 1'
 
 concurrency:
   # a pull request's newer run replaces its older one; every other run has a group of its own, so a run on
@@ -27,6 +30,8 @@ jobs:
   # docs site's runs when docs/ or anything it builds from changed.
   changes:
     name: changes
+    # the weekly run only scores
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -135,6 +140,38 @@ jobs:
     permissions:
       pages: write
       id-token: write
+
+  # OpenSSF Scorecard's checks of this repository's practices, in the Security tab, from main and weekly: only
+  # when public, as a private repository needs GitHub Code Security for the upload. A scheduled run's event
+  # carries no repository, so it reads the visibility from the run's context instead
+  scorecard:
+    name: scorecard
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.event.repository.private == false) ||
+      (github.event_name == 'schedule' && github.repository_visibility == 'public')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      # the results, to code scanning
+      security-events: write
+      # the workflow runs Scorecard reads
+      actions: read
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Score with Scorecard
+        uses: ossf/scorecard-action@v2
+        with:
+          results_file: scorecard.sarif
+          results_format: sarif
+          publish_results: false
+      - name: Upload the results
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: scorecard.sarif
 
   # Dependabot's pull requests: a review request, and a squash merge when the checks passed
   merge:
