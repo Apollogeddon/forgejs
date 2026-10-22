@@ -1014,17 +1014,15 @@ describe("Dependabot auto-merge", () => {
     );
   });
 
-  it("should read the update's metadata first, and pass its type through the environment", () => {
-    const [metadata, merge] = steps("merge.yml", "squash");
-    expect(metadata?.id).toBe("metadata");
-    expect(metadata?.uses).toMatch(/^dependabot\/fetch-metadata@/);
-    expect(metadata?.with?.["github-token"]).toBe("${{ secrets.GITHUB_TOKEN }}");
-    expect(merge?.env?.UPDATE_TYPE).toBe("${{ steps.metadata.outputs.update-type }}");
+  // passing checks are the gate, whatever the update's size
+  it("should merge any update without reading its metadata", () => {
+    const [merge] = steps("merge.yml", "squash");
+    expect(merge?.name).toBe("Enable auto-merge");
     expect(String(merge?.with?.script)).not.toContain("${{");
   });
 
   // runs the squash step's script against a stand-in GitHub API that refuses auto-merge as on a clean pull request
-  async function runSquash(updateType: string) {
+  async function runSquash() {
     const calls: Record<string, unknown[]> = { graphql: [], merge: [], dispatch: [], notice: [] };
     const pr = { number: 7, node_id: "PR_7", head: { sha: "abc123" }, base: { ref: "main" } };
     const github = {
@@ -1040,7 +1038,7 @@ describe("Dependabot auto-merge", () => {
     const core = { info: () => {}, warning: () => {}, notice: (message: string) => calls.notice?.push(message) };
     const context = { repo: { owner: "o", repo: "r" }, payload: { pull_request: pr } };
     const env = { ...process.env };
-    Object.assign(process.env, { UPDATE_TYPE: updateType, DISPATCH_TYPE: "auto-merged" });
+    Object.assign(process.env, { DISPATCH_TYPE: "auto-merged" });
     try {
       const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
       const script = String(step("merge.yml", "squash", "Enable auto-merge")?.with?.script);
@@ -1051,24 +1049,14 @@ describe("Dependabot auto-merge", () => {
     return calls;
   }
 
-  it.each(["version-update:semver-major", ""])("should leave a %j update for a person", async (updateType) => {
-    const calls = await runSquash(updateType);
-    expect(calls.notice).toEqual([expect.stringContaining("a person merges it")]);
-    expect(calls.graphql).toEqual([]);
-    expect(calls.merge).toEqual([]);
+  it("should merge at the commit the checks ran on", async () => {
+    const calls = await runSquash();
+    expect(calls.graphql).toEqual([
+      { query: expect.stringContaining("expectedHeadOid: $oid"), variables: { id: "PR_7", oid: "abc123" } },
+    ]);
+    expect(calls.merge).toEqual([{ owner: "o", repo: "r", pull_number: 7, merge_method: "squash", sha: "abc123" }]);
+    expect(calls.dispatch).toHaveLength(1);
   });
-
-  it.each(["version-update:semver-minor", "version-update:semver-patch"])(
-    "should merge a %s update at the commit the checks ran on",
-    async (updateType) => {
-      const calls = await runSquash(updateType);
-      expect(calls.graphql).toEqual([
-        { query: expect.stringContaining("expectedHeadOid: $oid"), variables: { id: "PR_7", oid: "abc123" } },
-      ]);
-      expect(calls.merge).toEqual([{ owner: "o", repo: "r", pull_number: 7, merge_method: "squash", sha: "abc123" }]);
-      expect(calls.dispatch).toHaveLength(1);
-    },
-  );
 });
 
 describe("Package checks", () => {
