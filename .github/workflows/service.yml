@@ -55,6 +55,21 @@ on:
         required: false
         type: string
         default: ''
+      test_windows:
+        description: "Run the tests on Windows too: a runner label, e.g. windows-latest; empty skips it"
+        required: false
+        type: string
+        default: ''
+      test_macos:
+        description: "Run the tests on macOS too: a runner label, e.g. macos-latest; empty skips it"
+        required: false
+        type: string
+        default: ''
+      test_versions:
+        description: "A JSON array of other Node.js versions to run the tests on too, on Linux, e.g. '[\"26\"]'; empty skips them"
+        required: false
+        type: string
+        default: ''
     secrets:
       GH_TOKEN:
         description: "A token pre_build_command can use, as GH_TOKEN"
@@ -315,6 +330,190 @@ jobs:
           name: coverage-${{ inputs.artifact_name }}
           path: ${{ inputs.working_directory }}/coverage
           if-no-files-found: ignore
+
+  # The tests on Windows, macOS and other Node.js versions, each when asked. The test stage's run on Linux
+  # uploads the coverage report, so these don't
+  test-windows:
+    name: test (windows)
+    if: inputs.run_tests && inputs.test_windows != ''
+    needs: [lint, scan]
+    runs-on: ${{ inputs.test_windows }}
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      # the input if set, else the project's .nvmrc, else forgejs's default
+      - name: Resolve the Node version
+        id: node
+        env:
+          INPUT: ${{ inputs.node_version }}
+        run: |
+          if [ -n "$INPUT" ]; then version="$INPUT"
+          elif [ -f .nvmrc ]; then version=$(tr -d '[:space:]' < .nvmrc)
+          else version=24
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ steps.node.outputs.version }}
+          cache: 'npm'
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: "@${{ github.repository_owner }}"
+      - name: Set up Go
+        if: inputs.setup_go != ''
+        uses: actions/setup-go@v7
+        with:
+          # a path names a file to read the version from, anything else is the version itself
+          go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          go-version-file: ${{ (endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          cache: false
+      # generates what the install, checks or build need, e.g. content made by another tool
+      - name: Run the pre-build command
+        if: inputs.pre_build_command != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          PRE_BUILD_COMMAND: ${{ inputs.pre_build_command }}
+        run: bash -e -c "$PRE_BUILD_COMMAND"
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Test
+        run: npm test
+
+  test-macos:
+    name: test (macos)
+    if: inputs.run_tests && inputs.test_macos != ''
+    needs: [lint, scan]
+    runs-on: ${{ inputs.test_macos }}
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      # the input if set, else the project's .nvmrc, else forgejs's default
+      - name: Resolve the Node version
+        id: node
+        env:
+          INPUT: ${{ inputs.node_version }}
+        run: |
+          if [ -n "$INPUT" ]; then version="$INPUT"
+          elif [ -f .nvmrc ]; then version=$(tr -d '[:space:]' < .nvmrc)
+          else version=24
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ steps.node.outputs.version }}
+          cache: 'npm'
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: "@${{ github.repository_owner }}"
+      - name: Set up Go
+        if: inputs.setup_go != ''
+        uses: actions/setup-go@v7
+        with:
+          # a path names a file to read the version from, anything else is the version itself
+          go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          go-version-file: ${{ (endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          cache: false
+      # generates what the install, checks or build need, e.g. content made by another tool
+      - name: Run the pre-build command
+        if: inputs.pre_build_command != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          PRE_BUILD_COMMAND: ${{ inputs.pre_build_command }}
+        run: bash -e -c "$PRE_BUILD_COMMAND"
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Test
+        run: npm test
+
+  test-versions:
+    name: test (${{ matrix.version }})
+    if: inputs.run_tests && inputs.test_versions != ''
+    needs: [lint, scan]
+    runs-on: ${{ inputs.runs_on }}
+    strategy:
+      # each version's result, not just the first to fail
+      fail-fast: false
+      matrix:
+        version: ${{ fromJSON(inputs.test_versions || '[]') }}
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - name: Resolve the Node version
+        id: node
+        env:
+          INPUT: ${{ matrix.version }}
+        run: |
+          if [ -n "$INPUT" ]; then version="$INPUT"
+          elif [ -f .nvmrc ]; then version=$(tr -d '[:space:]' < .nvmrc)
+          else version=24
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ steps.node.outputs.version }}
+          cache: 'npm'
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: "@${{ github.repository_owner }}"
+      - name: Set up Go
+        if: inputs.setup_go != ''
+        uses: actions/setup-go@v7
+        with:
+          # a path names a file to read the version from, anything else is the version itself
+          go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          go-version-file: ${{ (endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          cache: false
+      # generates what the install, checks or build need, e.g. content made by another tool
+      - name: Run the pre-build command
+        if: inputs.pre_build_command != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          PRE_BUILD_COMMAND: ${{ inputs.pre_build_command }}
+        run: bash -e -c "$PRE_BUILD_COMMAND"
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Test
+        run: npm test
 
   build:
     name: build

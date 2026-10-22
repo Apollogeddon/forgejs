@@ -86,6 +86,11 @@ jobs:
       !cancelled() && needs.changes.outputs.code == 'true' &&
       (github.event_name == 'pull_request' || needs.version.outputs.new_release_published == 'true')
     uses: ./.github/workflows/library.yml
+    # Windows, macOS and the newest Node.js too; CI otherwise uses .nvmrc's, the oldest engines allows
+    with:
+      test_windows: windows-latest
+      test_macos: macos-latest
+      test_versions: '["26"]'
     permissions:
       contents: read
       packages: read

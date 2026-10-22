@@ -105,7 +105,19 @@ Pass it to `publish.yml` too for a library.
 
 ### Test across Node.js versions
 
-Call a check pipeline from a matrix to run its stages on several Node.js versions. The run page names each call after its version, such as `service (lts/*)`:
+`library.yml` and `service.yml` run the tests on other Node.js versions, and on Windows and macOS, when asked:
+
+```yaml
+  service:
+    # ...as generated
+    uses: apollogeddon/forgejs/.github/workflows/service.yml@main
+    with:
+      test_versions: '["26"]'
+      test_windows: windows-latest
+      test_macos: macos-latest
+```
+
+To run every stage, not just the tests, on several Node.js versions, call a check pipeline from a matrix. The run page names each call after its version, such as `service (lts/*)`:
 
 ```yaml
 jobs:

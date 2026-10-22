@@ -119,7 +119,9 @@ describe.each(pipelines)("Pipeline %s", (file) => {
     for (const [id, job] of Object.entries(wf.jobs)) {
       expect(job.name, `${file}:${id} has no name`).toBeDefined();
       expect(inVocabulary(pipeline, String(job.name)), `${file}:${id} is named '${job.name}'`).toBe(true);
-      expect(id).toBe(kebab(String(job.name)));
+      // a matrix's variant names its job after the matrix key, e.g. test-versions for test (${{ matrix.version }})
+      const matrix = String(job.name).match(/^(.+) \(\$\{\{ matrix\.(\w+) \}\}\)$/);
+      expect(id).toBe(matrix ? `${kebab(String(matrix[1]))}-${matrix[2]}s` : kebab(String(job.name)));
     }
   });
 
@@ -603,6 +605,37 @@ describe("Check pipelines", () => {
     expect(list[index("Set up Go")]?.if).toBe("inputs.setup_go != ''");
   });
 
+  // the same names and meaning as forgego's: a runner label, or empty to skip
+  it.each(["library.yml", "service.yml"])("should test on Windows, macOS and other Node.js versions when asked in %s", (file) => {
+    const wf = load(file);
+    const inputs = wf.on.workflow_call?.inputs ?? {};
+    for (const input of ["test_windows", "test_macos", "test_versions"]) expect(inputs[input]?.default, input).toBe("");
+    expect(wf.jobs["test-windows"]?.name).toBe("test (windows)");
+    expect(wf.jobs["test-windows"]?.if).toBe("inputs.run_tests && inputs.test_windows != ''");
+    expect(wf.jobs["test-macos"]?.name).toBe("test (macos)");
+    expect(wf.jobs["test-macos"]?.if).toBe("inputs.run_tests && inputs.test_macos != ''");
+    expect(wf.jobs["test-versions"]?.name).toBe("test (${{ matrix.version }})");
+    expect(wf.jobs["test-versions"]?.if).toBe("inputs.run_tests && inputs.test_versions != ''");
+    for (const id of ["test-windows", "test-macos", "test-versions"]) {
+      const job = wf.jobs[id];
+      expect(job?.needs, id).toEqual(["lint", "scan"]);
+      expect(job?.steps?.at(-1)?.run, id).toBe("npm test");
+      // only the test stage uploads coverage
+      expect(job?.steps?.some((s) => s.uses?.startsWith("actions/upload-artifact")), id).toBe(false);
+    }
+    expect(String(read(file))).toContain("INPUT: ${{ matrix.version }}");
+  });
+
+  // generated workflows leave them off, as Windows and macOS minutes cost more on a private repository
+  it("should leave the extra test runs off in generated workflows, and on in forgejs's own", () => {
+    for (const [, text] of generated) expect(text).not.toMatch(/test_(windows|macos|versions)/);
+    expect(load(".index.yml").jobs.library?.with).toMatchObject({
+      test_windows: "windows-latest",
+      test_macos: "macos-latest",
+      test_versions: '["26"]',
+    });
+  });
+
   it("should skip the test stage with run_tests false", () => {
     expect(load("library.yml").jobs.test?.if).toBe("inputs.run_tests");
   });
@@ -673,7 +706,8 @@ describe("Website site checks", () => {
     ["/a/b/", "/a/b/"],
   ])("should serve the build under base_path %j at %s", (basePath, base) => {
     const { outputs, served, temp } = stage(basePath);
-    expect(outputs).toEqual({ root: path.join(temp, "site"), base });
+    // the script joins with /, which path.normalize turns into Windows' separator
+    expect({ ...outputs, root: path.normalize(String(outputs.root)) }).toEqual({ root: path.join(temp, "site"), base });
     expect(served).toBe(true);
   });
 

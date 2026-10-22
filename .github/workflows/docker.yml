@@ -73,8 +73,9 @@ jobs:
           ENDPOINT: ${{ inputs.buildkit_endpoint }}
         run: |
           image="${IMAGE:-ghcr.io/$REPOSITORY}"
-          # GHCR rejects uppercase repository names
-          echo "image=${image,,}" >> "$GITHUB_OUTPUT"
+          # GHCR rejects uppercase repository names; tr rather than bash 4's ${image,,}, so the tests can run
+          # this with macOS's bash 3.2 too
+          echo "image=$(printf '%s' "$image" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
           IFS=, read -ra requested <<< "${PLATFORMS//[[:space:]]/}"
           platforms=()
           for platform in "${requested[@]}"; do

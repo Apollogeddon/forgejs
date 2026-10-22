@@ -28,6 +28,8 @@ The three share their first four stages, job for job:
    ```
 
 3. **`test`**: The test suite (skip with `run_tests: false`), with the coverage report uploaded as `coverage-<artifact_name>`. *(Needs: lint, scan)*
+
+   `library.yml` and `service.yml` can run the tests elsewhere too, each as a stage of its own alongside `test`, without uploading coverage: **`test (windows)`** on the runner `test_windows` names, **`test (macos)`** on the one `test_macos` names, and **`test (<version>)`** on Linux for each Node.js version in `test_versions`. All three are off by default, and the generated `.index.yml` doesn't set them, as Windows and macOS minutes cost more on a private repository. forgejs's own CI sets all three.
 4. **`build`**: Writes `build_env_vars` to `.env`, runs the build, then the project's `publint` and `docs:check` scripts when it defines them, and uploads `dist/` as the `artifact_name` artifact. *(Needs: lint, scan; runs alongside test)*
 
 `website.yml` adds:
@@ -46,6 +48,9 @@ The three share their first four stages, job for job:
 | `ref` | `''` | Commit, branch or tag to check and build; empty means the commit that triggered the run |
 | `setup_go` | `''` | Go to install before `pre_build_command`: a version, e.g. `stable`, or a `go.mod`, `go.work`, `.go-version` or `.tool-versions` path from the repository root; empty installs none |
 | `pre_build_command` | `''` | Shell command run in `working_directory` before `npm ci`, in every stage that installs |
+| `test_windows` | `''` | `library.yml` and `service.yml`: run the tests on Windows too, on this runner label, e.g. `windows-latest`; empty skips it |
+| `test_macos` | `''` | `library.yml` and `service.yml`: run the tests on macOS too, on this runner label, e.g. `macos-latest`; empty skips it |
+| `test_versions` | `''` | `library.yml` and `service.yml`: a JSON array of other Node.js versions to run the tests on, on Linux, e.g. `'["26"]'`; empty skips them |
 
 `website.yml` also takes:
 
