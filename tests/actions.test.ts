@@ -728,10 +728,14 @@ describe("Check pipelines", () => {
         expect(text).toContain("      test_macos: macos-latest\n");
       } else expect(text).not.toMatch(/test_(windows|macos)/);
     }
-    expect(load(".index.yml").jobs.library?.with).toMatchObject({
-      test_windows: "windows-latest",
-      test_macos: "macos-latest",
-      test_versions: '["26"]',
+    // only for a release, so pull requests stay cheap and a failure still stops the publish
+    const release = (value: string) => `\${{ needs.version.outputs.new_release_published == 'true' && '${value}' || '' }}`;
+    const library = load(".index.yml").jobs.library;
+    expect(library?.needs).toContain("version");
+    expect(library?.with).toMatchObject({
+      test_windows: release("windows-latest"),
+      test_macos: release("macos-latest"),
+      test_versions: release('["26"]'),
     });
   });
 
