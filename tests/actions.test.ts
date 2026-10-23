@@ -990,7 +990,8 @@ describe("OSV scan", () => {
       expect(job?.name).toBe("scan (osv)");
       // an image key, so Dependabot's docker updates keep it current
       expect(job?.container).toEqual({ image: expect.stringMatching(/^ghcr\.io\/google\/osv-scanner:v\d+\.\d+\.\d+$/) });
-      expect(job?.["runs-on"]).toBe("${{ inputs.scan_runs_on || inputs.runs_on }}");
+      // a private repository's self-hosted runs_on often can't run a job container
+      expect(job?.["runs-on"]).toBe("${{ inputs.scan_runs_on || (github.event.repository.private && 'ubuntu-latest' || inputs.runs_on) }}");
       expect(job?.permissions).toEqual({ contents: "read" });
       expect(load(file).on.workflow_call?.inputs?.scan_runs_on).toMatchObject({ type: "string", required: false, default: "" });
       expect(load(file).on.workflow_call?.inputs?.scan_container).toBeUndefined();
