@@ -994,7 +994,7 @@ describe("OSV scan", () => {
 
   it("should write a JSON report of the working directory into the workspace", () => {
     const args = String(scan?.with?.["scan-args"]).split("\n");
-    expect(args).toEqual(["--format=json", "--output=osv-results.json", "--recursive", "./${{ inputs.working_directory }}"]);
+    expect(args).toEqual(["--format=json", "--output-file=osv-results.json", "--recursive", "./${{ inputs.working_directory }}"]);
     expect(report?.env?.OSV_REPORT).toBe("osv-results.json");
   });
 

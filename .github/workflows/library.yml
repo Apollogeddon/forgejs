@@ -204,7 +204,7 @@ jobs:
         with:
           scan-args: |-
             --format=json
-            --output=osv-results.json
+            --output-file=osv-results.json
             --recursive
             ./${{ inputs.working_directory }}
       - name: Report OSV findings
