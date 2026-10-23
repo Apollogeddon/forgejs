@@ -1,5 +1,20 @@
 # Changelog
 
+## [7.1.0](https://github.com/Apollogeddon/forgejs/compare/v7.0.0...v7.1.0) (2026-10-23)
+
+
+### Features
+
+* **ci:** make the pipelines work on free private and public repositories, and harden them ([#245](https://github.com/Apollogeddon/forgejs/issues/245)) ([67f27c0](https://github.com/Apollogeddon/forgejs/commit/67f27c097b90b1053fabb17a103092f0e640b44b))
+
+
+### Bug Fixes
+
+* **ci:** scan (osv) on github's ubuntu-latest in private repositories, whose runs_on may not run it ([#251](https://github.com/Apollogeddon/forgejs/issues/251)) ([61171c7](https://github.com/Apollogeddon/forgejs/commit/61171c7057a9efcf2ace9b61b614f96a3b239463))
+* **deps:** bump js-yaml from 5.4.3 to 5.5.0 in the js-yaml group ([#250](https://github.com/Apollogeddon/forgejs/issues/250)) ([fd8832a](https://github.com/Apollogeddon/forgejs/commit/fd8832a88f5ba2ef46e8740ca53e61a10e2443fb))
+* **deps:** bump the commitlint group across 1 directory with 2 updates ([#249](https://github.com/Apollogeddon/forgejs/issues/249)) ([4ce14f5](https://github.com/Apollogeddon/forgejs/commit/4ce14f5310dea21cdb20e1a34ea5f195321fc0ee))
+* **deps:** bump the vitest group with 2 updates ([#248](https://github.com/Apollogeddon/forgejs/issues/248)) ([6005c81](https://github.com/Apollogeddon/forgejs/commit/6005c815060b6766540d467dd6953c11cf7b03b2))
+
 ## [7.0.0](https://github.com/Apollogeddon/forgejs/compare/v6.0.0...v7.0.0) (2026-10-16)
 
 
