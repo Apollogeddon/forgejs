@@ -1,39 +1,14 @@
 import { execSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
-import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { CLI_SCRIPT, robustRemoveDir, TSX_CLI } from "./support/cli.js";
 
 // The only suite that installs real deps and runs the generated scripts, so it catches wiring
 // bugs (a config extending an uninstalled path, a build with no source) that content checks miss.
 
-const CLI_SCRIPT = path.resolve(__dirname, "../src/index.ts");
 const REPO_ROOT = path.resolve(__dirname, "..").replace(/\\/g, "/");
-
-const require = createRequire(import.meta.url);
-const tsxPackageJsonPath = require.resolve("tsx/package.json");
-const TSX_CLI = path.join(path.dirname(tsxPackageJsonPath), require(tsxPackageJsonPath).bin);
-
-function robustRemoveDir(dir: string, maxRetries = 5, delay = 500) {
-  if (!fs.existsSync(dir)) return;
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      fs.rmSync(dir, { recursive: true, force: true });
-      return;
-    } catch (error) {
-      if (i === maxRetries - 1) {
-        console.warn(`Warning: Final attempt to clean up temp dir failed: ${error}`);
-      } else {
-        const syncWait = (ms: number) => {
-          const end = Date.now() + ms;
-          while (Date.now() < end) {}
-        };
-        syncWait(delay);
-      }
-    }
-  }
-}
 
 // What the generated .index.yml's check pipelines run: the lint stage's Biome and type check, then the
 // test and build stages, and the package checks after the build
@@ -64,7 +39,7 @@ describe("End-to-end: a scaffolded project actually works", () => {
 
   beforeEach(() => {
     tempDir = path.join(os.tmpdir(), `forgejs-e2e-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
-    if (fs.existsSync(tempDir)) robustRemoveDir(tempDir);
+    robustRemoveDir(tempDir);
     fs.mkdirSync(tempDir, { recursive: true });
   });
 

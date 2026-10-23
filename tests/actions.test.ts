@@ -455,7 +455,7 @@ describe("Workflows an earlier forgejs generated", () => {
   });
 
   it("doesn't know a changed one, or one under another name", () => {
-    const changed = fixture("library.yml").replace("    with:\n", "    with:\n      runs_on: xerus\n");
+    const changed = fixture("library.yml").replace("    with:\n", "    with:\n      runs_on: self-hosted\n");
     expect(templates.isLegacyWorkflow(".github/workflows/index.yml", changed)).toBe(false);
     expect(templates.isLegacyWorkflow(".github/workflows/build.yml", fixture("library.yml"))).toBe(false);
   });
@@ -466,10 +466,6 @@ describe("version.yml", () => {
   const job = wf.jobs.release;
   const release = () => job?.steps?.find((s) => s.uses?.startsWith("googleapis/release-please-action"));
   const find = () => job?.steps?.find((s) => s.id === "config");
-
-  it("should pass a sub-directory to release-please as the package path", () => {
-    expect(release()?.with?.path).toContain("inputs.working_directory");
-  });
 
   // release-please prefixes a sub-directory package's outputs with its path
   it.each(["release_created", "version", "tag_name"])("should read the package's own %s output", (key) => {
@@ -519,7 +515,10 @@ describe("version.yml", () => {
     expect(release()?.with?.["release-type"]).toBe("${{ steps.config.outputs.file == '' && 'node' || '' }}");
     expect(release()?.with?.["config-file"]).toBe("${{ steps.config.outputs.file }}");
     expect(release()?.with?.["manifest-file"]).toBe("${{ steps.config.outputs.manifest }}");
-    expect(release()?.with?.path).toContain("steps.config.outputs.file == ''");
+    // a sub-directory is the package path; with a config, the config keys its packages by path instead
+    expect(release()?.with?.path).toBe(
+      "${{ steps.config.outputs.file == '' && inputs.working_directory != '.' && inputs.working_directory || '' }}",
+    );
   });
 
   // releases_created is true when any package is released, so it only counts for the root package
@@ -565,14 +564,11 @@ describe("Review requests on bots' pull requests", () => {
     expect(review?.if).not.toContain("checks_passed");
   });
 
-  it("should never fail the pipeline over a review request", () => {
-    for (const s of [step("version.yml", "release", "Request a review"), step("merge.yml", "review", "Request a review")]) {
-      expect(scriptOf(s)).toContain("catch (error)");
-      expect(scriptOf(s)).toContain("core.warning");
-    }
-    expect(scriptOf(step("version.yml", "release", "Request a review"))).toBe(
-      scriptOf(step("merge.yml", "review", "Request a review")),
-    );
+  it("should never fail the pipeline over a review request, with the same script in both", () => {
+    const script = scriptOf(step("version.yml", "release", "Request a review"));
+    expect(script).toContain("catch (error)");
+    expect(script).toContain("core.warning");
+    expect(scriptOf(step("merge.yml", "review", "Request a review"))).toBe(script);
   });
 });
 
@@ -984,15 +980,15 @@ describe("OSV scan", () => {
   });
 
   // a runner set with no Docker daemon runs a job container, but refuses a container action
+  // the check pipelines share the job, as "should share their lint, scan, test and build stages" pins
   it("should scan in OSV-Scanner's own image, as a stage of its own", () => {
+    const job = load("library.yml").jobs["scan-osv"];
+    // an image key, so Dependabot's docker updates keep it current
+    expect(job?.container).toEqual({ image: expect.stringMatching(/^ghcr\.io\/google\/osv-scanner:v\d+\.\d+\.\d+$/) });
+    // a private repository's self-hosted runs_on often can't run a job container
+    expect(job?.["runs-on"]).toBe("${{ inputs.scan_runs_on || (github.event.repository.private && 'ubuntu-latest' || inputs.runs_on) }}");
+    expect(job?.permissions).toEqual({ contents: "read" });
     for (const file of ["library.yml", "service.yml", "website.yml"]) {
-      const job = load(file).jobs["scan-osv"];
-      expect(job?.name).toBe("scan (osv)");
-      // an image key, so Dependabot's docker updates keep it current
-      expect(job?.container).toEqual({ image: expect.stringMatching(/^ghcr\.io\/google\/osv-scanner:v\d+\.\d+\.\d+$/) });
-      // a private repository's self-hosted runs_on often can't run a job container
-      expect(job?.["runs-on"]).toBe("${{ inputs.scan_runs_on || (github.event.repository.private && 'ubuntu-latest' || inputs.runs_on) }}");
-      expect(job?.permissions).toEqual({ contents: "read" });
       expect(load(file).on.workflow_call?.inputs?.scan_runs_on).toMatchObject({ type: "string", required: false, default: "" });
       expect(load(file).on.workflow_call?.inputs?.scan_container).toBeUndefined();
       expect(read(file), file).not.toContain("google/osv-scanner-action");

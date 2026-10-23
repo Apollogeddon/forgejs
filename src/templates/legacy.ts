@@ -135,7 +135,7 @@ export const LEGACY_WORKFLOWS: Record<string, ReadonlySet<string>> = {
 };
 
 // Line endings, trailing spaces and blank lines don't make a file the project's own
-export function normaliseWorkflow(content: string): string {
+function normaliseWorkflow(content: string): string {
   return content
     .replace(/\r\n/g, "\n")
     .split("\n")

@@ -1,8 +1,5 @@
-export function indexTs(projectName: string): string {
-  return `console.log("Hello from ${projectName}!");\n`;
-}
-
-export function mainTs(projectName: string): string {
+// src/index.ts for a backend or library, src/main.ts for a website
+export function starterTs(projectName: string): string {
   return `console.log("Hello from ${projectName}!");\n`;
 }
 

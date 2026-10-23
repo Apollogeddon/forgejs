@@ -3,7 +3,6 @@ import { imageName } from "../utils/names.js";
 import { createFile, type Feature, nodeVersion, removeFile, setScript } from "./types.js";
 
 export const DockerFeature: Feature = {
-  name: "Docker",
   shouldRun: (cfg) => cfg.docker,
   apply: (cwd, cfg, fs, packageJson) => {
     const content = (cfg.website ? templates.dockerConfigWebsite : templates.dockerConfigBackend)(

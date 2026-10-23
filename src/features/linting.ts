@@ -2,7 +2,6 @@ import * as templates from "../templates/index.js";
 import { createFile, type Feature, removeFile, setScript } from "./types.js";
 
 export const LintingFeature: Feature = {
-  name: "Linting",
   shouldRun: (cfg) => cfg.linting,
   apply: (cwd, cfg, fs, packageJson) => {
     const a = createFile(cwd, "biome.json", templates.biomeConfig, cfg, fs);

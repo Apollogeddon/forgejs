@@ -2,7 +2,6 @@ import * as templates from "../templates/index.js";
 import { createFile, createFileIfMissing, type Feature, nodeVersion } from "./types.js";
 
 export const BaseFeature: Feature = {
-  name: "Base Setup",
   shouldRun: () => true,
   apply: (cwd, cfg, fs, packageJson) => {
     const node = nodeVersion(cwd, cfg, fs);
@@ -42,9 +41,9 @@ export const BaseFeature: Feature = {
     // tsc/tsdown/vite all need real source to exist, so scaffold a starter file now.
     if (cfg.website) {
       ok = createFileIfMissing(cwd, "index.html", templates.indexHtml(packageJson.name), cfg, fs) && ok;
-      ok = createFileIfMissing(cwd, "src/main.ts", templates.mainTs(packageJson.name), cfg, fs) && ok;
+      ok = createFileIfMissing(cwd, "src/main.ts", templates.starterTs(packageJson.name), cfg, fs) && ok;
     } else {
-      ok = createFileIfMissing(cwd, "src/index.ts", templates.indexTs(packageJson.name), cfg, fs) && ok;
+      ok = createFileIfMissing(cwd, "src/index.ts", templates.starterTs(packageJson.name), cfg, fs) && ok;
     }
 
     return ok;

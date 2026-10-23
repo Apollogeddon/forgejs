@@ -2,7 +2,6 @@ import * as templates from "../templates/index.js";
 import { createFile, type Feature, removeFile, setScript } from "./types.js";
 
 export const BuildFeature: Feature = {
-  name: "Build",
   shouldRun: () => true,
   apply: (cwd, cfg, fs, packageJson) => {
     let ok = true;

@@ -2,19 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-
-async function importModule(modulePath: string) {
-  if (modulePath.endsWith(".cjs")) {
-    return require(modulePath);
-  } else {
-    return await import(modulePath);
-  }
-}
-
 describe("Code Configurations Imports", () => {
   it("should import vitest.config.cjs without errors and check basic structure", async () => {
     const vitestConfigPath = path.join(process.cwd(), "configs", "vitest.config.cjs");
-    const configModule = await importModule(vitestConfigPath);
+    const configModule = require(vitestConfigPath);
     expect(configModule).toBeDefined();
     // vitest.config.cjs exports an object directly, not a default export.
     expect(configModule.test).toBeDefined();

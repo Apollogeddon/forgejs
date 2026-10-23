@@ -7,46 +7,17 @@ const rootDir = process.cwd();
 
 describe("Package Integrity", () => {
   it('should ensure all files listed in "exports" exist', () => {
-    const exportsField = packageJson.exports;
-    if (!exportsField) {
-      return;
-    }
-
-    for (const key in exportsField) {
-      if (Object.hasOwn(exportsField, key)) {
-        const exportPath = (exportsField as Record<string, unknown>)[key];
-        let filePath: string;
-
-        if (typeof exportPath === "string") {
-          filePath = exportPath;
-        } else if (typeof exportPath === "object" && exportPath !== null) {
-          for (const condition in exportPath) {
-            if (Object.hasOwn(exportPath, condition)) {
-              const conditionalPath = (exportPath as Record<string, unknown>)[condition];
-              if (typeof conditionalPath === "string") {
-                expect(fs.existsSync(path.join(rootDir, conditionalPath)), `File not found: ${conditionalPath}`).toBe(
-                  true,
-                );
-              }
-            }
-          }
-          continue;
-        } else {
-          continue;
-        }
-
-        expect(fs.existsSync(path.join(rootDir, filePath)), `File not found: ${filePath}`).toBe(true);
-      }
+    // a condition map, such as { types, import }, names a file per condition
+    const targets = Object.values(packageJson.exports).flatMap((target) =>
+      typeof target === "string" ? [target] : Object.values(target),
+    );
+    for (const target of targets) {
+      expect(fs.existsSync(path.join(rootDir, target)), `File not found: ${target}`).toBe(true);
     }
   });
 
   it('should ensure all files listed in "files" exist', () => {
-    const filesField = packageJson.files;
-    if (!filesField) {
-      return;
-    }
-
-    for (const fileGlob of filesField) {
+    for (const fileGlob of packageJson.files) {
       // dist/ only exists after a build
       if (fileGlob === "dist" || fileGlob.startsWith("dist/") || fileGlob.startsWith("dist\\")) {
         continue;
