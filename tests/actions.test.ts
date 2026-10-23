@@ -17,6 +17,7 @@ type Step = {
   if?: string;
   uses?: string;
   run?: string;
+  "continue-on-error"?: boolean;
   "working-directory"?: string;
   env?: Record<string, string>;
   with?: Record<string, unknown>;
@@ -33,6 +34,7 @@ type Job = {
   concurrency?: { group?: string; "cancel-in-progress"?: boolean };
   steps?: Step[];
   "runs-on"?: string;
+  container?: string;
   defaults?: { run?: { shell?: string; "working-directory"?: string } };
 };
 type Workflow = {
@@ -939,11 +941,10 @@ describe("OSV scan", () => {
   const scan = step("library.yml", "scan", "Scan with OSV");
   const report = step("library.yml", "scan", "Report OSV findings");
 
-  // runs the report step's github-script body with a stand-in for its core API
-  async function runReport(status: number, results: unknown[] | null = [], enforce = true) {
+  // runs the report step's github-script body with a stand-in for its core API; null writes no report
+  async function runReport(outcome: string, results: unknown[] | null = [], enforce = true) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "forgejs-osv-"));
-    const file = path.join(dir, "osv.json");
-    if (results) fs.writeFileSync(file, JSON.stringify({ results }));
+    if (results) fs.writeFileSync(path.join(dir, "osv-results.json"), JSON.stringify({ results }));
     const calls: Record<string, string[]> = { info: [], warning: [], error: [], setFailed: [] };
     const record = (kind: string) => (message: string) => calls[kind]?.push(message);
     const core = {
@@ -955,8 +956,8 @@ describe("OSV scan", () => {
     };
     const env = { ...process.env };
     Object.assign(process.env, {
-      OSV_STATUS: String(status),
-      OSV_REPORT: file,
+      OSV_OUTCOME: outcome,
+      OSV_REPORT: String(report?.env?.OSV_REPORT),
       OSV_ENFORCE: String(enforce),
       GITHUB_WORKSPACE: dir,
     });
@@ -970,25 +971,53 @@ describe("OSV scan", () => {
     return calls;
   }
 
-  const lockfile = (dir = "/w") => ({ source: { path: `${dir}/package-lock.json` } });
+  // the path the scanner's container reports, where the workspace is mounted
+  const lockfile = (dir = "/github/workspace") => ({ source: { path: `${dir}/package-lock.json` } });
   const finding = (id: string, maxSeverity: string, rating?: string) => ({
     package: { name: `pkg-${id}`, version: "1.0.0" },
     vulnerabilities: [{ id, summary: `advisory ${id}`, database_specific: rating ? { severity: rating } : {} }],
     groups: [{ ids: [id], max_severity: maxSeverity }],
   });
 
-  it("should install a pinned release, verified against its checksums, before the scan", () => {
+  // Dependabot sees an action's version, not a downloaded binary's
+  it("should scan with OSV-Scanner's own action, pinned by commit", () => {
+    expect(scan?.uses).toBe(
+      "google/osv-scanner-action/osv-scanner-action@b1d267aea5211fa648d9d442fa64b90dbdcbdd36",
+    );
+    expect(read("library.yml")).toContain(`uses: ${scan?.uses} # v2.7.0`);
+    expect(scan?.run).toBeUndefined();
+    for (const file of files) {
+      expect(read(file), file).not.toContain("osv-scanner_SHA256SUMS");
+      expect(read(file), file).not.toContain("releases/latest/download/osv-scanner");
+    }
+  });
+
+  it("should write a JSON report of the working directory into the workspace", () => {
+    const args = String(scan?.with?.["scan-args"]).split("\n");
+    expect(args).toEqual(["--format=json", "--output=osv-results.json", "--recursive", "./${{ inputs.working_directory }}"]);
+    expect(report?.env?.OSV_REPORT).toBe("osv-results.json");
+  });
+
+  // a container action needs a runner that can run one: a hosted runner or a Kubernetes-mode runner set
+  it("should run the scan stage where its inputs say, defaulting to runs_on and no container", () => {
+    for (const file of ["library.yml", "service.yml", "website.yml"]) {
+      const inputs = load(file).on.workflow_call?.inputs ?? {};
+      for (const name of ["scan_runs_on", "scan_container"]) {
+        expect(inputs[name], `${file}:${name}`).toMatchObject({ type: "string", required: false, default: "" });
+      }
+      const job = load(file).jobs.scan;
+      expect(job?.["runs-on"]).toBe("${{ inputs.scan_runs_on || inputs.runs_on }}");
+      expect(job?.container).toBe("${{ inputs.scan_container }}");
+      expect(job?.permissions).toEqual({ contents: "read", "pull-requests": "write" });
+    }
+  });
+
+  // in a job container git runs as root over the runner user's checkout, and Gitleaks needs git
+  it("should trust the workspace right after checking it out", () => {
     const list = steps("library.yml", "scan");
-    const index = (name: string) => list.findIndex((s) => s.name === name);
-    expect(index("Install OSV-Scanner")).toBe(index("Scan with OSV") - 1);
-    const install = list[index("Install OSV-Scanner")];
-    expect(install?.env?.OSV_SCANNER_VERSION).toMatch(/^v\d+\.\d+\.\d+$/);
-    expect(install?.run).toContain('curl -fsSLO "$base/osv-scanner_linux_$arch"');
-    expect(install?.run).toContain("sha256sum -c --ignore-missing osv-scanner_SHA256SUMS");
-    expect(install?.run).not.toContain("latest");
-    expect(scan?.run).toContain('"$RUNNER_TEMP/osv-scanner/osv-scanner" scan source');
-    // nothing else downloads an unpinned scanner
-    for (const file of files) expect(read(file), file).not.toContain("releases/latest/download/osv-scanner");
+    expect(list[0]?.uses).toMatch(/^actions\/checkout@/);
+    expect(list[1]?.name).toBe("Trust the workspace");
+    expect(list[1]?.run).toBe('git config --global --add safe.directory "$GITHUB_WORKSPACE"');
   });
 
   // private repositories need GitHub Code Security for it
@@ -999,62 +1028,66 @@ describe("OSV scan", () => {
     expect(review?.with?.["fail-on-severity"]).toBe("high");
   });
 
+  // the action exits non-zero on a finding as on a failure, so the report decides
   it("should never swallow the scanner's result", () => {
-    expect(scan?.run).not.toContain("|| true");
-    expect(scan?.run).toContain("--format json");
-    expect(report?.env?.OSV_STATUS).toBe("${{ steps.osv.outputs.status }}");
+    expect(scan?.["continue-on-error"]).toBe(true);
+    expect(report?.env?.OSV_OUTCOME).toBe("${{ steps.osv.outcome }}");
     expect(report?.env?.OSV_ENFORCE).toBe("${{ github.event_name == 'pull_request' }}");
   });
 
   it("should annotate a high finding outside a pull request, so a release still runs", async () => {
-    const calls = await runReport(1, [{ ...lockfile(), packages: [finding("GHSA-high", "9.8")] }], false);
+    const calls = await runReport("failure", [{ ...lockfile(), packages: [finding("GHSA-high", "9.8")] }], false);
     expect(calls.error).toEqual([expect.stringContaining("GHSA-high")]);
     expect(calls.setFailed).toEqual([]);
     expect(calls.warning).toEqual([expect.stringContaining("fails pull requests")]);
   });
 
   it("should fail on a high or critical finding and annotate the rest", async () => {
-    const calls = await runReport(1, [{ ...lockfile(), packages: [finding("GHSA-high", "8.1"), finding("GHSA-low", "5.3")] }]);
+    const calls = await runReport("failure", [{ ...lockfile(), packages: [finding("GHSA-high", "8.1"), finding("GHSA-low", "5.3")] }]);
     expect(calls.error).toEqual([expect.stringContaining("GHSA-high")]);
     expect(calls.warning).toEqual([expect.stringContaining("GHSA-low")]);
     expect(calls.setFailed).toEqual([expect.stringContaining("1 high or critical vulnerability")]);
   });
 
   it("should only warn when nothing is high or critical", async () => {
-    const calls = await runReport(1, [{ ...lockfile(), packages: [finding("GHSA-moderate", "", "MODERATE")] }]);
+    const calls = await runReport("failure", [{ ...lockfile(), packages: [finding("GHSA-moderate", "", "MODERATE")] }]);
     expect(calls.warning).toHaveLength(1);
     expect(calls.setFailed).toEqual([]);
   });
 
   it("should use the advisory's rating when it has no CVSS score", async () => {
-    const calls = await runReport(1, [{ ...lockfile(), packages: [finding("GHSA-critical", "", "CRITICAL")] }]);
+    const calls = await runReport("failure", [{ ...lockfile(), packages: [finding("GHSA-critical", "", "CRITICAL")] }]);
     expect(calls.setFailed).toHaveLength(1);
   });
 
-  it.each([
-    [0, 0],
-    [128, 0],
-  ])("should pass when the scanner exits %i", async (status) => {
-    const calls = await runReport(status);
+  it("should name the lockfile relative to the workspace", async () => {
+    const calls = await runReport("failure", [{ ...lockfile("/github/workspace/pkg"), packages: [finding("GHSA-low", "3.1")] }]);
+    expect(calls.warning).toEqual([expect.stringContaining("GHSA-low")]);
+  });
+
+  it("should pass a clean scan", async () => {
+    const calls = await runReport("success");
+    expect(calls.setFailed).toEqual([]);
+    expect(calls.warning).toEqual([]);
+  });
+
+  // the action leaves no report when there's no lockfile
+  it("should note that there was nothing to scan when it succeeded without a report", async () => {
+    const calls = await runReport("success", null);
+    expect(calls.info).toEqual(["No lockfiles to scan"]);
     expect(calls.setFailed).toEqual([]);
     expect(calls.warning).toEqual([]);
   });
 
   // a pull request can't merge unchecked, but an outage at OSV mustn't stop a release
-  it.each([
-    [127, []],
-    [1, null],
-  ])("should fail a pull request when the scanner exits %i with %j results", async (status, results) => {
-    const calls = await runReport(status, results);
+  it("should fail a pull request when the scan failed without a report", async () => {
+    const calls = await runReport("failure", null);
     expect(calls.setFailed).toEqual([expect.stringContaining("couldn't finish")]);
     expect(calls.warning).toEqual([]);
   });
 
-  it.each([
-    [127, []],
-    [1, null],
-  ])("should warn, not fail, elsewhere when the scanner exits %i with %j results", async (status, results) => {
-    const calls = await runReport(status, results, false);
+  it("should warn, not fail, elsewhere when the scan failed without a report", async () => {
+    const calls = await runReport("failure", null, false);
     expect(calls.warning).toEqual([expect.stringContaining("couldn't finish")]);
     expect(calls.setFailed).toEqual([]);
   });
