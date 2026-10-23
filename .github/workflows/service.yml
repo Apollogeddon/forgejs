@@ -10,6 +10,11 @@ on:
         required: false
         type: string
         default: 'ubuntu-latest'
+      scan_runs_on:
+        description: "Runner label for the scan (osv) stage, which runs in OSV-Scanner's image: a Linux runner that can run a job container, such as GitHub's hosted runners or a Kubernetes-mode runner set; empty uses runs_on"
+        required: false
+        type: string
+        default: ''
       working_directory:
         description: "Directory holding package.json"
         required: false
@@ -55,10 +60,38 @@ on:
         required: false
         type: string
         default: ''
+      test_windows:
+        description: "Test and build on Windows too: a runner label, or a JSON object {\"runs_on\", \"env\"} whose env is set for both, e.g. {\"runs_on\": \"windows-latest\", \"env\": {\"NODE_OPTIONS\": \"--max-old-space-size=4096\"}}; empty skips it"
+        required: false
+        type: string
+        default: ''
+      test_macos:
+        description: "Test and build on macOS too: a runner label, or a JSON object {\"runs_on\", \"env\"} whose env is set for both; empty skips it"
+        required: false
+        type: string
+        default: ''
+      extra_test_script:
+        description: "The npm script the Windows and macOS stages test with, e.g. a shorter test:short"
+        required: false
+        type: string
+        default: 'test'
+      setup_script:
+        description: "A script, relative to working_directory, run with bash before installing and building on Windows and macOS; RUNNER_OS says where, and it can export through GITHUB_ENV and GITHUB_PATH"
+        required: false
+        type: string
+        default: ''
+      test_versions:
+        description: "A JSON array of other Node.js versions to run the tests on too, on Linux, e.g. '[\"26\"]'; empty skips them"
+        required: false
+        type: string
+        default: ''
     secrets:
       GH_TOKEN:
         description: "A token pre_build_command can use, as GH_TOKEN"
         required: false
+
+# nothing by default: every job asks for what it needs
+permissions: {}
 
 jobs:
   lint:
@@ -73,7 +106,7 @@ jobs:
         working-directory: ${{ inputs.working_directory }}
     steps:
       - name: Check out
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
@@ -89,7 +122,7 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Set up Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ steps.node.outputs.version }}
           cache: 'npm'
@@ -98,7 +131,7 @@ jobs:
           scope: "@${{ github.repository_owner }}"
       - name: Set up Go
         if: inputs.setup_go != ''
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           # a path names a file to read the version from, anything else is the version itself
           go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
@@ -139,49 +172,77 @@ jobs:
         working-directory: ${{ inputs.working_directory }}
     steps:
       - name: Check out
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
           fetch-depth: 0
       - name: Scan with Gitleaks
         if: inputs.enable_secrets
-        uses: gitleaks/gitleaks-action@v3
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # flags a pull request that adds a dependency with a known high or critical vulnerability; private
+      # repositories need GitHub Code Security for it
+      - name: Review dependencies
+        if: github.event_name == 'pull_request' && github.event.repository.private == false
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+
+  scan-osv:
+    name: scan (osv)
+    runs-on: ${{ inputs.scan_runs_on || inputs.runs_on }}
+    # OSV-Scanner's own image as the job's container, where a runner set with no Docker daemon runs it like any job
+    # container (it refuses the scanner's container action); Dependabot's docker updates keep the tag current
+    container:
+      image: ghcr.io/google/osv-scanner:v2.7.0
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
       # A high or critical finding (CVSS 7 or more) fails a pull request; elsewhere it's annotated
-      # instead, so releases and the patch pipeline that fixes it still run. Accept one with an
+      # instead, so releases still run while a Dependabot security update fixes it. Accept one with an
       # IgnoredVulns entry in an osv-scanner.toml beside the lockfile
       - name: Scan with OSV
         id: osv
-        run: |
-          curl -sL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o "$RUNNER_TEMP/osv-scanner"
-          chmod +x "$RUNNER_TEMP/osv-scanner"
-          # 0: nothing found, 1: vulnerabilities found, 128: no lockfile, anything else: no scan
-          status=0
-          "$RUNNER_TEMP/osv-scanner" scan source -r --format json --output-file "$RUNNER_TEMP/osv.json" . || status=$?
-          echo "status=$status" >> "$GITHUB_OUTPUT"
-          rm "$RUNNER_TEMP/osv-scanner"
+        # it exits non-zero on a finding as on a failure, so the report below decides; an image's login shell resets
+        # PATH, so the scanner is named by its path
+        continue-on-error: true
+        run: /osv-scanner scan source --format=json --output-file="$GITHUB_WORKSPACE/osv-results.json" --recursive --allow-no-lockfiles .
       - name: Report OSV findings
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
-          OSV_STATUS: ${{ steps.osv.outputs.status }}
-          OSV_REPORT: ${{ runner.temp }}/osv.json
+          OSV_OUTCOME: ${{ steps.osv.outcome }}
+          # relative to the job's workspace: in a job container github.workspace names the runner's path, not the container's
+          OSV_REPORT: osv-results.json
           OSV_ENFORCE: ${{ github.event_name == 'pull_request' }}
         with:
           script: |
             const fs = require('node:fs');
             const path = require('node:path');
-            const status = Number(process.env.OSV_STATUS);
-            if (status === 128) {
-              core.info('No lockfiles to scan');
+            const reportPath = path.resolve(process.env.GITHUB_WORKSPACE, process.env.OSV_REPORT);
+            const text = fs.existsSync(reportPath) ? fs.readFileSync(reportPath, 'utf8').trim() : '';
+            if (!text) {
+              if (process.env.OSV_OUTCOME === 'success') {
+                core.info('No lockfiles to scan');
+                return;
+              }
+              // a pull request can't merge unchecked; elsewhere an outage at OSV mustn't stop a release
+              const incomplete = "OSV-Scanner couldn't finish, so dependencies weren't checked; see the scan step's log";
+              if (process.env.OSV_ENFORCE === 'true') core.setFailed(incomplete);
+              else core.warning(incomplete, { title: 'OSV scan incomplete' });
               return;
             }
-            if ((status !== 0 && status !== 1) || !fs.existsSync(process.env.OSV_REPORT)) {
-              core.warning(`OSV-Scanner couldn't finish (exit ${status}), so dependencies weren't checked; see the scan step's log`, { title: 'OSV scan incomplete' });
-              return;
-            }
-            const report = JSON.parse(fs.readFileSync(process.env.OSV_REPORT, 'utf8'));
+            const report = JSON.parse(text);
             // a GitHub advisory's rating when an advisory has no CVSS score
             const ratings = { CRITICAL: 9, HIGH: 7, MODERATE: 4, MEDIUM: 4, LOW: 1 };
             const rows = [];
@@ -217,16 +278,15 @@ jobs:
             if (blocking && process.env.OSV_ENFORCE === 'true') {
               core.setFailed(`${found}: update the packages, or record an accepted one in osv-scanner.toml`);
             } else if (blocking) {
-              core.warning(`${found}: this fails pull requests until they're updated, as the patch job may do`, { title: 'OSV scan' });
+              core.warning(`${found}: this fails pull requests until they're updated, as a Dependabot security update does`, { title: 'OSV scan' });
             } else {
               core.info(`${rows.length} found, none high or critical`);
             }
 
-
   test:
     name: test
     if: inputs.run_tests
-    needs: [lint, scan]
+    needs: [lint, scan, scan-osv]
     runs-on: ${{ inputs.runs_on }}
     timeout-minutes: 10
     permissions:
@@ -237,7 +297,7 @@ jobs:
         working-directory: ${{ inputs.working_directory }}
     steps:
       - name: Check out
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
@@ -253,7 +313,7 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Set up Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ steps.node.outputs.version }}
           cache: 'npm'
@@ -262,7 +322,7 @@ jobs:
           scope: "@${{ github.repository_owner }}"
       - name: Set up Go
         if: inputs.setup_go != ''
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           # a path names a file to read the version from, anything else is the version itself
           go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
@@ -283,27 +343,30 @@ jobs:
         run: npm test
       - name: Upload coverage
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-${{ inputs.artifact_name }}
           path: ${{ inputs.working_directory }}/coverage
           if-no-files-found: ignore
 
-  build:
-    name: build
-    # only needs the lint and scan to pass, so it runs alongside the tests
-    needs: [lint, scan]
-    runs-on: ${{ inputs.runs_on }}
-    timeout-minutes: 10
+  # The tests, with extra_test_script, and the build on Windows and macOS, each when asked, after the setup
+  # script. The test stage's run on Linux uploads the coverage report, so these don't
+  test-windows:
+    name: test (windows)
+    if: inputs.test_windows != ''
+    needs: [lint, scan, scan-osv]
+    runs-on: ${{ startsWith(inputs.test_windows, '{') && (fromJSON(inputs.test_windows).runs_on || 'windows-latest') || inputs.test_windows }}
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: read
     defaults:
       run:
+        shell: bash
         working-directory: ${{ inputs.working_directory }}
     steps:
       - name: Check out
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
@@ -319,7 +382,7 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Set up Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ steps.node.outputs.version }}
           cache: 'npm'
@@ -328,7 +391,248 @@ jobs:
           scope: "@${{ github.repository_owner }}"
       - name: Set up Go
         if: inputs.setup_go != ''
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          # a path names a file to read the version from, anything else is the version itself
+          go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          go-version-file: ${{ (endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          cache: false
+      # a JSON object's env, for the tests and the build alike
+      - name: Set the runner's environment
+        if: startsWith(inputs.test_windows, '{')
+        env:
+          TARGET: ${{ inputs.test_windows }}
+        run: jq -r '(.env // {}) | to_entries[] | "\(.key)=\(.value)"' <<< "$TARGET" >> "$GITHUB_ENV"
+      - name: Run the setup script
+        if: inputs.setup_script != ''
+        env:
+          SCRIPT: ${{ inputs.setup_script }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash "$SCRIPT"
+      # generates what the install, checks or build need, e.g. content made by another tool
+      - name: Run the pre-build command
+        if: inputs.pre_build_command != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          PRE_BUILD_COMMAND: ${{ inputs.pre_build_command }}
+        run: bash -e -c "$PRE_BUILD_COMMAND"
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Test
+        if: inputs.run_tests
+        env:
+          SCRIPT: ${{ inputs.extra_test_script }}
+        run: npm run "$SCRIPT"
+      - name: Write the build environment
+        if: inputs.build_env_vars != ''
+        # through the environment, so the value is never parsed as part of the script
+        env:
+          BUILD_ENV_VARS: ${{ inputs.build_env_vars }}
+        run: printf '%s\n' "$BUILD_ENV_VARS" >> .env
+      - name: Build
+        run: npm run build
+      - name: Upload the build
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ inputs.artifact_name }}-windows
+          path: ${{ inputs.working_directory }}/dist
+          if-no-files-found: ignore
+
+  test-macos:
+    name: test (macos)
+    if: inputs.test_macos != ''
+    needs: [lint, scan, scan-osv]
+    runs-on: ${{ startsWith(inputs.test_macos, '{') && (fromJSON(inputs.test_macos).runs_on || 'macos-latest') || inputs.test_macos }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      # the input if set, else the project's .nvmrc, else forgejs's default
+      - name: Resolve the Node version
+        id: node
+        env:
+          INPUT: ${{ inputs.node_version }}
+        run: |
+          if [ -n "$INPUT" ]; then version="$INPUT"
+          elif [ -f .nvmrc ]; then version=$(tr -d '[:space:]' < .nvmrc)
+          else version=24
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ steps.node.outputs.version }}
+          cache: 'npm'
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: "@${{ github.repository_owner }}"
+      - name: Set up Go
+        if: inputs.setup_go != ''
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          # a path names a file to read the version from, anything else is the version itself
+          go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          go-version-file: ${{ (endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          cache: false
+      # a JSON object's env, for the tests and the build alike
+      - name: Set the runner's environment
+        if: startsWith(inputs.test_macos, '{')
+        env:
+          TARGET: ${{ inputs.test_macos }}
+        run: jq -r '(.env // {}) | to_entries[] | "\(.key)=\(.value)"' <<< "$TARGET" >> "$GITHUB_ENV"
+      - name: Run the setup script
+        if: inputs.setup_script != ''
+        env:
+          SCRIPT: ${{ inputs.setup_script }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash "$SCRIPT"
+      # generates what the install, checks or build need, e.g. content made by another tool
+      - name: Run the pre-build command
+        if: inputs.pre_build_command != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          PRE_BUILD_COMMAND: ${{ inputs.pre_build_command }}
+        run: bash -e -c "$PRE_BUILD_COMMAND"
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Test
+        if: inputs.run_tests
+        env:
+          SCRIPT: ${{ inputs.extra_test_script }}
+        run: npm run "$SCRIPT"
+      - name: Write the build environment
+        if: inputs.build_env_vars != ''
+        # through the environment, so the value is never parsed as part of the script
+        env:
+          BUILD_ENV_VARS: ${{ inputs.build_env_vars }}
+        run: printf '%s\n' "$BUILD_ENV_VARS" >> .env
+      - name: Build
+        run: npm run build
+      - name: Upload the build
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ inputs.artifact_name }}-macos
+          path: ${{ inputs.working_directory }}/dist
+          if-no-files-found: ignore
+
+  # the tests on other Node.js versions, on Linux, when asked
+  test-versions:
+    name: test (${{ matrix.version }})
+    if: inputs.run_tests && inputs.test_versions != ''
+    needs: [lint, scan, scan-osv]
+    runs-on: ${{ inputs.runs_on }}
+    strategy:
+      # each version's result, not just the first to fail
+      fail-fast: false
+      matrix:
+        version: ${{ fromJSON(inputs.test_versions || '[]') }}
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - name: Resolve the Node version
+        id: node
+        env:
+          INPUT: ${{ matrix.version }}
+        run: |
+          if [ -n "$INPUT" ]; then version="$INPUT"
+          elif [ -f .nvmrc ]; then version=$(tr -d '[:space:]' < .nvmrc)
+          else version=24
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ steps.node.outputs.version }}
+          cache: 'npm'
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: "@${{ github.repository_owner }}"
+      - name: Set up Go
+        if: inputs.setup_go != ''
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          # a path names a file to read the version from, anything else is the version itself
+          go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          go-version-file: ${{ (endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
+          cache: false
+      # generates what the install, checks or build need, e.g. content made by another tool
+      - name: Run the pre-build command
+        if: inputs.pre_build_command != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          PRE_BUILD_COMMAND: ${{ inputs.pre_build_command }}
+        run: bash -e -c "$PRE_BUILD_COMMAND"
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Test
+        run: npm test
+
+  build:
+    name: build
+    # only needs the lint and scan to pass, so it runs alongside the tests
+    needs: [lint, scan, scan-osv]
+    runs-on: ${{ inputs.runs_on }}
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      # the input if set, else the project's .nvmrc, else forgejs's default
+      - name: Resolve the Node version
+        id: node
+        env:
+          INPUT: ${{ inputs.node_version }}
+        run: |
+          if [ -n "$INPUT" ]; then version="$INPUT"
+          elif [ -f .nvmrc ]; then version=$(tr -d '[:space:]' < .nvmrc)
+          else version=24
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ steps.node.outputs.version }}
+          cache: 'npm'
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: "@${{ github.repository_owner }}"
+      - name: Set up Go
+        if: inputs.setup_go != ''
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           # a path names a file to read the version from, anything else is the version itself
           go-version: ${{ !(endsWith(inputs.setup_go, 'go.mod') || endsWith(inputs.setup_go, 'go.work') || endsWith(inputs.setup_go, '.go-version') || endsWith(inputs.setup_go, '.tool-versions')) && inputs.setup_go || '' }}
@@ -360,7 +664,7 @@ jobs:
           npm run --if-present publint
           npm run --if-present docs:check
       - name: Upload the build
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ inputs.artifact_name }}
           path: ${{ inputs.working_directory }}/dist

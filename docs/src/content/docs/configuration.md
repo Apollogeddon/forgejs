@@ -170,6 +170,10 @@ module.exports = defineSnodebConfig({
 });
 ```
 
+### Windows and macOS
+
+`--windows` and `--macos` add no files: they set `test_windows: windows-latest` and `test_macos: macos-latest` on the checks job in `.index.yml`, so the `library` or `service` pipeline also runs the tests and the build on that system and uploads the build as its own artifact. A website has no such stages, so `init` refuses them with `--website`. Without them, CI runs on Linux only, as a private repository pays more for Windows and macOS minutes. To pass a runner's environment, a shorter suite or a setup script, edit the job's inputs instead; see [Windows and macOS](/forgejs/docs/workflows/reference#windows-and-macos).
+
 ## Node.js version
 
 A project's Node.js version lives in `.nvmrc`, which `init` writes with forgejs's default, or the version `--node` gives, and nvm, fnm and `actions/setup-node` all read. `init` also sets `engines.node` to that version or newer in `package.json`, unless the project already has one; `--node` replaces it.
@@ -189,7 +193,8 @@ So moving a project to another version is one edit to `.nvmrc`. The generated Do
 | File | What it does |
 | :--- | :--- |
 | `.editorconfig` | LF line endings, UTF-8, 2-space indent and 120 columns, matching the Biome config |
-| `.github/dependabot.yml` | Weekly npm and GitHub Actions updates, plus Docker with `--docker`. Minor and patch updates are grouped into one pull request, and each update waits 3 days after it's published before it's proposed, so a compromised release has time to be caught upstream. The `merge` pipeline requests your review on them and squash-merges them once CI passes. |
+| `.gitattributes` | LF in the working tree on every platform, so a Windows checkout reads the same; written once, never overwritten, so your own rules (Git LFS, say) are safe |
+| `.github/dependabot.yml` | Weekly npm and GitHub Actions updates, plus Docker with `--docker`. Minor and patch updates are grouped into one pull request, and each update waits 3 days after it's published before it's proposed, so a compromised release has time to be caught upstream. The `merge` pipeline requests your review on them and squash-merges each one once CI passes, majors included. |
 | `.github/CODEOWNERS` | `* @owner`, so every pull request someone else opens, Dependabot's and release-please's included, requests your review and shows in your review requests. It doesn't block merging. |
 
 In a private repository, Dependabot can't read `@apollogeddon/forgejs`, or your own packages, from GitHub Packages without a token, and its npm updates fail with `private_source_authentication_failure`. Add a classic token with only `read:packages` as a Dependabot secret named `PACKAGES_TOKEN` (**Settings → Secrets and variables → Dependabot**), then give the npm update the registry:

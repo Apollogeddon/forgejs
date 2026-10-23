@@ -24,12 +24,12 @@ forgejs is a project-scaffolding CLI: `src/index.ts` parses argv (`node:util` `p
 Generated file *content* lives in `src/templates/*.ts` as plain string/function exports, re-exported via `src/templates/index.ts`. Most extend forgejs's own shipped base configs (`configs/*.json`/`*.cjs`, published via `package.json` `exports`) — the layered-config pattern: a generated project's `biome.json`/`tsconfig.json`/etc. `extends` the version bundled with forgejs, and `core.ts` adds `@apollogeddon/forgejs` itself as a `devDependency` so those files actually resolve after `npm install`.
 
 **CI.** `.github/workflows/` holds forgejs's reusable pipelines, which projects call at `@main`:
-- **Check pipelines:** `library`, `service` and `website` (stages lint, scan, test, build, plus `check` for the website).
+- **Check pipelines:** `library`, `service` and `website` (stages lint, scan, scan (osv), test, build, plus `check` for the website).
 - **Packaging:** `debian` and `docker`.
 - **Release and delivery:** `version` (release-please), `publish` (package, assets, attest) and `pages` (deploy).
-- **Housekeeping:** `patch` (osv-scanner fix) and `merge` (Dependabot review and squash).
+- **Housekeeping:** `merge` (Dependabot review and squash), and `patch`, a retired stub that only warns, kept so projects still calling it don't fail (Dependabot security updates replace it).
 
-Each is `on: workflow_call` only, and no pipeline calls another, so a run page reads `<pipeline> / <stage>`. A job's `name:` is its stage, and the job id is that stage in kebab case. A root workflow (the dot files, `.index.yml`) is what an event triggers: each of its jobs calls one pipeline, the job id is the pipeline's name, and a variant names itself in brackets (`patch (docs)`). forgejs's own `.index.yml` calls the pipelines locally and adds the `changes` job. `src/templates/workflows.ts`'s `indexWorkflow()` generates a project's `.github/workflows/.index.yml` per mode and flags.
+Each is `on: workflow_call` only, and no pipeline calls another, so a run page reads `<pipeline> / <stage>`. A job's `name:` is its stage, and the job id is that stage in kebab case. A root workflow (the dot files, `.index.yml`) is what an event triggers: each of its jobs calls one pipeline, the job id is the pipeline's name, and a variant of a job names itself in brackets. forgejs's own `.index.yml` calls the pipelines locally and adds the `changes` and `scorecard` jobs. `src/templates/workflows.ts`'s `indexWorkflow()` generates a project's `.github/workflows/.index.yml` per mode and flags.
 
 `WorkflowFeature` replaces a legacy `index.yml` (or `ci.yml`/`debian.yml`) only once `.index.yml` is written:
 - It removes one exactly as `init` generated it. Those are SHA-256 hashes of the normalised text in `src/templates/legacy.ts`.

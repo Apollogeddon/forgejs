@@ -1,6 +1,6 @@
 // The generated .github/workflows/.index.yml: each job calls one forgejs pipeline, so a run page reads
-// <pipeline> / <stage>. Pull requests run the checks, main runs release-please and, on a release, the checks
-// again before shipping, and a weekly run patches vulnerable dependencies.
+// <pipeline> / <stage>. Pull requests run the checks, and main runs release-please and, on a release, the checks
+// again before shipping. Dependabot security updates, a repository setting, fix vulnerable dependencies.
 
 export type PipelineMode = "library" | "service" | "website";
 
@@ -8,6 +8,9 @@ export interface IndexWorkflowOptions {
   mode: PipelineMode;
   debian: boolean;
   docker: boolean;
+  // test and build on Windows and macOS too; only library and service checks have the stages
+  windows: boolean;
+  macos: boolean;
   testing: boolean;
   versioning: boolean;
 }
@@ -26,20 +29,22 @@ on:
   # sent by the merge pipeline, as a merge it makes starts no push run on main
   repository_dispatch:
     types: [auto-merged]
-  # weekly, for the patch pipeline; a manual run and an auto-merged dispatch patch too
-  schedule:
-    - cron: '17 3 * * 1'
 
 concurrency:
   # a pull request's newer run replaces its older one; every other run has a group of its own, so a run on
   # main, running or queued, is never cancelled and a release is never created without being published
-  group: \${{ github.workflow }}-\${{ github.head_ref || github.run_id }}
+  group: \${{ github.workflow }}-\${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
+
+# nothing by default: every job grants what its pipeline needs
+permissions: {}
 
 jobs:
 `;
 
 const released = "needs.version.outputs.new_release_published == 'true'";
+// false when the field is missing, as on a scheduled run, so that falls back to what a private repository can do
+const PUBLIC = "github.event.repository.private == false";
 
 // a GitHub Actions expression, kept out of template literals' own placeholder syntax
 const expr = (expression: string) => ["$", "{{ ", expression, " }}"].join("");
@@ -51,6 +56,7 @@ export interface PipelineJob {
   if?: string;
   pipeline: string;
   with?: Record<string, string | boolean>;
+  secrets?: Record<string, string>;
   permissions: Record<string, "read" | "write">;
 }
 
@@ -66,6 +72,11 @@ function render(job: PipelineJob): string {
     lines.push("    with:");
     for (const [key, value] of inputs) lines.push(`      ${key}: ${value}`);
   }
+  const secrets = Object.entries(job.secrets ?? {});
+  if (secrets.length) {
+    lines.push("    secrets:");
+    for (const [key, value] of secrets) lines.push(`      ${key}: ${value}`);
+  }
   lines.push("    permissions:");
   for (const [key, value] of Object.entries(job.permissions)) lines.push(`      ${key}: ${value}`);
   return `${lines.join("\n")}\n`;
@@ -74,8 +85,15 @@ function render(job: PipelineJob): string {
 // Disabled standard features become pipeline inputs, so CI doesn't run what the project doesn't have:
 // --no-testing turns off the test stage. --no-versioning leaves out the version job, and with it the
 // release testing and publish; --no-linting needs nothing, as the lint stage skips Biome without a biome.json.
-export function withPipelineInputs(cfg: Pick<IndexWorkflowOptions, "testing">): Record<string, boolean> {
-  return cfg.testing ? {} : { run_tests: false };
+// --windows and --macos turn on those stages, which a private repository pays more for, so they're opt-in.
+export function withPipelineInputs(
+  cfg: Pick<IndexWorkflowOptions, "testing" | "windows" | "macos">,
+): Record<string, string | boolean> {
+  return {
+    ...(cfg.testing ? {} : { run_tests: false }),
+    ...(cfg.windows ? { test_windows: "windows-latest" } : {}),
+    ...(cfg.macos ? { test_macos: "macos-latest" } : {}),
+  };
 }
 
 // Docker is a job of its own after the checks, so projects without it don't carry a permanently
@@ -98,9 +116,13 @@ export function indexWorkflow(cfg: IndexWorkflowOptions): string {
   if (cfg.versioning) {
     jobs.push({
       id: "version",
-      comment: "release-please, on main",
-      if: "github.event_name != 'pull_request' && github.event_name != 'schedule'",
+      comment:
+        "release-please, on main; with a GitHub App's token once RELEASE_APP_CLIENT_ID is set, so its pull requests run the checks",
+      if: "github.event_name != 'pull_request'",
       pipeline: "version",
+      // empty until the variable and secret are set, which leaves release-please on GITHUB_TOKEN
+      with: { app_client_id: expr("vars.RELEASE_APP_CLIENT_ID") },
+      secrets: { APP_PRIVATE_KEY: expr("secrets.RELEASE_APP_PRIVATE_KEY") },
       permissions: { contents: "write", "pull-requests": "write" },
     });
   }
@@ -111,9 +133,7 @@ export function indexWorkflow(cfg: IndexWorkflowOptions): string {
       ? "a pull request's checks, and on main a release's, before it ships"
       : "the checks, on pull requests and every push to main",
     ...(cfg.versioning ? { needs: ["version"] } : {}),
-    if: cfg.versioning
-      ? `!cancelled() && (github.event_name == 'pull_request' || ${released})`
-      : "github.event_name != 'schedule'",
+    ...(cfg.versioning ? { if: `!cancelled() && (github.event_name == 'pull_request' || ${released})` } : {}),
     pipeline: checks,
     with: withPipelineInputs(cfg),
     permissions: { contents: "read", packages: "read", "pull-requests": "write" },
@@ -138,11 +158,13 @@ export function indexWorkflow(cfg: IndexWorkflowOptions): string {
   if (cfg.versioning && cfg.mode === "library") {
     jobs.push({
       id: "publish",
-      comment: "the release's package, to GitHub Packages",
+      comment:
+        "the release's package, to GitHub Packages, attested only from a public repository, as a free plan needs",
       needs: ["version", checks],
       if: `!cancelled() && needs.${checks}.result == 'success' && ${released}`,
       pipeline: "publish",
-      permissions: { contents: "read", packages: "write" },
+      with: { attest: expr(PUBLIC) },
+      permissions: { contents: "read", packages: "write", "id-token": "write", attestations: "write" },
     });
   } else if (cfg.versioning && cfg.debian) {
     jobs.push({
@@ -160,23 +182,15 @@ export function indexWorkflow(cfg: IndexWorkflowOptions): string {
   if (cfg.mode === "website") {
     jobs.push({
       id: "pages",
-      comment: cfg.versioning ? "a release, to GitHub Pages" : "every change to main, to GitHub Pages",
+      comment: `${cfg.versioning ? "a release" : "every change to main"}, to GitHub Pages, which a free plan serves only from a public repository; a paid plan can drop that check`,
       needs: cfg.versioning ? ["version", checks] : [checks],
       if: cfg.versioning
-        ? `!cancelled() && needs.${checks}.result == 'success' && ${released}`
-        : "github.ref == 'refs/heads/main' && github.event_name != 'pull_request'",
+        ? `!cancelled() && needs.${checks}.result == 'success' && ${released} && ${PUBLIC}`
+        : `github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && ${PUBLIC}`,
       pipeline: "pages",
       permissions: { pages: "write", "id-token": "write" },
     });
   }
-
-  jobs.push({
-    id: "patch",
-    comment: "vulnerable dependencies updated on main: weekly, on a manual run, and after a Dependabot merge",
-    if: "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch'",
-    pipeline: "patch",
-    permissions: { contents: "write", packages: "read" },
-  });
 
   jobs.push({
     id: "merge",

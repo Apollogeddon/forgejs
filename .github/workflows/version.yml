@@ -24,6 +24,15 @@ on:
         required: false
         type: string
         default: ''
+      app_client_id:
+        description: "A GitHub App's client ID, whose token release-please uses instead of GITHUB_TOKEN so the release pull request runs the checks; needs the APP_PRIVATE_KEY secret. Empty uses GITHUB_TOKEN"
+        required: false
+        type: string
+        default: ''
+    secrets:
+      APP_PRIVATE_KEY:
+        description: "The private key of the GitHub App app_client_id names"
+        required: false
     outputs:
       new_release_published:
         description: "Whether a new release was published"
@@ -34,6 +43,9 @@ on:
       tag_name:
         description: "Released tag (e.g. v1.2.3); empty when nothing was released"
         value: ${{ jobs.release.outputs.tag_name }}
+
+# nothing by default: every job asks for what it needs
+permissions: {}
 
 jobs:
   release:
@@ -58,7 +70,7 @@ jobs:
     steps:
       # a project can keep a release-please config in <working_directory>/.github
       - name: Check out
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           sparse-checkout: ${{ inputs.working_directory }}/.github
@@ -77,10 +89,22 @@ jobs:
             echo "file=$github/release.json" >> "$GITHUB_OUTPUT"
             echo "manifest=$github/.release.json" >> "$GITHUB_OUTPUT"
           fi
+      # a pull request opened with GITHUB_TOKEN starts no workflows, so the release pull request's checks never
+      # run; one opened with an app's token does
+      - name: Create the GitHub App's token
+        id: app
+        if: inputs.app_client_id != ''
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ inputs.app_client_id }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          # only what release-please needs, whatever else the app is allowed
+          permission-contents: write
+          permission-pull-requests: write
       # with a config, release-please reads the packages and options from it;
       # without one, it releases working_directory as a Node.js package
       - name: Release
-        uses: googleapis/release-please-action@v5
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         id: release
         with:
           release-type: ${{ steps.config.outputs.file == '' && 'node' || '' }}
@@ -88,13 +112,13 @@ jobs:
           manifest-file: ${{ steps.config.outputs.manifest }}
           # empty means the repository root; a config keys its packages by path instead
           path: ${{ steps.config.outputs.file == '' && inputs.working_directory != '.' && inputs.working_directory || '' }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app.outputs.token || secrets.GITHUB_TOKEN }}
 
       # CODEOWNERS only requests reviews in a private repository on a paid plan, so the release
       # pull request asks for one here instead, on any plan
       - name: Request a review
         if: steps.release.outputs.pr != ''
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           PULL_REQUEST: ${{ steps.release.outputs.pr && fromJSON(steps.release.outputs.pr).number || '' }}
           REVIEWERS: ${{ inputs.reviewers }}

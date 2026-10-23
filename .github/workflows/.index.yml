@@ -11,15 +11,18 @@ on:
   # sent by the merge pipeline, as a merge it makes starts no push run on main
   repository_dispatch:
     types: [auto-merged]
-  # weekly, for the patch pipeline; a manual run and an auto-merged dispatch patch too
+  # weekly, for scorecard
   schedule:
     - cron: '17 3 * * 1'
 
 concurrency:
   # a pull request's newer run replaces its older one; every other run has a group of its own, so a run on
   # main, running or queued, is never cancelled and a release is never created without being published
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
+
+# nothing by default: every job grants what its pipeline needs
+permissions: {}
 
 # Each job calls one pipeline, so the run page reads <pipeline> / <stage>. Pull requests run the checks
 # (library for the tool, website for docs/); main runs version, and on a release checks the tool again
@@ -30,7 +33,7 @@ jobs:
   # docs site's runs when docs/ or anything it builds from changed.
   changes:
     name: changes
-    # the weekly run only patches
+    # the weekly run only scores
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -41,7 +44,7 @@ jobs:
       docs: ${{ steps.diff.outputs.docs }}
     steps:
       - name: Check out
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -70,18 +73,29 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true' && github.event_name != 'pull_request'
     uses: ./.github/workflows/version.yml
+    # empty unless set, so release-please uses GITHUB_TOKEN
+    with:
+      app_client_id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+    secrets:
+      APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
     permissions:
       contents: write
       pull-requests: write
 
-  # a pull request's checks, and on main the release's; a release PR only bumps the version and changelog
+  # a pull request's checks, the release pull request's included, and on main the release's
   library:
     needs: [changes, version]
     if: >-
       !cancelled() && needs.changes.outputs.code == 'true' &&
-      ((github.event_name == 'pull_request' && !startsWith(github.head_ref, 'release-please--')) ||
-      needs.version.outputs.new_release_published == 'true')
+      (github.event_name == 'pull_request' || needs.version.outputs.new_release_published == 'true')
     uses: ./.github/workflows/library.yml
+    # A release's checks run on Windows, macOS and the newest Node.js too; CI otherwise uses .nvmrc's, the
+    # oldest engines allows. Pull requests run on Linux alone, which keeps them cheap, and a Windows or
+    # macOS failure still stops the release's publish
+    with:
+      test_windows: ${{ needs.version.outputs.new_release_published == 'true' && 'windows-latest' || '' }}
+      test_macos: ${{ needs.version.outputs.new_release_published == 'true' && 'macos-latest' || '' }}
+      test_versions: ${{ needs.version.outputs.new_release_published == 'true' && '["26"]' || '' }}
     permissions:
       contents: read
       packages: read
@@ -97,7 +111,8 @@ jobs:
       needs.version.outputs.new_release_published == 'true'
     uses: ./.github/workflows/publish.yml
     with:
-      attest: true
+      # artifact attestations need a public repository on a free plan
+      attest: ${{ github.event.repository.private == false }}
     permissions:
       contents: read
       packages: write
@@ -107,7 +122,7 @@ jobs:
   # the docs site isn't versioned, so it's checked on every change that touches it, and deployed from main
   website:
     needs: changes
-    if: needs.changes.outputs.docs == 'true' && !startsWith(github.head_ref, 'release-please--')
+    if: needs.changes.outputs.docs == 'true'
     uses: ./.github/workflows/website.yml
     with:
       working_directory: 'docs'
@@ -123,9 +138,12 @@ jobs:
       packages: read
       pull-requests: write
 
+  # GitHub Pages needs a public repository on a free plan; a paid plan can drop the visibility check
   pages:
     needs: website
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: >-
+      github.ref == 'refs/heads/main' && github.event_name != 'pull_request' &&
+      github.event.repository.private == false
     uses: ./.github/workflows/pages.yml
     with:
       artifact_name: 'pages-dist'
@@ -133,24 +151,37 @@ jobs:
       pages: write
       id-token: write
 
-  patch:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch'
-    uses: ./.github/workflows/patch.yml
+  # OpenSSF Scorecard's checks of this repository's practices, in the Security tab, from main and weekly: only
+  # when public, as a private repository needs GitHub Code Security for the upload. A scheduled run's event
+  # carries no repository, so it reads the visibility from the run's context instead
+  scorecard:
+    name: scorecard
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.event.repository.private == false) ||
+      (github.event_name == 'schedule' && github.repository_visibility == 'public')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
-      contents: write
-      packages: read
-
-  patch-docs:
-    name: patch (docs)
-    # one at a time, so the second commits on top of the first
-    needs: patch
-    if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch') }}
-    uses: ./.github/workflows/patch.yml
-    with:
-      working_directory: 'docs'
-    permissions:
-      contents: write
-      packages: read
+      contents: read
+      # the results, to code scanning
+      security-events: write
+      # the workflow runs Scorecard reads
+      actions: read
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Score with Scorecard
+        uses: ossf/scorecard-action@fa7117db83c52d787ae5a89f350999701505d78e # v2.5.0
+        with:
+          results_file: scorecard.sarif
+          results_format: sarif
+          publish_results: false
+      - name: Upload the results
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: scorecard.sarif
 
   # Dependabot's pull requests: a review request, and a squash merge when the checks passed
   merge:

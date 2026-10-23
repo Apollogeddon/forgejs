@@ -64,6 +64,8 @@ export const WorkflowFeature: Feature = {
       mode,
       debian: cfg.debian,
       docker: cfg.docker,
+      windows: cfg.windows,
+      macos: cfg.macos,
       testing: cfg.testing,
       versioning: cfg.versioning,
     });

@@ -147,7 +147,9 @@ describe("End-to-end: a scaffolded project actually works", () => {
   );
 }, 900000);
 
-const hasDocker = spawnSync("docker", ["info"], { stdio: "ignore" }).status === 0;
+// a daemon that builds Linux images: Windows runners have one for Windows containers only
+const hasDocker =
+  spawnSync("docker", ["info", "--format", "{{.OSType}}"], { encoding: "utf-8" }).stdout?.trim() === "linux";
 
 // The Dockerfile's `npm ci` runs inside the build context, where the file: path scaffoldAndInstall
 // points at doesn't exist, so vendor this repo into the context as a tarball instead.

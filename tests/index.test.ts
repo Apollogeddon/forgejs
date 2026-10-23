@@ -60,7 +60,7 @@ type GeneratedWorkflow = {
       uses?: string;
       needs?: string | string[];
       with?: Record<string, unknown>;
-      secrets?: unknown;
+      secrets?: Record<string, string>;
       permissions?: Record<string, string>;
     }
   >;
@@ -304,6 +304,8 @@ describe("CLI Init Command", () => {
   it.each([
     ["--backend --website", /one mode/],
     ["--website --debian", /debian/i],
+    ["--website --windows", /windows builds are not available for website mode/i],
+    ["--website --macos", /macos builds are not available for website mode/i],
     ["--testing --no-testing", /--testing and --no-testing/],
     ["--all --no-all", /--all and --no-all/],
   ])("should exit 2 for the invalid combination %s", (flags, reason) => {
@@ -396,9 +398,33 @@ describe("CLI Init Command", () => {
     expect(String(docker.with?.version)).toBe("${{ needs.version.outputs.version }}");
   });
 
+  it.each([
+    ["--backend", "service"],
+    ["--library", "library"],
+  ])("should test and build on Windows and macOS with %s --windows --macos", (mode, pipeline) => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${mode} --windows --macos`, { cwd: tempDir });
+    const checks = readGeneratedWorkflow(tempDir).jobs[pipeline];
+    expect(checks?.with).toMatchObject({ test_windows: "windows-latest", test_macos: "macos-latest" });
+  });
+
+  it.each([
+    ["--windows", "test_windows", "test_macos"],
+    ["--macos", "test_macos", "test_windows"],
+  ])("should pass only the stage %s asks for", (flag, on, off) => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${flag}`, { cwd: tempDir });
+    const checks = readGeneratedWorkflow(tempDir).jobs.service;
+    expect(checks?.with?.[on]).toBeDefined();
+    expect(checks?.with?.[off]).toBeUndefined();
+  });
+
+  it("should leave Windows and macOS off without --windows and --macos", () => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --library`, { cwd: tempDir });
+    expect(fs.readFileSync(path.join(tempDir, ".github/workflows/.index.yml"), "utf-8")).not.toMatch(/test_(windows|macos)/);
+  });
+
   it("should not add a docker job without --docker", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
-    expect(Object.keys(readGeneratedWorkflow(tempDir).jobs)).toEqual(["version", "service", "patch", "merge"]);
+    expect(Object.keys(readGeneratedWorkflow(tempDir).jobs)).toEqual(["version", "service", "merge"]);
   });
 
   it("should package a Debian backend after its checks", () => {
@@ -491,6 +517,8 @@ describe("CLI Init Command", () => {
     "--library --no-testing --no-versioning",
     "--website --docker --no-testing --no-versioning",
     "--debian --docker --no-testing --no-versioning",
+    "--backend --windows --macos --no-testing",
+    "--library --windows --macos",
   ])("should only pass inputs the called workflows declare (%s)", (flags) => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${flags}`, { cwd: tempDir });
     for (const [name, job] of Object.entries(readGeneratedWorkflow(tempDir).jobs)) {
@@ -515,12 +543,15 @@ describe("CLI Init Command", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${flags}`, { cwd: tempDir });
     const workflow = readGeneratedWorkflow(tempDir);
     // a run outside a pull request has a group of its own, so one on main is never cancelled
-    expect(workflow.concurrency?.group).toContain("github.head_ref || github.run_id");
+    expect(workflow.concurrency?.group).toContain("github.event.pull_request.number || github.run_id");
     for (const [name, job] of Object.entries(workflow.jobs)) {
-      // the called workflows only use GITHUB_TOKEN, which they get without inheriting every secret
-      expect(job.secrets, `${name} passes secrets`).toBeUndefined();
-      // only GitHub Pages needs an OIDC token
-      if (name !== "pages") expect(job.permissions?.["id-token"], `${name} asks for id-token`).toBeUndefined();
+      // the called workflows only use GITHUB_TOKEN, which they get without inheriting every secret, and
+      // version the release app's key, by name
+      if (name === "version") expect(Object.keys(job.secrets ?? {})).toEqual(["APP_PRIVATE_KEY"]);
+      else expect(job.secrets, `${name} passes secrets`).toBeUndefined();
+      // only GitHub Pages and a library's attestations need an OIDC token
+      const attests = name === "publish" && flags === "--library";
+      if (name !== "pages" && !attests) expect(job.permissions?.["id-token"], `${name} asks for id-token`).toBeUndefined();
     }
   });
 
@@ -699,6 +730,17 @@ describe("CLI Init Command", () => {
     for (const update of dependabot.updates) {
       expect(update.cooldown["default-days"]).toBe(3);
     }
+  });
+
+  // LF on every platform, so a Windows checkout reads the same; a project's own rules are never replaced
+  it("should write .gitattributes, and keep a project's own even with --force", () => {
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
+    const attributes = path.join(tempDir, ".gitattributes");
+    expect(fs.readFileSync(attributes, "utf-8")).toBe("* text=auto eol=lf\n");
+
+    fs.writeFileSync(attributes, "*.psd filter=lfs diff=lfs merge=lfs -text\n");
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --force`, { cwd: tempDir });
+    expect(fs.readFileSync(attributes, "utf-8")).toBe("*.psd filter=lfs diff=lfs merge=lfs -text\n");
   });
 
   it("should add Docker to the Dependabot config with --docker", () => {

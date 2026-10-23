@@ -7,7 +7,7 @@ This page describes each pipeline's stages and the inputs it takes. For the gene
 
 ## Choosing runners
 
-Every pipeline takes a `runs_on` input, default `ubuntu-latest`, for each of its jobs. To use self-hosted runners, set it per repository, for example from a repository variable: `runs_on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}`.
+Every pipeline takes a `runs_on` input, default `ubuntu-latest`, for each of its jobs. To use self-hosted runners, set it per repository, for example from a repository variable: `runs_on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}`. The check pipelines' `scan (osv)` stage runs in a job container; set `scan_runs_on` if your runner can't run one (see the [`scan` stage](#check-pipelines-libraryyml-serviceyml-websiteyml)).
 
 `docker.yml`'s builds and its push use GitHub-hosted runners: the arm64 build because it needs a native Arm machine, and the others because they need a Docker daemon. With `buildkit_endpoint` set, it builds every platform in one job on `runs_on` instead, against a remote BuildKit, so self-hosted runners without a Docker daemon can build and push multi-platform images.
 
@@ -18,7 +18,8 @@ Every pipeline takes a `runs_on` input, default `ubuntu-latest`, for each of its
 The three share their first four stages, job for job:
 
 1. **`lint`**: `npm ci`, then `biome ci` (skipped without a `biome.json`) and `npm run type`.
-2. **`scan`**: Gitleaks secret scan (skip with `enable_secrets: false`) and an OSV-Scanner dependency scan. On a pull request, a high or critical finding (a CVSS score of 7 or more, or GitHub's rating when an advisory has no score) fails the stage, so a change can't add one. Elsewhere, such as on a release, it's an error annotation that doesn't fail it: an advisory published against a dependency you already have shouldn't stop releases, and the weekly `patch` pipeline can update it. Lower findings are warning annotations, and every finding is listed in the job summary. If the scanner can't run, for example because OSV's API is unreachable, the stage warns and passes. To accept a finding you can't fix yet, list it in an [`osv-scanner.toml`](https://google.github.io/osv-scanner/configuration/) beside the lockfile:
+2. **`scan`**: Gitleaks secret scan (skip with `enable_secrets: false`) and, on a public repository's pull request, GitHub's [dependency review](https://github.com/actions/dependency-review-action), which fails on a dependency it adds with a high or critical vulnerability (a private repository needs GitHub Code Security for it).
+3. **`scan (osv)`**: An [OSV-Scanner](https://google.github.io/osv-scanner/) scan of every lockfile under `working_directory`. It runs in OSV-Scanner's own image, `ghcr.io/google/osv-scanner`, as the job's container, so Dependabot's docker updates keep its version current. That needs a Linux runner that can run a job container: GitHub's hosted runners, or a self-hosted runner set in Kubernetes mode, which runs it as a pod. A caller whose `runs_on` is a self-hosted runner without container support must set `scan_runs_on`, for example to `ubuntu-latest`. On a pull request, a high or critical finding (a CVSS score of 7 or more, or GitHub's rating when an advisory has no score) fails the stage, so a change can't add one. Elsewhere, such as on a release, it's an error annotation that doesn't fail it: an advisory published against a dependency you already have shouldn't stop releases, and a [Dependabot security update](/forgejs/docs/workflows/overview#vulnerable-dependencies) can fix it. Lower findings are warning annotations, and every finding is listed in the job summary. If the scanner can't finish, for example because OSV's API is unreachable, the stage fails a pull request, which mustn't merge unchecked, and elsewhere warns and passes. To accept a finding you can't fix yet, list it in an [`osv-scanner.toml`](https://google.github.io/osv-scanner/configuration/) beside the lockfile:
 
    ```toml
    [[IgnoredVulns]]
@@ -27,16 +28,19 @@ The three share their first four stages, job for job:
    reason = "No fixed version yet; the vulnerable function isn't called"
    ```
 
-3. **`test`**: The test suite (skip with `run_tests: false`), with the coverage report uploaded as `coverage-<artifact_name>`. *(Needs: lint, scan)*
-4. **`build`**: Writes `build_env_vars` to `.env`, runs the build, then the project's `publint` and `docs:check` scripts when it defines them, and uploads `dist/` as the `artifact_name` artifact. *(Needs: lint, scan; runs alongside test)*
+4. **`test`**: The test suite (skip with `run_tests: false`), with the coverage report uploaded as `coverage-<artifact_name>`. *(Needs: lint, scan, scan (osv))*
+
+   `library.yml` and `service.yml` can also test and build on Windows and macOS, as the **`test (windows)`** and **`test (macos)`** stages (see [Windows and macOS](#windows-and-macos)), and run the tests on Linux on other Node.js versions, as a **`test (<version>)`** stage for each one in `test_versions`. Each runs alongside `test`, without uploading coverage. All are off by default, so the generated `.index.yml` spends no Windows or macOS minutes, which a private repository pays for at a higher rate, unless `init` was run with `--windows` or `--macos`; you can also set them on its check job yourself. forgejs's own CI sets all three for a release, and tests its pull requests on Linux and `.nvmrc`'s Node.js only.
+5. **`build`**: Writes `build_env_vars` to `.env`, runs the build, then the project's `publint` and `docs:check` scripts when it defines them, and uploads `dist/` as the `artifact_name` artifact. *(Needs: lint, scan, scan (osv); runs alongside test)*
 
 `website.yml` adds:
 
-5. **`check`**: With `check_links` or `check_accessibility`, checks the uploaded build; see [Site checks](#site-checks). *(Needs: build)*
+6. **`check`**: With `check_links` or `check_accessibility`, checks the uploaded build; see [Site checks](#site-checks). *(Needs: build)*
 
 | Input | Default | Description |
 | :--- | :--- | :--- |
 | `runs_on` | `'ubuntu-latest'` | Runner label for every job |
+| `scan_runs_on` | `''` | Runner label for the `scan (osv)` stage, which runs in OSV-Scanner's image: a Linux runner that can run a job container, such as GitHub's hosted runners or a Kubernetes-mode runner set; empty uses `runs_on` |
 | `working_directory` | `'.'` | Directory holding `package.json`, relative to the repository root without a leading `./` |
 | `node_version` | `''` | Node.js version for every job. Empty reads the project's `.nvmrc`, and without one uses forgejs's default; see [Node.js version](/forgejs/docs/configuration#nodejs-version) |
 | `enable_secrets` | `true` | Run the Gitleaks secret scan |
@@ -46,6 +50,10 @@ The three share their first four stages, job for job:
 | `ref` | `''` | Commit, branch or tag to check and build; empty means the commit that triggered the run |
 | `setup_go` | `''` | Go to install before `pre_build_command`: a version, e.g. `stable`, or a `go.mod`, `go.work`, `.go-version` or `.tool-versions` path from the repository root; empty installs none |
 | `pre_build_command` | `''` | Shell command run in `working_directory` before `npm ci`, in every stage that installs |
+| `test_windows`, `test_macos` | `''` | `library.yml` and `service.yml`: test and build on Windows or macOS too; see [Windows and macOS](#windows-and-macos) |
+| `extra_test_script` | `'test'` | `library.yml` and `service.yml`: the npm script the Windows and macOS stages test with, such as a shorter `test:short` |
+| `setup_script` | `''` | `library.yml` and `service.yml`: a [setup script](#setup-scripts), run before installing and building on Windows and macOS |
+| `test_versions` | `''` | `library.yml` and `service.yml`: a JSON array of other Node.js versions to run the tests on, on Linux, e.g. `'["26"]'`; empty skips them |
 
 `website.yml` also takes:
 
@@ -60,6 +68,38 @@ The three share their first four stages, job for job:
 | `accessibility_impact` | `'serious'` | The lowest axe impact that fails the check: `minor`, `moderate`, `serious` or `critical` |
 
 Each takes one optional secret, `GH_TOKEN`, for `pre_build_command`.
+
+### Windows and macOS
+
+The `test` and `build` stages run on `runs_on` alone. To test and build on Windows or macOS too, set `test_windows` or `test_macos` to a runner label, or to a JSON object:
+
+| Key | Purpose |
+| :--- | :--- |
+| `runs_on` | Runner label; defaults to `windows-latest` or `macos-latest` |
+| `env` | Environment variables for the setup script, the install, the tests and the build, e.g. `{"NODE_OPTIONS": "--max-old-space-size=4096"}`; single-line values |
+
+```yaml
+    with:
+      test_macos: macos-latest
+      test_windows: '{"runs_on": "windows-latest", "env": {"NODE_OPTIONS": "--max-old-space-size=4096"}}'
+      extra_test_script: 'test:short'
+      setup_script: '.github/setup.sh'
+```
+
+Each runs the [setup script](#setup-scripts), then `pre_build_command` and `npm ci`, then `npm run <extra_test_script>` (skipped with `run_tests: false`), then writes `build_env_vars` and runs `npm run build`, and uploads `dist/` as the `<artifact_name>-windows` or `<artifact_name>-macos` artifact, when the build wrote one. The `env` applies to the tests and the build alike, so the tests run the same way as the build the stage makes. Every `run` step uses bash, Git Bash on Windows. Empty, the default, skips the stage.
+
+### Setup scripts
+
+`setup_script` is a script in your repository, run with `bash` on Windows and macOS before anything is installed or built. Use it for what a platform needs that `npm ci` can't install, such as a system library from Homebrew or an installer on Windows. It runs in `working_directory`, after the `env` is set. `RUNNER_OS` (`macOS` or `Windows`) says where it runs, and `GITHUB_TOKEN` holds the job's read-only token, e.g. for the GitHub API's rate limit. It can export variables to later steps through `$GITHUB_ENV` and add to `PATH` through `$GITHUB_PATH`. To run PowerShell on Windows, call it from the script:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+case "$RUNNER_OS" in
+  macOS) brew install pkg-config ;;
+  Windows) pwsh -NoProfile -File .github/setup-windows.ps1 ;;
+esac
+```
 
 ### Building another commit
 
@@ -124,7 +164,7 @@ jobs:
 
 *release-please.*
 
-1. **`release`**: On `main`, opens or updates the release pull request from Conventional Commits, and creates the tag and GitHub release when it merges. A `working_directory` other than `.` becomes release-please's `path`, so a package in a monorepo is versioned on its own, tagged with its `package.json` name (`api-vX.Y.Z`). If the project has a `.github/release.json` and `.github/.release.json` under `working_directory`, release-please runs from them instead (see [release-please: versioning](/forgejs/docs/configuration#release-please-versioning)). The stage checks out only that `.github` directory to look for them. When it opened or updated a release pull request, it requests a review on it from `reviewers`, as `merge.yml` does on Dependabot's.
+1. **`release`**: On `main`, opens or updates the release pull request from Conventional Commits, and creates the tag and GitHub release when it merges. A `working_directory` other than `.` becomes release-please's `path`, so a package in a monorepo is versioned on its own, tagged with its `package.json` name (`api-vX.Y.Z`). If the project has a `.github/release.json` and `.github/.release.json` under `working_directory`, release-please runs from them instead (see [release-please: versioning](/forgejs/docs/configuration#release-please-versioning)). The stage checks out only that `.github` directory to look for them. When it opened or updated a release pull request, it requests a review on it from `reviewers`, as `merge.yml` does on Dependabot's. With `app_client_id` and the `APP_PRIVATE_KEY` secret, release-please uses that GitHub App's token rather than `GITHUB_TOKEN`, so its release pull request starts the checks; see [Release pull requests' checks](/forgejs/docs/workflows/overview#release-pull-requests-checks).
 
 Outputs `new_release_published` (`'true'` or `'false'`), `version` and `tag_name`: those of the `working_directory` package, not of any other package released in the same run.
 
@@ -133,12 +173,15 @@ Outputs `new_release_published` (`'true'` or `'false'`), `version` and `tag_name
 | `working_directory` | `'.'` | The package to release |
 | `node_version` | `''` | Node.js version; empty reads the project's `.nvmrc`, else forgejs's default |
 | `reviewers` | `''` | Comma-separated logins to request a review of the release pull request from; empty means the repository's owner |
+| `app_client_id` | `''` | A GitHub App's client ID, whose token release-please uses; empty uses `GITHUB_TOKEN` |
+
+It takes one optional secret, `APP_PRIVATE_KEY`, the private key of the App `app_client_id` names.
 
 ### Checking a release
 
 A push to `main` runs `version` first, and only when it makes a release does `.index.yml` run the checks again, and then the publish, image push or deploy that ships what they built. So each change is checked on its pull request and once more as part of a release, not on every push.
 
-release-please tags the release before those checks run. If they fail, the tag and the GitHub release exist with nothing published, and need putting right by hand. The generated `.index.yml` therefore checks release pull requests too, so the release is checked with exactly what its merge ships. release-please opens them with `GITHUB_TOKEN`, which doesn't start workflow runs, so approve the run (or push to the branch) before merging one.
+release-please tags the release before those checks run. If they fail, the tag and the GitHub release exist with nothing published, and need putting right by hand. The generated `.index.yml` therefore checks release pull requests too, so the release is checked with exactly what its merge ships. A release pull request opened with `GITHUB_TOKEN` starts no workflow run, so either give release-please a [GitHub App's token](/forgejs/docs/workflows/overview#release-pull-requests-checks), or push to the branch before merging one.
 
 With **Require branches to be up to date before merging** turned on, every pull request is checked again before it merges; skipped jobs count as passed for required status checks.
 
@@ -150,13 +193,13 @@ With **Require branches to be up to date before merging** turned on, every pull 
 2. **`assets`**: With `assets` set to an artifact's name, attaches its files to the GitHub release `tag_name` names, replacing any of the same name. The generated `--debian` workflow attaches the `.deb` this way.
 3. **`attest`**: With `attest`, attests the build provenance of the published tarball and the attached files with [`actions/attest-build-provenance`](https://github.com/actions/attest-build-provenance): a signed statement, kept by GitHub, of the repository, commit and workflow run that built them. *(Needs: package, assets)*
 
-npm's own `--provenance` flag only works with the public npm registry, which GitHub Packages isn't, so a library attests the tarball it published instead. Artifact attestations are free in public repositories; a private repository needs GitHub Enterprise Cloud, so `attest` is off by default. To turn it on, grant the `publish` job the two extra permissions:
+npm's own `--provenance` flag only works with the public npm registry, which GitHub Packages isn't, so a library attests the tarball it published instead. Artifact attestations are free in public repositories; a private repository needs GitHub Enterprise Cloud, so `attest` is off by default. The generated library `publish` job turns it on only when the repository is public, and grants the two extra permissions it needs:
 
 ```yaml
   publish:
     # ...as generated
     with:
-      attest: true
+      attest: ${{ github.event.repository.private == false }}
     permissions:
       contents: read
       packages: write
@@ -193,7 +236,7 @@ Outputs `published` (`'true'` when this run published the package) and `package_
 
 1. **`deploy`**: Downloads the `artifact_name` build artifact, which `website.yml` uploaded earlier in the run, and deploys it to GitHub Pages. Deploys run one at a time, in the `pages-deploy` concurrency group: a newer deploy waits for a running one, and replaces one still waiting. The group isn't `pages`, the one GitHub's starter Pages workflow uses at workflow level, as a job sharing its caller's group deadlocks.
 
-`init --website` calls it on a release, or on every push to `main` without versioning. It deploys whatever `npm run build` writes to `dist/`.
+`init --website` calls it on a release, or on every push to `main` without versioning, when the repository is public: GitHub Pages on a free plan serves only public repositories. On a paid plan, drop `github.event.repository.private == false` from the generated `pages` job's condition to deploy a private one. It deploys whatever `npm run build` writes to `dist/`.
 
 | Input | Default | Description |
 | :--- | :--- | :--- |
@@ -251,23 +294,24 @@ Building locally needs a token with `read:packages` so `npm ci` can install `@ap
 
 ## patch.yml
 
-*Security patches: weekly, on a manual run, and after a Dependabot merge.*
+*Retired.*
 
-1. **`update`**: On `main`, runs `osv-scanner fix` against `package-lock.json` in `working_directory`, then `npm install`, and commits any changes as `fix(deps): patch vulnerabilities via osv-scanner`. It checks out the tip of `main`, so a second call in the same run (forgejs patches its docs site after the tool) commits on top of the first.
+1. **`update`**: Changes nothing, and asks for no permissions: it only warns that Dependabot security updates replace it, and that the `patch` job can be removed from `.index.yml`.
 
-The commit is made with `GITHUB_TOKEN`, so it starts no run of its own: release-please picks it up on the next push to `main`.
+It used to run `osv-scanner fix` and commit the result straight to `main`. Dependabot security updates now fix vulnerable dependencies through pull requests, which are checked before they merge; turn them on as [Vulnerable dependencies](/forgejs/docs/workflows/overview#vulnerable-dependencies) describes. The pipeline and its inputs stay so that a workflow still calling it doesn't fail.
 
 | Input | Default | Description |
 | :--- | :--- | :--- |
-| `working_directory` | `'.'` | Directory holding `package.json` and `package-lock.json` |
-| `node_version` | `''` | Node.js version; empty reads the project's `.nvmrc`, else forgejs's default |
+| `runs_on` | `'ubuntu-latest'` | Runner label |
+| `working_directory` | `'.'` | Unused |
+| `node_version` | `''` | Unused |
 
 ## merge.yml
 
 *Dependabot's pull requests.*
 
 1. **`review`**: Requests a review from `reviewers`, or from the repository's owner when `reviewers` is empty and the owner is a user (an organisation names its reviewers through the input). GitHub only requests code owners' reviews in a private repository on a paid plan, so without this, Dependabot's pull requests in a private repository on GitHub Free never reach your review requests. It runs whether the checks passed or not, so a failing update reaches you too. A failed request logs a warning and never fails the run.
-2. **`squash`**: When `checks_passed` is `true`, and Dependabot both opened the pull request and made its latest change (someone else's push to its branch waits for a person), enables GitHub's auto-merge so the PR merges once required checks pass, or merges it straight away when it can already be merged. It squash-merges, so release-please lists each update once: a merge commit repeats the pull request's title, and release-please reads that as a second change. Merge your own pull requests the same way, with **Squash and merge**. GitHub Actions updates (branches starting `dependabot/github_actions/`) are left for a person to merge: they change workflow files, which `GITHUB_TOKEN` can't merge. Once the pull request has merged, it sends the `auto-merged` `repository_dispatch` event, so `.index.yml` runs on `main`: a merge made with `GITHUB_TOKEN` starts no push run. When it enabled auto-merge rather than merging, it waits up to 12 minutes for the merge before sending it. See [Secrets](/forgejs/docs/workflows/overview#secrets).
+2. **`squash`**: When `checks_passed` is `true`, and Dependabot both opened the pull request, from a branch in this repository, and made its latest change (someone else's push to its branch waits for a person), merges the update, whatever its size: it enables GitHub's auto-merge so the PR merges once required checks pass, or merges it straight away when it can already be merged, either way only at the commit the checks ran on, so a later push leaves it unmerged. It squash-merges, so release-please lists each update once: a merge commit repeats the pull request's title, and release-please reads that as a second change. Merge your own pull requests the same way, with **Squash and merge**. GitHub Actions updates (branches starting `dependabot/github_actions/`), and docker updates to an image a workflow names (`dependabot/docker/dot-github/workflows/`), are left for a person to merge: they change workflow files, which `GITHUB_TOKEN` can't merge. Once the pull request has merged, it sends the `auto-merged` `repository_dispatch` event, so `.index.yml` runs on `main`: a merge made with `GITHUB_TOKEN` starts no push run. When it enabled auto-merge rather than merging, it waits up to 12 minutes for the merge before sending it. See [Secrets](/forgejs/docs/workflows/overview#secrets).
 
 The generated `merge` job passes `checks_passed` as whether every check job before it passed.
 

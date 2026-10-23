@@ -9,24 +9,24 @@ Forge.js ships reusable GitHub Actions pipelines that give every project the sam
 
 A root job calls a pipeline, and a pipeline's jobs are its stages, so a run page lists every job as `<pipeline> / <stage>`: `library / lint`, `version / release`, `pages / deploy`. No pipeline calls another, so there's never a third level. A pipeline an event doesn't need, such as `publish` on a pull request, shows as one skipped row.
 
-A root job's id is the pipeline's name. A second call to the same pipeline names its variant in brackets, such as forgejs's own `patch (docs)`.
+A root job's id is the pipeline's name. A second call to the same pipeline names its variant in brackets, as `<pipeline> (<variant>)`.
 
 ## Pipelines
 
 | Pipeline | Stages | Purpose |
 | :--- | :--- | :--- |
-| `library.yml` | lint, scan, test, build | A library's checks, and the build `publish.yml` ships |
-| `service.yml` | lint, scan, test, build | A backend's checks, and the build `debian.yml` packages |
-| `website.yml` | lint, scan, test, build, check | A website's checks, the build, and optional link and accessibility checks of it |
+| `library.yml` | lint, scan, scan (osv), test, test (windows), test (macos), test (&lt;version&gt;), build | A library's checks, and the build `publish.yml` ships |
+| `service.yml` | lint, scan, scan (osv), test, test (windows), test (macos), test (&lt;version&gt;), build | A backend's checks, and the build `debian.yml` packages |
+| `website.yml` | lint, scan, scan (osv), test, build, check | A website's checks, the build, and optional link and accessibility checks of it |
 | `debian.yml` | build, test | The `.deb`, packaged from the build with Snodeb, and read back |
 | `docker.yml` | build, build (arm64), push | A multi-platform image, pushed to GHCR on a release |
 | `version.yml` | release | release-please: the release pull request, then the tag and GitHub release |
 | `publish.yml` | package, assets, attest | The package to GitHub Packages, files attached to the release, and their build provenance |
 | `pages.yml` | deploy | The built website, to GitHub Pages |
-| `patch.yml` | update | `osv-scanner fix` on `package-lock.json`, committed to `main` |
+| `patch.yml` | update | Retired: only warns that Dependabot security updates replace it; see [Vulnerable dependencies](#vulnerable-dependencies) |
 | `merge.yml` | review, squash | A review request on Dependabot's pull requests, and their squash merge once the checks pass |
 
-The stages are `lint` (Biome and the type check), `scan` (Gitleaks and OSV-Scanner), `test`, `build`, `check` (a check of a built result), `push`, `release`, `package`, `assets`, `attest`, `deploy`, `update`, `review` and `squash`.
+The stages are `lint` (Biome and the type check), `scan` (Gitleaks, and OSV-Scanner as `scan (osv)`), `test`, `build`, `check` (a check of a built result), `push`, `release`, `package`, `assets`, `attest`, `deploy`, `update`, `review` and `squash`.
 
 ## When each pipeline runs
 
@@ -34,14 +34,15 @@ The stages are `lint` (Biome and the type check), `scan` (Gitleaks and OSV-Scann
 | :--- | :--- |
 | Pull request | The checks (`library`, `service` or `website`, then `debian` and `docker` builds), then `merge` on Dependabot's |
 | Push to `main` | `version`; on a release, the checks again, then `publish`, `pages` or the `docker` push |
-| `auto-merged` dispatch, manual run | The same as a push to `main`, and `patch`, so a merged Dependabot update is followed by any security patch straight away |
-| Weekly schedule | `patch` |
+| `auto-merged` dispatch, manual run | The same as a push to `main` |
 
 A project without versioning has no release to wait for: its checks run on every push to `main` as well, and a website deploys from every push.
 
 ## Generated workflow
 
-`init` writes `.github/workflows/.index.yml` for the selected mode. Every one starts with the same triggers and concurrency rule: a newer push to a pull request cancels the run it replaces, and every other run has a concurrency group of its own, so a run on `main`, running or queued, is never cancelled and a release is never created without being published.
+`init` writes `.github/workflows/.index.yml` for the selected mode. Every one starts with the same triggers, concurrency rule and default permissions: a newer push to a pull request cancels the run it replaces, and every other run has a concurrency group of its own, so a run on `main`, running or queued, is never cancelled and a release is never created without being published. The workflow grants nothing by default, and each job grants only what its pipeline needs.
+
+It calls the pipelines at `@main`, so a project gets every change to them as soon as it's merged, without an update to propose; Dependabot's GitHub Actions updates leave forgejs's pipelines alone. Every action the pipelines use is pinned to a commit.
 
 ```yaml
 name: index
@@ -54,12 +55,12 @@ on:
   workflow_dispatch:
   repository_dispatch:
     types: [auto-merged]
-  schedule:
-    - cron: '17 3 * * 1'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
+
+permissions: {}
 ```
 
 **Library**, generated by `init --library`:
@@ -67,8 +68,12 @@ concurrency:
 ```yaml
 jobs:
   version:
-    if: ${{ github.event_name != 'pull_request' && github.event_name != 'schedule' }}
+    if: ${{ github.event_name != 'pull_request' }}
     uses: apollogeddon/forgejs/.github/workflows/version.yml@main
+    with:
+      app_client_id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+    secrets:
+      APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
     permissions:
       contents: write
       pull-requests: write
@@ -86,16 +91,13 @@ jobs:
     needs: [version, library]
     if: ${{ !cancelled() && needs.library.result == 'success' && needs.version.outputs.new_release_published == 'true' }}
     uses: apollogeddon/forgejs/.github/workflows/publish.yml@main
+    with:
+      attest: ${{ github.event.repository.private == false }}
     permissions:
       contents: read
       packages: write
-
-  patch:
-    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' }}
-    uses: apollogeddon/forgejs/.github/workflows/patch.yml@main
-    permissions:
-      contents: write
-      packages: read
+      id-token: write
+      attestations: write
 
   merge:
     needs: library
@@ -112,12 +114,13 @@ The other modes differ only in their jobs:
 
 | Mode | Jobs |
 | :--- | :--- |
-| `--backend` | `version`, `service`, `patch`, `merge` |
-| `--library` | `version`, `library`, `publish`, `patch`, `merge` |
-| `--website` | `version`, `website`, `pages`, `patch`, `merge` |
-| `--debian` | `version`, `service`, `debian`, `publish` (the `.deb` attached to the release), `patch`, `merge` |
+| `--backend` | `version`, `service`, `merge` |
+| `--library` | `version`, `library`, `publish`, `merge` |
+| `--website` | `version`, `website`, `pages`, `merge` |
+| `--debian` | `version`, `service`, `debian`, `publish` (the `.deb` attached to the release), `merge` |
 
 - `--docker` adds a `docker` job after the checks: it builds on pull requests, and builds and pushes on a release. `merge` waits for it, so a broken image stops a Dependabot merge.
+- `--windows` passes `test_windows: windows-latest` and `--macos` passes `test_macos: macos-latest` to a backend's or library's checks, which then test and build on that system too (see [Windows and macOS](/forgejs/docs/workflows/reference#windows-and-macos)).
 - `--no-testing` passes `run_tests: false` to the checks, which skips their `test` stage.
 - `--no-versioning` leaves out `version` and `publish`: the checks, and a website's deploy, run on every push to `main` instead.
 - `--no-linting` needs nothing: the `lint` stage skips Biome when the project has no `biome.json`.
@@ -128,9 +131,19 @@ If `.github/workflows/index.yml` (or `ci.yml` or `debian.yml`) calls forgejs's p
 
 ## Secrets
 
-None. The pipelines use only the run's `GITHUB_TOKEN`, which a called workflow gets without `secrets: inherit`. It installs `@apollogeddon` packages from GitHub Packages, publishes libraries there, and drives release-please and the Dependabot merge. Don't add `secrets: inherit`: it hands every repository secret to a workflow that lives in another repository. The check pipelines take one optional secret, `GH_TOKEN`, for a [pre-build command](/forgejs/docs/workflows/reference#generating-content-before-the-build); pass it by name if you need it.
+None are required. The pipelines use the run's `GITHUB_TOKEN`, which a called workflow gets without `secrets: inherit`, and the `version` job passes one optional secret, a GitHub App's key, by name; see [Release pull requests' checks](#release-pull-requests-checks). It installs `@apollogeddon` packages from GitHub Packages, publishes libraries there, and drives release-please and the Dependabot merge. Don't add `secrets: inherit`: it hands every repository secret to a workflow that lives in another repository. The check pipelines take one optional secret, `GH_TOKEN`, for a [pre-build command](/forgejs/docs/workflows/reference#generating-content-before-the-build); pass it by name if you need it.
 
-GitHub doesn't start workflow runs for events made with `GITHUB_TOKEN`. So release-please's release pull requests don't run your checks on their own (they wait for approval, or a push to the branch), and the push a Dependabot merge makes to `main` doesn't run the pipeline either. The `merge` pipeline therefore sends a `repository_dispatch` event, `auto-merged`, once the pull request has merged: one of the two events `GITHUB_TOKEN` may start a run with. `.index.yml` listens for it, so `main` runs `version` and release-please opens or updates its release pull request. The event runs on the default branch.
+GitHub doesn't start workflow runs for events made with `GITHUB_TOKEN`. So release-please's release pull requests don't run your checks on their own unless it uses a GitHub App's token, and the push a Dependabot merge makes to `main` doesn't run the pipeline either. The `merge` pipeline therefore sends a `repository_dispatch` event, `auto-merged`, once the pull request has merged: one of the two events `GITHUB_TOKEN` may start a run with. `.index.yml` listens for it, so `main` runs `version` and release-please opens or updates its release pull request. The event runs on the default branch.
+
+### Release pull requests' checks
+
+A release pull request opened with `GITHUB_TOKEN` starts no workflow run, so its checks never run until someone pushes to its branch. Give release-please a GitHub App's token instead, and they run like any other pull request's:
+
+1. Create a GitHub App (**Settings → Developer settings → GitHub Apps → New GitHub App**, under your account or organisation). It needs no webhook. Under **Repository permissions**, give it **Contents: Read and write** and **Pull requests: Read and write**.
+2. Generate a private key for it, and install it on the repository.
+3. In the repository's **Settings → Secrets and variables → Actions**, add the App's client ID as the variable `RELEASE_APP_CLIENT_ID`, and the private key's contents as the secret `RELEASE_APP_PRIVATE_KEY`.
+
+The generated `version` job passes both to `version.yml` as `app_client_id` and `APP_PRIVATE_KEY`. Until they're set, both are empty and release-please uses `GITHUB_TOKEN`, as before.
 
 ## Required permissions
 
@@ -144,9 +157,29 @@ Each root job grants what its pipeline's stages need, and nothing else:
 | `version` | `contents: write`, `pull-requests: write` | release-please's tags, releases and release pull requests |
 | `publish` | `contents: read`, `packages: write`; `contents: write` for `assets`; `id-token: write` and `attestations: write` for `attest` | Publishing, attaching release files, attesting |
 | `pages` | `pages: write`, `id-token: write` | GitHub Pages |
-| `patch` | `contents: write`, `packages: read` | Committing the patch |
 | `merge` | `contents: write`, `pull-requests: write` | The review request, the merge and the dispatch |
 
 GitHub checks a called workflow's permissions against the caller's before running anything, even a job that would be skipped. So a caller grants the union of what a pipeline's stages ask for. In `publish.yml`, `package` asks for exactly `contents: read` and `packages: write`, so it never holds more, and every caller grants those (the `--debian` one too, though its `package` stage is off). `assets` and `attest` ask for nothing and take the caller's grant, so a caller grants `contents: write`, or `id-token: write` and `attestations: write`, only for the stage it turns on.
 
 For GitHub Pages, set **Settings → Pages → Source** to **GitHub Actions**.
+
+## Vulnerable dependencies
+
+Turn on **Settings → Code security → Dependabot security updates**. Dependabot then opens a pull request for each dependency with a known vulnerability, as soon as a fixed version exists, and the checks and `merge` handle it like any other update; it's free in private repositories too. The `scan (osv)` stage's OSV-Scanner stops a pull request from adding a high or critical vulnerability.
+
+Earlier versions ran a `patch` job weekly that committed `osv-scanner fix`'s changes straight to `main`. `patch.yml` now only warns that it does nothing, so a workflow still calling it keeps working; remove the `patch` job, and the `schedule` trigger if nothing else uses it, from your `.index.yml`.
+
+## Private repositories on GitHub Free
+
+Every pipeline works in a private repository on a free plan. What a free plan offers only to public repositories switches on only when the repository is public, checked with `github.event.repository.private == false`, which is also false when the run's event carries no repository, so such a run does what a private repository can:
+
+- **Artifact attestations**: the library `publish` job passes `attest` only then. A private repository needs GitHub Enterprise Cloud for them.
+- **GitHub Pages**: the `pages` job deploys only then. On a paid plan, which serves Pages from a private repository, drop the check from its `if`.
+- **Dependency review**: the `scan` stage reviews a pull request's dependency changes only then. A private repository needs GitHub Code Security for it.
+
+On a public repository, also turn on two things GitHub offers free there, in **Settings → Code security**:
+
+- **CodeQL**: under **Code scanning**, choose **Set up → Default**, with JavaScript/TypeScript and GitHub Actions as its languages.
+- **Secret scanning push protection**, which blocks a push that contains a secret.
+
+On a private repository on a free plan neither is available; the `scan` stages' Gitleaks and OSV-Scanner cover secrets and vulnerable dependencies instead.

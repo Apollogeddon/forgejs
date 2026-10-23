@@ -17,6 +17,7 @@ type Step = {
   if?: string;
   uses?: string;
   run?: string;
+  "continue-on-error"?: boolean;
   "working-directory"?: string;
   env?: Record<string, string>;
   with?: Record<string, unknown>;
@@ -32,6 +33,9 @@ type Job = {
   outputs?: Record<string, string>;
   concurrency?: { group?: string; "cancel-in-progress"?: boolean };
   steps?: Step[];
+  "runs-on"?: string;
+  container?: string;
+  defaults?: { run?: { shell?: string; "working-directory"?: string } };
 };
 type Workflow = {
   name?: string;
@@ -56,9 +60,9 @@ const step = (file: string, job: string, name: string) => steps(file, job).find(
 
 // The spec's stages: a run page reads <pipeline> / <stage>, the same words in every forge
 const STAGES: Record<string, string[]> = {
-  library: ["lint", "scan", "test", "build"],
-  service: ["lint", "scan", "test", "test (windows)", "test (macos)", "test (databases)", "build"],
-  website: ["lint", "scan", "test", "build", "check", "check (lighthouse)"],
+  library: ["lint", "scan", "scan (osv)", "test", "build"],
+  service: ["lint", "scan", "scan (osv)", "test", "test (windows)", "test (macos)", "test (databases)", "build"],
+  website: ["lint", "scan", "scan (osv)", "test", "build", "check", "check (lighthouse)"],
   debian: ["build", "test"],
   docker: ["build", "test", "push"],
   version: ["release"],
@@ -70,9 +74,8 @@ const STAGES: Record<string, string[]> = {
 // a stage, or a stage with a variant in brackets
 const inVocabulary = (pipeline: string, name: string) =>
   (STAGES[pipeline] ?? []).includes(name) || (STAGES[pipeline] ?? []).includes(name.replace(/ \([^)]+\)$/, ""));
-// a manual run patches too, and so does the auto-merged dispatch, straight after a Dependabot merge
-const PATCH_EVENTS =
-  "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch'";
+// a missing field, as on a scheduled run, falls back to the private behaviour, which always works
+const PUBLIC = "github.event.repository.private == false";
 const kebab = (name: string) => name.replace(/[()]/g, "").trim().replace(/\s+/g, "-");
 
 const MODES: Array<[string, templates.IndexWorkflowOptions]> = [];
@@ -81,8 +84,11 @@ for (const mode of ["library", "service", "website"] as const) {
     for (const docker of [false, true]) {
       for (const versioning of [true, false]) {
         for (const testing of [true, false]) {
-          const name = `${mode}${debian ? " debian" : ""}${docker ? " docker" : ""}${versioning ? "" : " no-versioning"}${testing ? "" : " no-testing"}`;
-          MODES.push([name, { mode, debian, docker, versioning, testing }]);
+          // --windows and --macos, which website.yml has no stages for, both on or both off
+          for (const os of mode === "website" ? [false] : [false, true]) {
+            const name = `${mode}${debian ? " debian" : ""}${docker ? " docker" : ""}${os ? " windows macos" : ""}${versioning ? "" : " no-versioning"}${testing ? "" : " no-testing"}`;
+            MODES.push([name, { mode, debian, docker, windows: os, macos: os, versioning, testing }]);
+          }
         }
       }
     }
@@ -99,6 +105,30 @@ describe("Workflow files", () => {
     expect(pipelines.map((file) => file.replace(/\.yml$/, "")).sort()).toEqual(Object.keys(STAGES).sort());
     expect(roots).toEqual([".index.yml"]);
     expect(load(".index.yml").name).toBe("index");
+  });
+});
+
+describe("Workflow hardening", () => {
+  // a tag can be moved to other code; a commit can't
+  it.each(files)("%s pins every action to a commit, with the version as a comment", (file) => {
+    const uses = [...read(file).matchAll(/^\s*(?:- )?uses: (.+)$/gm)].map((match) => String(match[1]));
+    for (const ref of uses) {
+      if (ref.startsWith("./")) continue;
+      expect(ref, file).toMatch(/^[\w.-]+\/[\w./-]+@[0-9a-f]{40} # v\d+\.\d+\.\d+$/);
+    }
+  });
+
+  // a job gets nothing it doesn't ask for; publish's assets and attest take the caller's grant on purpose
+  it.each(files)("%s grants nothing by default, unless a job takes the caller's grant", (file) => {
+    const wf = load(file) as Workflow & { permissions?: unknown };
+    if (file === "publish.yml") expect(wf.permissions).toBeUndefined();
+    else expect(wf.permissions).toEqual({});
+  });
+
+  // projects track the pipelines at main on purpose, which has no versions for Dependabot to propose
+  it("leaves forgejs's pipelines out of Dependabot's updates", () => {
+    expect(templates.dependabotConfig(true)).toContain('- dependency-name: "apollogeddon/forgejs"');
+    expect(read("../dependabot.yml")).toContain('- dependency-name: "apollogeddon/forgejs"');
   });
 });
 
@@ -120,7 +150,9 @@ describe.each(pipelines)("Pipeline %s", (file) => {
     for (const [id, job] of Object.entries(wf.jobs)) {
       expect(job.name, `${file}:${id} has no name`).toBeDefined();
       expect(inVocabulary(pipeline, String(job.name)), `${file}:${id} is named '${job.name}'`).toBe(true);
-      expect(id).toBe(kebab(String(job.name)));
+      // a matrix's variant names its job after the matrix key, e.g. test-versions for test (${{ matrix.version }})
+      const matrix = String(job.name).match(/^(.+) \(\$\{\{ matrix\.(\w+) \}\}\)$/);
+      expect(id).toBe(matrix ? `${kebab(String(matrix[1]))}-${matrix[2]}s` : kebab(String(job.name)));
     }
   });
 
@@ -146,7 +178,7 @@ function expectGrantCovers(caller: string, job: Job, callee: Workflow) {
 function expectWiring(caller: string, wf: Workflow, resolve: (uses: string) => string | undefined) {
   for (const [id, job] of Object.entries(wf.jobs)) {
     if (!job.uses) {
-      expect(id).toBe("changes");
+      expect(["changes", "scorecard"]).toContain(id);
       continue;
     }
     const callee = resolve(job.uses);
@@ -165,7 +197,13 @@ function expectWiring(caller: string, wf: Workflow, resolve: (uses: string) => s
     }
     const secrets = Object.keys(called.on.workflow_call?.secrets ?? {});
     for (const secret of Object.keys(job.secrets ?? {})) expect(secrets).toContain(secret);
-    expect(job.secrets, `${caller}:${id} passes secrets`).toBeUndefined();
+    // only the release app's key, and only by name: never secrets: inherit
+    if (pipeline === "version") {
+      expect(job.secrets, `${caller}:${id}`).toEqual({ APP_PRIVATE_KEY: "${{ secrets.RELEASE_APP_PRIVATE_KEY }}" });
+      expect(job.with?.app_client_id, `${caller}:${id}`).toBe("${{ vars.RELEASE_APP_CLIENT_ID }}");
+    } else {
+      expect(job.secrets, `${caller}:${id} passes secrets`).toBeUndefined();
+    }
     expectGrantCovers(`${caller}:${id}`, job, called);
   }
   // every pipeline output a job reads is one its pipeline declares
@@ -186,6 +224,29 @@ describe("forgejs's own .index.yml", () => {
     );
   });
 
+  // with an app's token the release pull request starts a run, which should check it
+  it("checks release-please's pull requests like any other", () => {
+    expect(read(".index.yml")).not.toContain("release-please--");
+  });
+
+  // only the tool's own repository is scored, never a generated project
+  it("scores itself with Scorecard from main and weekly, only when public", () => {
+    const scorecard = wf.jobs.scorecard;
+    expect(scorecard?.name).toBe("scorecard");
+    expect(scorecard?.if).toContain("github.event_name == 'push' && github.ref == 'refs/heads/main' && " + PUBLIC);
+    expect(scorecard?.if).toContain("github.event_name == 'schedule' && github.repository_visibility == 'public'");
+    expect(scorecard?.permissions).toEqual({ contents: "read", "security-events": "write", actions: "read" });
+    const [, score, upload] = scorecard?.steps ?? [];
+    expect(score?.uses).toMatch(/^ossf\/scorecard-action@/);
+    expect(score?.with?.publish_results).toBe(false);
+    expect(upload?.uses).toMatch(/^github\/codeql-action\/upload-sarif@/);
+    expect(upload?.with?.sarif_file).toBe(score?.with?.results_file);
+    expect(Object.keys(wf.on)).toContain("schedule");
+    // the weekly run only scores
+    expect(wf.jobs.changes?.if).toBe("github.event_name != 'schedule'");
+    for (const text of generated.map(([, text]) => text)) expect(text).not.toContain("scorecard");
+  });
+
   it("keeps its change detection as a root job", () => {
     expect(wf.jobs.changes?.name).toBe("changes");
     expect(wf.jobs.changes?.outputs).toEqual({
@@ -194,11 +255,11 @@ describe("forgejs's own .index.yml", () => {
     });
   });
 
-  it("checks the tool as a library and the docs as a website, and attests what it publishes", () => {
+  it("checks the tool as a library and the docs as a website, and attests what it publishes when public", () => {
     expect(wf.jobs.library?.uses).toBe("./.github/workflows/library.yml");
     expect(wf.jobs.website?.uses).toBe("./.github/workflows/website.yml");
     expect(wf.jobs.website?.with?.working_directory).toBe("docs");
-    expect(wf.jobs.publish?.with?.attest).toBe(true);
+    expect(wf.jobs.publish?.with?.attest).toBe(`\${{ ${PUBLIC} }}`);
     expect(wf.jobs.publish?.permissions).toEqual({
       contents: "read",
       packages: "write",
@@ -208,19 +269,18 @@ describe("forgejs's own .index.yml", () => {
     expect(wf.jobs.pages?.with?.artifact_name).toBe(wf.jobs.website?.with?.artifact_name);
   });
 
+  it("deploys the docs only from a public repository, as a free plan needs", () => {
+    expect(wf.jobs.pages?.if).toContain(PUBLIC);
+  });
+
   it("has the same concurrency as a generated .index.yml", () => {
     const generatedWf = yaml.load(generated[0]?.[1] ?? "") as { concurrency?: unknown };
     expect((wf as { concurrency?: unknown }).concurrency).toEqual(generatedWf.concurrency);
   });
 
-  it("patches on the weekly schedule, a manual run and an auto-merged dispatch", () => {
-    expect(wf.jobs.patch?.if).toBe(PATCH_EVENTS);
-    expect(wf.jobs["patch-docs"]?.if).toBe(`\${{ !cancelled() && (${PATCH_EVENTS}) }}`);
-  });
-
-  it("patches the tool and the docs one after the other", () => {
-    expect(wf.jobs["patch-docs"]?.needs).toBe("patch");
-    expect(wf.jobs["patch-docs"]?.with?.working_directory).toBe("docs");
+  // Dependabot security updates fix vulnerable dependencies through pull requests instead
+  it("no longer patches main", () => {
+    expect(Object.values(wf.jobs).map((job) => job.uses)).not.toContain("./.github/workflows/patch.yml");
   });
 });
 
@@ -242,21 +302,35 @@ describe.each(generated)("Generated .index.yml (%s)", (_name, text) => {
   // each run outside a pull request has a group of its own, so a queued run on main is never cancelled
   it("cancels only a pull request's older run", () => {
     expect((wf as { concurrency?: Record<string, unknown> }).concurrency).toEqual({
-      group: "${{ github.workflow }}-${{ github.head_ref || github.run_id }}",
+      group: "${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}",
       "cancel-in-progress": true,
     });
   });
 
-  it("patches on the weekly schedule, a manual run and an auto-merged dispatch", () => {
-    expect(wf.jobs.patch?.if).toBe(`\${{ ${PATCH_EVENTS} }}`);
-    expect(Object.keys(wf.on)).toEqual(expect.arrayContaining(["schedule", "workflow_dispatch"]));
+  it("grants nothing by default, as every job grants what its pipeline needs", () => {
+    expect((wf as { permissions?: unknown }).permissions).toEqual({});
+  });
+
+  // Dependabot security updates fix vulnerable dependencies through pull requests, so nothing runs on a schedule
+  it("no longer patches main, or runs on a schedule", () => {
+    expect(wf.jobs.patch).toBeUndefined();
+    expect(Object.keys(wf.on)).toEqual(["push", "pull_request", "workflow_dispatch", "repository_dispatch"]);
+    expect(text).not.toContain("schedule");
   });
 
   // only GitHub Pages and attestations need an OIDC token
-  it("asks for id-token only to deploy Pages", () => {
+  it("asks for id-token only to deploy Pages or attest a library", () => {
     for (const [id, job] of Object.entries(wf.jobs)) {
-      if (id !== "pages") expect(job.permissions?.["id-token"], id).toBeUndefined();
+      const attests = id === "publish" && job.with?.attest !== undefined;
+      if (id !== "pages" && !attests) expect(job.permissions?.["id-token"], id).toBeUndefined();
     }
+  });
+
+  // a free plan offers both only to public repositories
+  it("deploys Pages and attests only from a public repository", () => {
+    if (wf.jobs.pages) expect(wf.jobs.pages.if).toContain(PUBLIC);
+    if (wf.jobs.publish?.with?.attest !== undefined) expect(wf.jobs.publish.with.attest).toBe(`\${{ ${PUBLIC} }}`);
+    expect(text).not.toContain("!github.event.repository.private");
   });
 });
 
@@ -268,6 +342,8 @@ describe("Generated .index.yml per mode", () => {
           mode: "service",
           debian: false,
           docker: false,
+          windows: false,
+          macos: false,
           testing: true,
           versioning: true,
           ...cfg,
@@ -276,13 +352,13 @@ describe("Generated .index.yml per mode", () => {
     ).jobs;
 
   it.each([
-    [{ mode: "library" as const }, ["version", "library", "publish", "patch", "merge"]],
-    [{ mode: "service" as const }, ["version", "service", "patch", "merge"]],
-    [{ mode: "website" as const }, ["version", "website", "pages", "patch", "merge"]],
-    [{ mode: "service" as const, debian: true }, ["version", "service", "debian", "publish", "patch", "merge"]],
-    [{ mode: "service" as const, docker: true }, ["version", "service", "docker", "patch", "merge"]],
-    [{ mode: "library" as const, versioning: false }, ["library", "patch", "merge"]],
-    [{ mode: "website" as const, versioning: false }, ["website", "pages", "patch", "merge"]],
+    [{ mode: "library" as const }, ["version", "library", "publish", "merge"]],
+    [{ mode: "service" as const }, ["version", "service", "merge"]],
+    [{ mode: "website" as const }, ["version", "website", "pages", "merge"]],
+    [{ mode: "service" as const, debian: true }, ["version", "service", "debian", "publish", "merge"]],
+    [{ mode: "service" as const, docker: true }, ["version", "service", "docker", "merge"]],
+    [{ mode: "library" as const, versioning: false }, ["library", "merge"]],
+    [{ mode: "website" as const, versioning: false }, ["website", "pages", "merge"]],
   ])("%j has the jobs %j", (cfg, jobs) => {
     expect(Object.keys(jobsOf(cfg))).toEqual(jobs);
   });
@@ -290,6 +366,27 @@ describe("Generated .index.yml per mode", () => {
   it("turns off the test stage for --no-testing", () => {
     expect(jobsOf({ testing: false }).service?.with).toEqual({ run_tests: false });
     expect(jobsOf({}).service?.with).toBeUndefined();
+  });
+
+  it.each(["library", "service"] as const)("tests and builds %s on Windows and macOS only when asked", (mode) => {
+    expect(jobsOf({ mode, windows: true })[mode]?.with).toEqual({ test_windows: "windows-latest" });
+    expect(jobsOf({ mode, macos: true })[mode]?.with).toEqual({ test_macos: "macos-latest" });
+    expect(jobsOf({ mode, windows: true, macos: true, testing: false })[mode]?.with).toEqual({
+      run_tests: false,
+      test_windows: "windows-latest",
+      test_macos: "macos-latest",
+    });
+  });
+
+  it("attests a library's release, which needs the signing permissions", () => {
+    const publish = jobsOf({ mode: "library" }).publish;
+    expect(publish?.with).toEqual({ attest: `\${{ ${PUBLIC} }}` });
+    expect(publish?.permissions).toEqual({
+      contents: "read",
+      packages: "write",
+      "id-token": "write",
+      attestations: "write",
+    });
   });
 
   it("checks a release before shipping it, and every pull request", () => {
@@ -314,7 +411,7 @@ describe("Generated .index.yml per mode", () => {
 
   it("deploys every change to main when the site isn't versioned", () => {
     expect(jobsOf({ mode: "website", versioning: false }).pages?.if).toBe(
-      "${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}",
+      `\${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && ${PUBLIC} }}`,
     );
   });
 
@@ -426,6 +523,25 @@ describe("version.yml", () => {
   });
 
   // releases_created is true when any package is released, so it only counts for the root package
+  // a pull request opened with GITHUB_TOKEN starts no workflows, so the release pull request's checks never run
+  it("should release with a GitHub App's token only when one is set", () => {
+    const inputs = wf.on.workflow_call?.inputs ?? {};
+    expect(inputs.app_client_id?.default).toBe("");
+    expect(wf.on.workflow_call?.secrets?.APP_PRIVATE_KEY?.required).toBe(false);
+    const app = job?.steps?.find((s) => s.id === "app");
+    expect(app?.if).toBe("inputs.app_client_id != ''");
+    expect(app?.uses).toMatch(/^actions\/create-github-app-token@/);
+    expect(app?.with).toEqual({
+      "client-id": "${{ inputs.app_client_id }}",
+      "private-key": "${{ secrets.APP_PRIVATE_KEY }}",
+      "permission-contents": "write",
+      "permission-pull-requests": "write",
+    });
+    const steps = job?.steps ?? [];
+    expect(steps.indexOf(app as Step)).toBeLessThan(steps.indexOf(release() as Step));
+    expect(release()?.with?.token).toBe("${{ steps.app.outputs.token || secrets.GITHUB_TOKEN }}");
+  });
+
   it("should not report another package's release as this one's", () => {
     const published = String(wf.on.workflow_call?.outputs?.new_release_published?.value);
     expect(published).toContain("inputs.working_directory == '.' && (jobs.release.outputs.releases_created");
@@ -467,7 +583,7 @@ describe("Node.js version resolution", () => {
     if (!content.includes("actions/setup-node")) continue;
 
     it(`should resolve the version before every setup-node in ${file}`, () => {
-      const setups = content.match(/uses: actions\/setup-node@\S+\n\s+with:\n\s+node-version: (.+)/g) ?? [];
+      const setups = content.match(/uses: actions\/setup-node@\S+(?: # \S+)?\n\s+with:\n\s+node-version: (.+)/g) ?? [];
       expect(setups.length).toBeGreaterThan(0);
       for (const setup of setups) expect(setup).toContain("${{ steps.node.outputs.version }}");
       const resolves = content.match(/else version=(\S+)/g) ?? [];
@@ -491,7 +607,7 @@ describe("Check pipelines", () => {
 
   // the stages a check pipeline shares are the same jobs in each
   it("should share their lint, scan, test and build stages", () => {
-    for (const job of ["lint", "scan", "test", "build"]) {
+    for (const job of ["lint", "scan", "scan-osv", "test", "build"]) {
       const library = load("library.yml").jobs[job];
       for (const file of checkPipelines) expect(load(file).jobs[job], `${file}:${job}`).toEqual(library);
     }
@@ -518,7 +634,7 @@ describe("Check pipelines", () => {
     }
   });
 
-  it.each(["lint", "scan", "test", "build"])("should check out the ref in the %s stage", (job) => {
+  it.each(["lint", "scan", "scan-osv", "test", "build"])("should check out the ref in the %s stage", (job) => {
     const checkout = steps("library.yml", job).find((s) => s.uses?.startsWith("actions/checkout"));
     expect(checkout?.with?.ref).toBe("${{ inputs.ref }}");
     expect(checkout?.with?.["persist-credentials"]).toBe(false);
@@ -536,6 +652,93 @@ describe("Check pipelines", () => {
     expect(hook?.run).not.toContain("${{");
     expect(hook?.env?.GH_TOKEN).toBe("${{ secrets.GH_TOKEN }}");
     expect(list[index("Set up Go")]?.if).toBe("inputs.setup_go != ''");
+  });
+
+  // the same names and meaning as forgego's: a runner label or a JSON object, or empty to skip
+  it.each(["library.yml", "service.yml"])("should test on other Node.js versions when asked in %s", (file) => {
+    const wf = load(file);
+    expect(wf.on.workflow_call?.inputs?.test_versions?.default).toBe("");
+    const job = wf.jobs["test-versions"];
+    expect(job?.name).toBe("test (${{ matrix.version }})");
+    expect(job?.if).toBe("inputs.run_tests && inputs.test_versions != ''");
+    expect(job?.needs).toEqual(["lint", "scan", "scan-osv"]);
+    expect(job?.steps?.at(-1)?.run).toBe("npm test");
+    // only the test stage uploads coverage
+    expect(job?.steps?.some((s) => s.uses?.startsWith("actions/upload-artifact"))).toBe(false);
+    expect(String(read(file))).toContain("INPUT: ${{ matrix.version }}");
+  });
+
+  describe.each(["library.yml", "service.yml"])("Windows and macOS in %s", (file) => {
+    const wf = load(file);
+    const inputs = wf.on.workflow_call?.inputs ?? {};
+
+    it("should take forgego's inputs, with the same defaults", () => {
+      expect(inputs.test_windows?.default).toBe("");
+      expect(inputs.test_macos?.default).toBe("");
+      expect(inputs.extra_test_script?.default).toBe("test");
+      expect(inputs.setup_script?.default).toBe("");
+    });
+
+    it.each([
+      ["windows", "windows-latest"],
+      ["macos", "macos-latest"],
+    ])("should test and build on %s when asked", (os, runner) => {
+      const job = wf.jobs[`test-${os}`];
+      const input = `inputs.test_${os}`;
+      expect(job?.name).toBe(`test (${os})`);
+      // the stage builds too, so it runs without the tests
+      expect(job?.if).toBe(`${input} != ''`);
+      expect(job?.needs).toEqual(["lint", "scan", "scan-osv"]);
+      expect(job?.["runs-on"]).toBe(
+        `\${{ startsWith(${input}, '{') && (fromJSON(${input}).runs_on || '${runner}') || ${input} }}`,
+      );
+      expect(job?.defaults?.run?.shell).toBe("bash");
+      const steps = job?.steps ?? [];
+      const at = (name: string) => steps.findIndex((s) => s.name === name);
+      const step = (name: string) => steps[at(name)];
+
+      // the env is set for the whole stage, from the input through the environment
+      expect(step("Set the runner's environment")?.if).toBe(`startsWith(${input}, '{')`);
+      expect(step("Set the runner's environment")?.env?.TARGET).toBe(`\${{ ${input} }}`);
+      expect(step("Set the runner's environment")?.run).toContain('>> "$GITHUB_ENV"');
+      expect(step("Run the setup script")?.if).toBe("inputs.setup_script != ''");
+      expect(step("Run the setup script")?.env?.SCRIPT).toBe("${{ inputs.setup_script }}");
+      expect(step("Run the setup script")?.run).toBe('bash "$SCRIPT"');
+      expect(at("Set the runner's environment")).toBeLessThan(at("Run the setup script"));
+      expect(at("Run the setup script")).toBeLessThan(at("Install dependencies"));
+
+      expect(step("Test")?.if).toBe("inputs.run_tests");
+      expect(step("Test")?.env?.SCRIPT).toBe("${{ inputs.extra_test_script }}");
+      expect(step("Test")?.run).toBe('npm run "$SCRIPT"');
+      expect(at("Test")).toBeLessThan(at("Build"));
+      expect(step("Build")?.run).toBe("npm run build");
+      const upload = step("Upload the build");
+      expect(upload?.with?.name).toBe(`\${{ inputs.artifact_name }}-${os}`);
+      expect(upload?.with?.["if-no-files-found"]).toBe("ignore");
+      // only the test stage uploads coverage
+      expect(steps.filter((s) => s.uses?.startsWith("actions/upload-artifact"))).toHaveLength(1);
+    });
+  });
+
+  // generated workflows leave them off unless init --windows or --macos asked, as Windows and macOS minutes
+  // cost more on a private repository
+  it("should leave the extra test runs off in generated workflows unless asked, and on in forgejs's own", () => {
+    for (const [name, text] of generated) {
+      expect(text).not.toContain("test_versions");
+      if (name.includes("windows")) {
+        expect(text).toContain("      test_windows: windows-latest\n");
+        expect(text).toContain("      test_macos: macos-latest\n");
+      } else expect(text).not.toMatch(/test_(windows|macos)/);
+    }
+    // only for a release, so pull requests stay cheap and a failure still stops the publish
+    const release = (value: string) => `\${{ needs.version.outputs.new_release_published == 'true' && '${value}' || '' }}`;
+    const library = load(".index.yml").jobs.library;
+    expect(library?.needs).toContain("version");
+    expect(library?.with).toMatchObject({
+      test_windows: release("windows-latest"),
+      test_macos: release("macos-latest"),
+      test_versions: release('["26"]'),
+    });
   });
 
   it("should skip the test stage with run_tests false", () => {
@@ -608,13 +811,14 @@ describe("Website site checks", () => {
     ["/a/b/", "/a/b/"],
   ])("should serve the build under base_path %j at %s", (basePath, base) => {
     const { outputs, served, temp } = stage(basePath);
-    expect(outputs).toEqual({ root: path.join(temp, "site"), base });
+    // the script joins with /, which path.normalize turns into Windows' separator
+    expect({ ...outputs, root: path.normalize(String(outputs.root)) }).toEqual({ root: path.join(temp, "site"), base });
     expect(served).toBe(true);
   });
 
   it("should check only internal links unless asked for external ones", () => {
     const args = String(checkStep("Check links")?.with?.args);
-    expect(checkStep("Check links")?.uses).toMatch(/^lycheeverse\/lychee-action@v\d+$/);
+    expect(checkStep("Check links")?.uses).toMatch(/^lycheeverse\/lychee-action@[0-9a-f]{40}$/);
     expect(args).toContain("${{ !inputs.check_external_links && '--offline' || '' }}");
     expect(args).toContain("--root-dir '${{ steps.site.outputs.root }}'");
     expect(checkStep("Check links")?.with?.fail).toBe(true);
@@ -694,7 +898,7 @@ describe("publish.yml", () => {
     expect(attest?.needs).toEqual(["package", "assets"]);
     expect(attest?.if).toContain("inputs.attest");
     expect(wf.on.workflow_call?.inputs?.attest?.default).toBe(false);
-    expect(attest?.steps?.at(-1)?.uses).toMatch(/^actions\/attest-build-provenance@v\d+$/);
+    expect(attest?.steps?.at(-1)?.uses).toMatch(/^actions\/attest-build-provenance@[0-9a-f]{40}$/);
     expect(attest?.steps?.at(-1)?.with?.["subject-path"]).toBe("${{ runner.temp }}/attest/*");
   });
 
@@ -703,6 +907,19 @@ describe("publish.yml", () => {
     expect(String(step("publish.yml", "assets", "Upload the assets to the release")?.with?.script)).toContain(
       "getReleaseByTag",
     );
+  });
+});
+
+describe("patch.yml", () => {
+  const wf = load("patch.yml");
+
+  // a project still calling it at @main mustn't break, and is told what replaces it
+  it("should keep its inputs, and only warn that Dependabot security updates replace it", () => {
+    expect(Object.keys(wf.on.workflow_call?.inputs ?? {})).toEqual(["runs_on", "working_directory", "node_version"]);
+    expect(Object.keys(wf.jobs)).toEqual(["update"]);
+    expect(wf.jobs.update?.permissions).toEqual({});
+    expect(wf.jobs.update?.steps).toHaveLength(1);
+    expect(wf.jobs.update?.steps?.[0]?.run).toMatch(/^echo "::warning .*Dependabot security updates.*\.index\.yml/);
   });
 });
 
@@ -721,16 +938,19 @@ describe("Main's pipeline after an auto-merge", () => {
 });
 
 describe("OSV scan", () => {
-  const scan = step("library.yml", "scan", "Scan with OSV");
-  const report = step("library.yml", "scan", "Report OSV findings");
+  const scan = step("library.yml", "scan-osv", "Scan with OSV");
+  const report = step("library.yml", "scan-osv", "Report OSV findings");
 
-  // runs the report step's github-script body with a stand-in for its core API
-  async function runReport(status: number, results: unknown[] | null = [], enforce = true) {
+  // runs the report step's github-script body with a stand-in for its core API; null writes no report
+  async function runReport(outcome: string, results: unknown[] | null = [], enforce = true) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "forgejs-osv-"));
-    const file = path.join(dir, "osv.json");
-    if (results) fs.writeFileSync(file, JSON.stringify({ results }));
-    const calls: Record<string, string[]> = { info: [], warning: [], error: [], setFailed: [] };
-    const record = (kind: string) => (message: string) => calls[kind]?.push(message);
+    // the scanner reports absolute paths, inside the workspace
+    if (results) fs.writeFileSync(path.join(dir, "osv-results.json"), JSON.stringify({ results }).replaceAll(WORKSPACE, dir));
+    const calls: Record<string, string[]> = { info: [], warning: [], error: [], setFailed: [], file: [] };
+    const record = (kind: string) => (message: string, props?: { file?: string }) => {
+      calls[kind]?.push(message);
+      if (props?.file !== undefined) calls.file?.push(props.file);
+    };
     const core = {
       info: record("info"),
       warning: record("warning"),
@@ -740,8 +960,8 @@ describe("OSV scan", () => {
     };
     const env = { ...process.env };
     Object.assign(process.env, {
-      OSV_STATUS: String(status),
-      OSV_REPORT: file,
+      OSV_OUTCOME: outcome,
+      OSV_REPORT: String(report?.env?.OSV_REPORT),
       OSV_ENFORCE: String(enforce),
       GITHUB_WORKSPACE: dir,
     });
@@ -755,59 +975,114 @@ describe("OSV scan", () => {
     return calls;
   }
 
-  const lockfile = (dir = "/w") => ({ source: { path: `${dir}/package-lock.json` } });
+  const WORKSPACE = "<workspace>";
+  const lockfile = (dir = WORKSPACE) => ({ source: { path: `${dir}/package-lock.json` } });
   const finding = (id: string, maxSeverity: string, rating?: string) => ({
     package: { name: `pkg-${id}`, version: "1.0.0" },
     vulnerabilities: [{ id, summary: `advisory ${id}`, database_specific: rating ? { severity: rating } : {} }],
     groups: [{ ids: [id], max_severity: maxSeverity }],
   });
 
+  // a runner set with no Docker daemon runs a job container, but refuses a container action
+  it("should scan in OSV-Scanner's own image, as a stage of its own", () => {
+    for (const file of ["library.yml", "service.yml", "website.yml"]) {
+      const job = load(file).jobs["scan-osv"];
+      expect(job?.name).toBe("scan (osv)");
+      // an image key, so Dependabot's docker updates keep it current
+      expect(job?.container).toEqual({ image: expect.stringMatching(/^ghcr\.io\/google\/osv-scanner:v\d+\.\d+\.\d+$/) });
+      expect(job?.["runs-on"]).toBe("${{ inputs.scan_runs_on || inputs.runs_on }}");
+      expect(job?.permissions).toEqual({ contents: "read" });
+      expect(load(file).on.workflow_call?.inputs?.scan_runs_on).toMatchObject({ type: "string", required: false, default: "" });
+      expect(load(file).on.workflow_call?.inputs?.scan_container).toBeUndefined();
+      expect(read(file), file).not.toContain("google/osv-scanner-action");
+    }
+  });
+
+  // the rest of the scan keeps to runs_on, with no container
+  it("should keep Gitleaks and the dependency review on runs_on", () => {
+    const job = load("library.yml").jobs.scan;
+    expect(job?.["runs-on"]).toBe("${{ inputs.runs_on }}");
+    expect(job?.container).toBeUndefined();
+    expect(job?.steps?.map((s) => s.name)).toEqual(["Check out", "Scan with Gitleaks", "Review dependencies"]);
+  });
+
+  it("should write a JSON report of the working directory into the workspace", () => {
+    expect(scan?.run).toBe(
+      '/osv-scanner scan source --format=json --output-file="$GITHUB_WORKSPACE/osv-results.json" --recursive --allow-no-lockfiles .',
+    );
+    expect(load("library.yml").jobs["scan-osv"]?.defaults?.run?.["working-directory"]).toBe("${{ inputs.working_directory }}");
+    expect(report?.env?.OSV_REPORT).toBe("osv-results.json");
+  });
+
+  // private repositories need GitHub Code Security for it
+  it("should review a public repository's pull request's dependencies", () => {
+    const review = step("library.yml", "scan", "Review dependencies");
+    expect(review?.if).toBe(`github.event_name == 'pull_request' && ${PUBLIC}`);
+    expect(review?.uses).toMatch(/^actions\/dependency-review-action@/);
+    expect(review?.with?.["fail-on-severity"]).toBe("high");
+  });
+
+  // the scanner exits non-zero on a finding as on a failure, so the report decides
   it("should never swallow the scanner's result", () => {
-    expect(scan?.run).not.toContain("|| true");
-    expect(scan?.run).toContain("--format json");
-    expect(report?.env?.OSV_STATUS).toBe("${{ steps.osv.outputs.status }}");
+    expect(scan?.["continue-on-error"]).toBe(true);
+    expect(report?.env?.OSV_OUTCOME).toBe("${{ steps.osv.outcome }}");
     expect(report?.env?.OSV_ENFORCE).toBe("${{ github.event_name == 'pull_request' }}");
   });
 
-  it("should annotate a high finding outside a pull request, so the patch pipeline still runs", async () => {
-    const calls = await runReport(1, [{ ...lockfile(), packages: [finding("GHSA-high", "9.8")] }], false);
+  it("should annotate a high finding outside a pull request, so a release still runs", async () => {
+    const calls = await runReport("failure", [{ ...lockfile(), packages: [finding("GHSA-high", "9.8")] }], false);
     expect(calls.error).toEqual([expect.stringContaining("GHSA-high")]);
     expect(calls.setFailed).toEqual([]);
     expect(calls.warning).toEqual([expect.stringContaining("fails pull requests")]);
   });
 
   it("should fail on a high or critical finding and annotate the rest", async () => {
-    const calls = await runReport(1, [{ ...lockfile(), packages: [finding("GHSA-high", "8.1"), finding("GHSA-low", "5.3")] }]);
+    const calls = await runReport("failure", [{ ...lockfile(), packages: [finding("GHSA-high", "8.1"), finding("GHSA-low", "5.3")] }]);
     expect(calls.error).toEqual([expect.stringContaining("GHSA-high")]);
     expect(calls.warning).toEqual([expect.stringContaining("GHSA-low")]);
     expect(calls.setFailed).toEqual([expect.stringContaining("1 high or critical vulnerability")]);
   });
 
   it("should only warn when nothing is high or critical", async () => {
-    const calls = await runReport(1, [{ ...lockfile(), packages: [finding("GHSA-moderate", "", "MODERATE")] }]);
+    const calls = await runReport("failure", [{ ...lockfile(), packages: [finding("GHSA-moderate", "", "MODERATE")] }]);
     expect(calls.warning).toHaveLength(1);
     expect(calls.setFailed).toEqual([]);
   });
 
   it("should use the advisory's rating when it has no CVSS score", async () => {
-    const calls = await runReport(1, [{ ...lockfile(), packages: [finding("GHSA-critical", "", "CRITICAL")] }]);
+    const calls = await runReport("failure", [{ ...lockfile(), packages: [finding("GHSA-critical", "", "CRITICAL")] }]);
     expect(calls.setFailed).toHaveLength(1);
   });
 
-  it.each([
-    [0, 0],
-    [128, 0],
-  ])("should pass when the scanner exits %i", async (status) => {
-    const calls = await runReport(status);
+  it("should name the lockfile relative to the workspace", async () => {
+    const calls = await runReport("failure", [{ ...lockfile(`${WORKSPACE}/pkg`), packages: [finding("GHSA-low", "3.1")] }]);
+    expect(calls.warning).toEqual([expect.stringContaining("GHSA-low")]);
+    expect(calls.file).toEqual([path.join("pkg", "package-lock.json")]);
+  });
+
+  it("should pass a clean scan", async () => {
+    const calls = await runReport("success");
     expect(calls.setFailed).toEqual([]);
     expect(calls.warning).toEqual([]);
   });
 
-  it.each([
-    [127, []],
-    [1, null],
-  ])("should warn, not fail, when the scanner exits %i with %j results", async (status, results) => {
-    const calls = await runReport(status, results);
+  // a report-less success, as when nothing was scanned
+  it("should note that there was nothing to scan when it succeeded without a report", async () => {
+    const calls = await runReport("success", null);
+    expect(calls.info).toEqual(["No lockfiles to scan"]);
+    expect(calls.setFailed).toEqual([]);
+    expect(calls.warning).toEqual([]);
+  });
+
+  // a pull request can't merge unchecked, but an outage at OSV mustn't stop a release
+  it("should fail a pull request when the scan failed without a report", async () => {
+    const calls = await runReport("failure", null);
+    expect(calls.setFailed).toEqual([expect.stringContaining("couldn't finish")]);
+    expect(calls.warning).toEqual([]);
+  });
+
+  it("should warn, not fail, elsewhere when the scan failed without a report", async () => {
+    const calls = await runReport("failure", null, false);
     expect(calls.warning).toEqual([expect.stringContaining("couldn't finish")]);
     expect(calls.setFailed).toEqual([]);
   });
@@ -822,8 +1097,61 @@ describe("Dependabot auto-merge", () => {
     expect(gate).toContain("github.event.pull_request.user.login == 'dependabot[bot]' && ");
     expect(gate).toContain("github.actor == 'dependabot[bot]' && ");
     expect(gate).toContain("!startsWith(github.head_ref, 'dependabot/github_actions/')");
+    // the scan (osv) stage's image, which Dependabot's docker updates bump in the workflows themselves
+    expect(gate).toContain("!startsWith(github.head_ref, 'dependabot/docker/dot-github/workflows/')");
     expect(gate).not.toContain("||");
     expect(load("merge.yml").on.workflow_call?.inputs?.checks_passed?.default).toBe(false);
+  });
+
+  // a fork's pull request can't pass itself off as Dependabot's
+  it("should only merge a pull request from this repository's own branch", () => {
+    expect(String(load("merge.yml").jobs.squash?.if)).toContain(
+      "github.event.pull_request.head.repo.full_name == github.repository",
+    );
+  });
+
+  // passing checks are the gate, whatever the update's size
+  it("should merge any update without reading its metadata", () => {
+    const [merge] = steps("merge.yml", "squash");
+    expect(merge?.name).toBe("Enable auto-merge");
+    expect(String(merge?.with?.script)).not.toContain("${{");
+  });
+
+  // runs the squash step's script against a stand-in GitHub API that refuses auto-merge as on a clean pull request
+  async function runSquash() {
+    const calls: Record<string, unknown[]> = { graphql: [], merge: [], dispatch: [], notice: [] };
+    const pr = { number: 7, node_id: "PR_7", head: { sha: "abc123" }, base: { ref: "main" } };
+    const github = {
+      graphql: async (query: string, variables: unknown) => {
+        calls.graphql?.push({ query, variables });
+        throw new Error("Pull request is in clean status");
+      },
+      rest: {
+        pulls: { merge: async (args: unknown) => calls.merge?.push(args) },
+        repos: { createDispatchEvent: async (args: unknown) => calls.dispatch?.push(args) },
+      },
+    };
+    const core = { info: () => {}, warning: () => {}, notice: (message: string) => calls.notice?.push(message) };
+    const context = { repo: { owner: "o", repo: "r" }, payload: { pull_request: pr } };
+    const env = { ...process.env };
+    Object.assign(process.env, { DISPATCH_TYPE: "auto-merged" });
+    try {
+      const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
+      const script = String(step("merge.yml", "squash", "Enable auto-merge")?.with?.script);
+      await new AsyncFunction("github", "context", "core", script)(github, context, core);
+    } finally {
+      process.env = env;
+    }
+    return calls;
+  }
+
+  it("should merge at the commit the checks ran on", async () => {
+    const calls = await runSquash();
+    expect(calls.graphql).toEqual([
+      { query: expect.stringContaining("expectedHeadOid: $oid"), variables: { id: "PR_7", oid: "abc123" } },
+    ]);
+    expect(calls.merge).toEqual([{ owner: "o", repo: "r", pull_number: 7, merge_method: "squash", sha: "abc123" }]);
+    expect(calls.dispatch).toHaveLength(1);
   });
 });
 

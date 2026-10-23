@@ -81,7 +81,7 @@ Point the pipelines at a subdirectory with `working_directory`, given relative t
 ```yaml
 jobs:
   version:
-    if: ${{ github.event_name != 'pull_request' && github.event_name != 'schedule' }}
+    if: ${{ github.event_name != 'pull_request' }}
     uses: apollogeddon/forgejs/.github/workflows/version.yml@main
     with:
       working_directory: 'packages/api'
@@ -101,11 +101,23 @@ jobs:
       pull-requests: write
 ```
 
-Pass it to `patch.yml` too, and to `publish.yml` for a library.
+Pass it to `publish.yml` too for a library.
 
 ### Test across Node.js versions
 
-Call a check pipeline from a matrix to run its stages on several Node.js versions. The run page names each call after its version, such as `service (lts/*)`:
+`library.yml` and `service.yml` run the tests on other Node.js versions, and test and build on Windows and macOS (see [Windows and macOS](/forgejs/docs/workflows/reference#windows-and-macos)), when asked:
+
+```yaml
+  service:
+    # ...as generated
+    uses: apollogeddon/forgejs/.github/workflows/service.yml@main
+    with:
+      test_versions: '["26"]'
+      test_windows: windows-latest
+      test_macos: macos-latest
+```
+
+To run every stage, not just the tests, on several Node.js versions, call a check pipeline from a matrix. The run page names each call after its version, such as `service (lts/*)`:
 
 ```yaml
 jobs:
