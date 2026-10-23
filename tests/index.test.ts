@@ -1,43 +1,11 @@
 import { execSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
-import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import * as yaml from "js-yaml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { NODE_VERSION } from "../src/versions.js";
-
-const CLI_SCRIPT = path.resolve(__dirname, "../src/index.ts");
-// Generated .index.yml calls these pipelines at @main; this repo is what @main serves
-const REPO_WORKFLOWS = path.resolve(__dirname, "../.github/workflows");
-
-// Invoking the local tsx binary directly, rather than `npx tsx` from an unrelated tempDir cwd,
-// avoids npx re-resolving/installing tsx per call - a source of npm cache races under CI parallelism.
-const require = createRequire(import.meta.url);
-const tsxPackageJsonPath = require.resolve("tsx/package.json");
-const TSX_CLI = path.join(path.dirname(tsxPackageJsonPath), require(tsxPackageJsonPath).bin);
-
-// Retries because Windows can briefly hold locks on just-used files
-function robustRemoveDir(dir: string, maxRetries = 5, delay = 500) {
-  if (!fs.existsSync(dir)) return;
-
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      fs.rmSync(dir, { recursive: true, force: true });
-      return;
-    } catch (error) {
-      if (i === maxRetries - 1) {
-        console.warn(`Warning: Final attempt to clean up temp dir failed: ${error}`);
-      } else {
-        const syncWait = (ms: number) => {
-          const end = Date.now() + ms;
-          while (Date.now() < end) {}
-        };
-        syncWait(delay);
-      }
-    }
-  }
-}
+import { CLI_SCRIPT, robustRemoveDir, TSX_CLI } from "./support/cli.js";
 
 // Returns stderr so tests can check the rejection reason, not just that something threw.
 function runExpectingFailure(args: string, cwd: string, status = 2): string {
@@ -51,16 +19,22 @@ function runExpectingFailure(args: string, cwd: string, status = 2): string {
 }
 
 const DEFAULT_SCRIPTS = ["watch", "start", "lint", "security", "type", "build", "test", "prepare"];
+const DEFAULT_FILES = [
+  "biome.json",
+  "vitest.config.ts",
+  "tsconfig.json",
+  "commitlint.config.ts",
+  "tsdown.config.ts",
+  "lefthook.yml",
+];
 
 type GeneratedWorkflow = {
-  concurrency?: { group?: string; "cancel-in-progress"?: string };
   jobs: Record<
     string,
     {
       uses?: string;
       needs?: string | string[];
       with?: Record<string, unknown>;
-      secrets?: Record<string, string>;
       permissions?: Record<string, string>;
     }
   >;
@@ -75,9 +49,7 @@ describe("CLI Init Command", () => {
 
   beforeEach(() => {
     tempDir = path.join(os.tmpdir(), `forgejs-test-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
-    if (fs.existsSync(tempDir)) {
-      robustRemoveDir(tempDir);
-    }
+    robustRemoveDir(tempDir);
     fs.mkdirSync(tempDir, { recursive: true });
   });
 
@@ -92,46 +64,9 @@ describe("CLI Init Command", () => {
       throw new Error(`CLI execution failed: ${error}`);
     }
 
-    const expectedFiles = [
-      "biome.json",
-      "vitest.config.ts",
-      "tsconfig.json",
-      "commitlint.config.ts",
-      "tsdown.config.ts",
-      "lefthook.yml",
-    ];
-
-    for (const file of expectedFiles) {
+    for (const file of DEFAULT_FILES) {
       expect(fs.existsSync(path.join(tempDir, file))).toBe(true);
     }
-  });
-
-  it("should verify content of generated biome.json", () => {
-    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
-
-    const biomeConfig = JSON.parse(fs.readFileSync(path.join(tempDir, "biome.json"), "utf-8"));
-    expect(biomeConfig.extends).toContain("node_modules/@apollogeddon/forgejs/configs/biome.json");
-  });
-
-  it("should not overwrite existing files without --force", () => {
-    const dummyContent = '{"dummy": true, "original": true}';
-    fs.writeFileSync(path.join(tempDir, "biome.json"), dummyContent);
-
-    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init`, { cwd: tempDir });
-
-    const content = fs.readFileSync(path.join(tempDir, "biome.json"), "utf-8");
-    expect(content).toBe(dummyContent);
-  });
-
-  it("should overwrite existing files with --force", () => {
-    const dummyContent = '{"dummy": true, "original": true}';
-    fs.writeFileSync(path.join(tempDir, "biome.json"), dummyContent);
-
-    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --force`, { cwd: tempDir });
-
-    const content = fs.readFileSync(path.join(tempDir, "biome.json"), "utf-8");
-    expect(content).not.toBe(dummyContent);
-    expect(content).toContain("node_modules/@apollogeddon/forgejs/configs/biome.json");
   });
 
   it("should update package.json with type: module and recommended backend scripts", () => {
@@ -238,13 +173,6 @@ describe("CLI Init Command", () => {
     );
   });
 
-  it("should setup service workflow for backend", () => {
-    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
-    expect(readGeneratedWorkflow(tempDir).jobs.service?.uses).toBe(
-      "apollogeddon/forgejs/.github/workflows/service.yml@main",
-    );
-  });
-
   it("should support --debian flag to setup snodeb", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --debian`, { cwd: tempDir });
 
@@ -293,16 +221,11 @@ describe("CLI Init Command", () => {
     expect(stdout).toContain("--dry-run");
   });
 
-  it("should fail when using --library with --docker", () => {
-    expect(runExpectingFailure("init --library --docker", tempDir)).toMatch(/docker/i);
-  });
-
-  it("should fail when using --library with --debian", () => {
-    expect(runExpectingFailure("init --library --debian", tempDir)).toMatch(/debian/i);
-  });
-
   it.each([
     ["--backend --website", /one mode/],
+    ["--backend --library", /one mode/],
+    ["--library --docker", /docker/i],
+    ["--library --debian", /debian/i],
     ["--website --debian", /debian/i],
     ["--website --windows", /windows builds are not available for website mode/i],
     ["--website --macos", /macos builds are not available for website mode/i],
@@ -457,7 +380,7 @@ describe("CLI Init Command", () => {
     });
 
     it("is kept, with a warning, once it's been changed", () => {
-      const customised = legacy.replace("    with:\n", "    with:\n      runs_on: xerus\n");
+      const customised = legacy.replace("    with:\n", "    with:\n      runs_on: self-hosted\n");
       write(customised);
       const result = init("--library");
       expect(result.status).toBe(0);
@@ -467,7 +390,7 @@ describe("CLI Init Command", () => {
     });
 
     it("is removed with --force once it's been changed", () => {
-      write(legacy.replace("    with:\n", "    with:\n      runs_on: xerus\n"));
+      write(legacy.replace("    with:\n", "    with:\n      runs_on: self-hosted\n"));
       expect(init("--library --force").status).toBe(0);
       expect(fs.existsSync(old())).toBe(false);
     });
@@ -508,57 +431,6 @@ describe("CLI Init Command", () => {
     else expect(jobs.version).toBeUndefined();
   });
 
-  it.each([
-    "--backend",
-    "--library",
-    "--website",
-    "--debian",
-    "--backend --docker --no-testing --no-versioning",
-    "--library --no-testing --no-versioning",
-    "--website --docker --no-testing --no-versioning",
-    "--debian --docker --no-testing --no-versioning",
-    "--backend --windows --macos --no-testing",
-    "--library --windows --macos",
-  ])("should only pass inputs the called workflows declare (%s)", (flags) => {
-    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${flags}`, { cwd: tempDir });
-    for (const [name, job] of Object.entries(readGeneratedWorkflow(tempDir).jobs)) {
-      const callee = path.basename(String(job.uses).split("@")[0]);
-      const workflow = yaml.load(fs.readFileSync(path.join(REPO_WORKFLOWS, callee), "utf-8")) as {
-        on: { workflow_call: { inputs?: Record<string, unknown> } };
-      };
-      const declared = Object.keys(workflow.on.workflow_call.inputs ?? {});
-      for (const input of Object.keys(job.with ?? {})) {
-        expect(declared, `${name} passes undeclared input '${input}' to ${callee}`).toContain(input);
-      }
-    }
-  });
-
-  it.each([
-    "--backend",
-    "--library",
-    "--website",
-    "--debian",
-    "--backend --docker",
-  ])("should generate a least-privilege workflow that never cancels main (%s)", (flags) => {
-    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init ${flags}`, { cwd: tempDir });
-    const workflow = readGeneratedWorkflow(tempDir);
-    // a run outside a pull request has a group of its own, so one on main is never cancelled
-    expect(workflow.concurrency?.group).toContain("github.event.pull_request.number || github.run_id");
-    for (const [name, job] of Object.entries(workflow.jobs)) {
-      // the called workflows only use GITHUB_TOKEN, which they get without inheriting every secret, and
-      // version the release app's key, by name
-      if (name === "version") expect(Object.keys(job.secrets ?? {})).toEqual(["APP_PRIVATE_KEY"]);
-      else expect(job.secrets, `${name} passes secrets`).toBeUndefined();
-      // only GitHub Pages and a library's attestations need an OIDC token
-      const attests = name === "publish" && flags === "--library";
-      if (name !== "pages" && !attests) expect(job.permissions?.["id-token"], `${name} asks for id-token`).toBeUndefined();
-    }
-  });
-
-  it("should fail when using --website with --debian", () => {
-    expect(runExpectingFailure("init --website --debian", tempDir)).toMatch(/debian/i);
-  });
-
   it("should set private: true for backend/website projects", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --backend`, { cwd: tempDir });
     const packageJson = JSON.parse(fs.readFileSync(path.join(tempDir, "package.json"), "utf-8"));
@@ -582,24 +454,9 @@ describe("CLI Init Command", () => {
     expect(packageJson.private).toBeUndefined();
   });
 
-  it("should fail when using --backend with --website", () => {
-    expect(runExpectingFailure("init --backend --website", tempDir)).toMatch(/mode/i);
-  });
-
-  it("should fail when using --backend with --library", () => {
-    expect(runExpectingFailure("init --backend --library", tempDir)).toMatch(/mode/i);
-  });
-
   it("should behave as default backend when --all is passed with no mode flag", () => {
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --all`, { cwd: tempDir });
-    for (const file of [
-      "biome.json",
-      "vitest.config.ts",
-      "tsconfig.json",
-      "commitlint.config.ts",
-      "tsdown.config.ts",
-      "lefthook.yml",
-    ]) {
+    for (const file of DEFAULT_FILES) {
       expect(fs.existsSync(path.join(tempDir, file))).toBe(true);
     }
   });

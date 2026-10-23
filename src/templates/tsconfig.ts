@@ -1,27 +1,15 @@
-export const tsconfigConfig = JSON.stringify(
-  {
-    extends: "@apollogeddon/forgejs/configs/tsconfig.json",
-    compilerOptions: {
-      rootDir: ".",
+const tsconfig = (compilerOptions: Record<string, unknown> = {}) =>
+  JSON.stringify(
+    {
+      extends: "@apollogeddon/forgejs/configs/tsconfig.json",
+      compilerOptions: { rootDir: ".", ...compilerOptions },
+      include: ["src/**/*"],
+      exclude: ["node_modules", "dist"],
     },
-    include: ["src/**/*"],
-    exclude: ["node_modules", "dist"],
-  },
-  null,
-  2,
-);
+    null,
+    2,
+  );
 
-export const websiteTsconfigConfig = JSON.stringify(
-  {
-    extends: "@apollogeddon/forgejs/configs/tsconfig.json",
-    compilerOptions: {
-      rootDir: ".",
-      noEmit: true,
-      lib: ["DOM", "DOM.Iterable", "ESNext"],
-    },
-    include: ["src/**/*"],
-    exclude: ["node_modules", "dist"],
-  },
-  null,
-  2,
-);
+export const tsconfigConfig = tsconfig();
+
+export const websiteTsconfigConfig = tsconfig({ noEmit: true, lib: ["DOM", "DOM.Iterable", "ESNext"] });

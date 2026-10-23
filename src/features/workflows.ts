@@ -3,12 +3,12 @@ import type { InitConfig, PackageJson } from "../types.js";
 import type { IFileSystem } from "../utils/filesystem.js";
 import { createFile, type Feature, removeFile } from "./types.js";
 
-export const INDEX_WORKFLOW = ".github/workflows/.index.yml";
+const INDEX_WORKFLOW = ".github/workflows/.index.yml";
 
 // Before .index.yml, forgejs generated index.yml (and, before 2.3.2, ci.yml and debian.yml); left in place, one
 // runs every pipeline twice. One exactly as an earlier forgejs wrote it goes; one calling forgejs's pipelines
 // that's been changed goes only with --force, as removeFile does; one calling none of them is the project's own.
-export function removeOldWorkflows(cwd: string, cfg: InitConfig, fs: IFileSystem): void {
+function removeOldWorkflows(cwd: string, cfg: InitConfig, fs: IFileSystem): void {
   for (const file of Object.keys(templates.LEGACY_WORKFLOWS)) {
     const path = fs.join(cwd, file);
     if (!fs.existsSync(path)) continue;
@@ -31,7 +31,7 @@ const GITHUB_OWNER = /github\.com[:/]([A-Za-z0-9][A-Za-z0-9-]*)\//;
 
 // The GitHub account the project lives under, from package.json's repository or the git
 // remote, so CODEOWNERS can name it. Undefined until the project has a GitHub remote.
-export function githubOwner(cwd: string, fs: IFileSystem, packageJson: PackageJson): string | undefined {
+function githubOwner(cwd: string, fs: IFileSystem, packageJson: PackageJson): string | undefined {
   const repository = packageJson.repository;
   const url = typeof repository === "string" ? repository : (repository as { url?: string } | undefined)?.url;
   const fromPackage = url?.match(GITHUB_OWNER)?.[1];
@@ -47,7 +47,6 @@ export function githubOwner(cwd: string, fs: IFileSystem, packageJson: PackageJs
 }
 
 export const WorkflowFeature: Feature = {
-  name: "GitHub Workflows",
   shouldRun: () => true,
   apply: (cwd, cfg, fs, packageJson) => {
     let ok = createFile(cwd, ".github/dependabot.yml", templates.dependabotConfig(cfg.docker), cfg, fs);

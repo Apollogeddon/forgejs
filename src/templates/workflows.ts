@@ -15,7 +15,7 @@ export interface IndexWorkflowOptions {
   versioning: boolean;
 }
 
-export const FORGEJS_WORKFLOWS = "apollogeddon/forgejs/.github/workflows";
+const FORGEJS_WORKFLOWS = "apollogeddon/forgejs/.github/workflows";
 
 const header = `\
 name: index
@@ -49,7 +49,7 @@ const PUBLIC = "github.event.repository.private == false";
 // a GitHub Actions expression, kept out of template literals' own placeholder syntax
 const expr = (expression: string) => ["$", "{{ ", expression, " }}"].join("");
 
-export interface PipelineJob {
+interface PipelineJob {
   id: string;
   comment?: string;
   needs?: string[];
@@ -86,7 +86,7 @@ function render(job: PipelineJob): string {
 // --no-testing turns off the test stage. --no-versioning leaves out the version job, and with it the
 // release testing and publish; --no-linting needs nothing, as the lint stage skips Biome without a biome.json.
 // --windows and --macos turn on those stages, which a private repository pays more for, so they're opt-in.
-export function withPipelineInputs(
+function withPipelineInputs(
   cfg: Pick<IndexWorkflowOptions, "testing" | "windows" | "macos">,
 ): Record<string, string | boolean> {
   return {
@@ -98,7 +98,7 @@ export function withPipelineInputs(
 
 // Docker is a job of its own after the checks, so projects without it don't carry a permanently
 // skipped one: it builds on pull requests, and builds and pushes on a release.
-export function withDocker(checks: string, versioning: boolean): PipelineJob {
+function withDocker(checks: string, versioning: boolean): PipelineJob {
   return {
     id: "docker",
     needs: versioning ? ["version", checks] : [checks],

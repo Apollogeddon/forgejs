@@ -167,9 +167,6 @@ jobs:
       contents: read
       # Gitleaks comments on the pull request it finds a secret in
       pull-requests: write
-    defaults:
-      run:
-        working-directory: ${{ inputs.working_directory }}
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

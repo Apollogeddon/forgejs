@@ -3,7 +3,6 @@ import type { IFileSystem } from "../utils/filesystem.js";
 import { NODE_VERSION, validNodeVersion } from "../versions.js";
 
 export interface Feature {
-  name: string;
   shouldRun: (cfg: InitConfig) => boolean;
   apply: (cwd: string, cfg: InitConfig, fs: IFileSystem, packageJson: PackageJson) => boolean;
   cleanup: (cwd: string, cfg: InitConfig, fs: IFileSystem) => void;
