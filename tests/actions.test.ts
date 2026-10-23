@@ -1097,6 +1097,8 @@ describe("Dependabot auto-merge", () => {
     expect(gate).toContain("github.event.pull_request.user.login == 'dependabot[bot]' && ");
     expect(gate).toContain("github.actor == 'dependabot[bot]' && ");
     expect(gate).toContain("!startsWith(github.head_ref, 'dependabot/github_actions/')");
+    // the scan (osv) stage's image, which Dependabot's docker updates bump in the workflows themselves
+    expect(gate).toContain("!startsWith(github.head_ref, 'dependabot/docker/dot-github/workflows/')");
     expect(gate).not.toContain("||");
     expect(load("merge.yml").on.workflow_call?.inputs?.checks_passed?.default).toBe(false);
   });
