@@ -7,7 +7,7 @@ This page describes each pipeline's stages and the inputs it takes. For the gene
 
 ## Choosing runners
 
-Every pipeline takes a `runs_on` input, default `ubuntu-latest`, for each of its jobs. To use self-hosted runners, set it per repository, for example from a repository variable: `runs_on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}`. The check pipelines' `scan` stage needs a runner that can run a container action; set `scan_runs_on` if yours can't (see the [`scan` stage](#check-pipelines-libraryyml-serviceyml-websiteyml)).
+Every pipeline takes a `runs_on` input, default `ubuntu-latest`, for each of its jobs. To use self-hosted runners, set it per repository, for example from a repository variable: `runs_on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}`. The check pipelines' `scan (osv)` stage runs in a job container; set `scan_runs_on` if your runner can't run one (see the [`scan` stage](#check-pipelines-libraryyml-serviceyml-websiteyml)).
 
 `docker.yml`'s builds and its push use GitHub-hosted runners: the arm64 build because it needs a native Arm machine, and the others because they need a Docker daemon. With `buildkit_endpoint` set, it builds every platform in one job on `runs_on` instead, against a remote BuildKit, so self-hosted runners without a Docker daemon can build and push multi-platform images.
 
@@ -18,7 +18,8 @@ Every pipeline takes a `runs_on` input, default `ubuntu-latest`, for each of its
 The three share their first four stages, job for job:
 
 1. **`lint`**: `npm ci`, then `biome ci` (skipped without a `biome.json`) and `npm run type`.
-2. **`scan`**: Gitleaks secret scan (skip with `enable_secrets: false`), an OSV-Scanner dependency scan and, on a public repository's pull request, GitHub's [dependency review](https://github.com/actions/dependency-review-action), which fails on a dependency it adds with a high or critical vulnerability (a private repository needs GitHub Code Security for it). On a pull request, a high or critical finding (a CVSS score of 7 or more, or GitHub's rating when an advisory has no score) fails the stage, so a change can't add one. Elsewhere, such as on a release, it's an error annotation that doesn't fail it: an advisory published against a dependency you already have shouldn't stop releases, and a [Dependabot security update](/forgejs/docs/workflows/overview#vulnerable-dependencies) can fix it. Lower findings are warning annotations, and every finding is listed in the job summary. OSV-Scanner runs as Google's [OSV-Scanner action](https://github.com/google/osv-scanner-action), pinned to a commit like every action, so Dependabot's GitHub Actions updates keep it current. It's a container action, so the stage needs a Linux runner that can run one: GitHub's hosted runners, or a self-hosted runner set in Kubernetes mode, which runs it as a pod. A caller whose `runs_on` is a self-hosted runner without container support must set `scan_runs_on`, for example to `ubuntu-latest`; a runner set that requires a job container also takes `scan_container`, an image with git in it. If the scanner can't finish, for example because OSV's API is unreachable, the stage fails a pull request, which mustn't merge unchecked, and elsewhere warns and passes. To accept a finding you can't fix yet, list it in an [`osv-scanner.toml`](https://google.github.io/osv-scanner/configuration/) beside the lockfile:
+2. **`scan`**: Gitleaks secret scan (skip with `enable_secrets: false`) and, on a public repository's pull request, GitHub's [dependency review](https://github.com/actions/dependency-review-action), which fails on a dependency it adds with a high or critical vulnerability (a private repository needs GitHub Code Security for it).
+3. **`scan (osv)`**: An [OSV-Scanner](https://google.github.io/osv-scanner/) scan of every lockfile under `working_directory`. It runs in OSV-Scanner's own image, `ghcr.io/google/osv-scanner`, as the job's container, so Dependabot's docker updates keep its version current. That needs a Linux runner that can run a job container: GitHub's hosted runners, or a self-hosted runner set in Kubernetes mode, which runs it as a pod. A caller whose `runs_on` is a self-hosted runner without container support must set `scan_runs_on`, for example to `ubuntu-latest`. On a pull request, a high or critical finding (a CVSS score of 7 or more, or GitHub's rating when an advisory has no score) fails the stage, so a change can't add one. Elsewhere, such as on a release, it's an error annotation that doesn't fail it: an advisory published against a dependency you already have shouldn't stop releases, and a [Dependabot security update](/forgejs/docs/workflows/overview#vulnerable-dependencies) can fix it. Lower findings are warning annotations, and every finding is listed in the job summary. If the scanner can't finish, for example because OSV's API is unreachable, the stage fails a pull request, which mustn't merge unchecked, and elsewhere warns and passes. To accept a finding you can't fix yet, list it in an [`osv-scanner.toml`](https://google.github.io/osv-scanner/configuration/) beside the lockfile:
 
    ```toml
    [[IgnoredVulns]]
@@ -27,20 +28,19 @@ The three share their first four stages, job for job:
    reason = "No fixed version yet; the vulnerable function isn't called"
    ```
 
-3. **`test`**: The test suite (skip with `run_tests: false`), with the coverage report uploaded as `coverage-<artifact_name>`. *(Needs: lint, scan)*
+4. **`test`**: The test suite (skip with `run_tests: false`), with the coverage report uploaded as `coverage-<artifact_name>`. *(Needs: lint, scan, scan (osv))*
 
    `library.yml` and `service.yml` can also test and build on Windows and macOS, as the **`test (windows)`** and **`test (macos)`** stages (see [Windows and macOS](#windows-and-macos)), and run the tests on Linux on other Node.js versions, as a **`test (<version>)`** stage for each one in `test_versions`. Each runs alongside `test`, without uploading coverage. All are off by default, so the generated `.index.yml` spends no Windows or macOS minutes, which a private repository pays for at a higher rate, unless `init` was run with `--windows` or `--macos`; you can also set them on its check job yourself. forgejs's own CI sets all three for a release, and tests its pull requests on Linux and `.nvmrc`'s Node.js only.
-4. **`build`**: Writes `build_env_vars` to `.env`, runs the build, then the project's `publint` and `docs:check` scripts when it defines them, and uploads `dist/` as the `artifact_name` artifact. *(Needs: lint, scan; runs alongside test)*
+5. **`build`**: Writes `build_env_vars` to `.env`, runs the build, then the project's `publint` and `docs:check` scripts when it defines them, and uploads `dist/` as the `artifact_name` artifact. *(Needs: lint, scan, scan (osv); runs alongside test)*
 
 `website.yml` adds:
 
-5. **`check`**: With `check_links` or `check_accessibility`, checks the uploaded build; see [Site checks](#site-checks). *(Needs: build)*
+6. **`check`**: With `check_links` or `check_accessibility`, checks the uploaded build; see [Site checks](#site-checks). *(Needs: build)*
 
 | Input | Default | Description |
 | :--- | :--- | :--- |
 | `runs_on` | `'ubuntu-latest'` | Runner label for every job |
-| `scan_runs_on` | `''` | Runner label for the `scan` stage, which runs OSV-Scanner's container action: a Linux runner that can run one, such as GitHub's hosted runners or a Kubernetes-mode runner set; empty uses `runs_on` |
-| `scan_container` | `''` | Image the `scan` stage runs in, for a runner set that requires a job container, e.g. `buildpack-deps:trixie-scm`; it needs git. Empty runs on the runner itself |
+| `scan_runs_on` | `''` | Runner label for the `scan (osv)` stage, which runs in OSV-Scanner's image: a Linux runner that can run a job container, such as GitHub's hosted runners or a Kubernetes-mode runner set; empty uses `runs_on` |
 | `working_directory` | `'.'` | Directory holding `package.json`, relative to the repository root without a leading `./` |
 | `node_version` | `''` | Node.js version for every job. Empty reads the project's `.nvmrc`, and without one uses forgejs's default; see [Node.js version](/forgejs/docs/configuration#nodejs-version) |
 | `enable_secrets` | `true` | Run the Gitleaks secret scan |

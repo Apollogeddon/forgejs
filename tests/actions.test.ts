@@ -60,9 +60,9 @@ const step = (file: string, job: string, name: string) => steps(file, job).find(
 
 // The spec's stages: a run page reads <pipeline> / <stage>, the same words in every forge
 const STAGES: Record<string, string[]> = {
-  library: ["lint", "scan", "test", "build"],
-  service: ["lint", "scan", "test", "test (windows)", "test (macos)", "test (databases)", "build"],
-  website: ["lint", "scan", "test", "build", "check", "check (lighthouse)"],
+  library: ["lint", "scan", "scan (osv)", "test", "build"],
+  service: ["lint", "scan", "scan (osv)", "test", "test (windows)", "test (macos)", "test (databases)", "build"],
+  website: ["lint", "scan", "scan (osv)", "test", "build", "check", "check (lighthouse)"],
   debian: ["build", "test"],
   docker: ["build", "test", "push"],
   version: ["release"],
@@ -607,7 +607,7 @@ describe("Check pipelines", () => {
 
   // the stages a check pipeline shares are the same jobs in each
   it("should share their lint, scan, test and build stages", () => {
-    for (const job of ["lint", "scan", "test", "build"]) {
+    for (const job of ["lint", "scan", "scan-osv", "test", "build"]) {
       const library = load("library.yml").jobs[job];
       for (const file of checkPipelines) expect(load(file).jobs[job], `${file}:${job}`).toEqual(library);
     }
@@ -634,7 +634,7 @@ describe("Check pipelines", () => {
     }
   });
 
-  it.each(["lint", "scan", "test", "build"])("should check out the ref in the %s stage", (job) => {
+  it.each(["lint", "scan", "scan-osv", "test", "build"])("should check out the ref in the %s stage", (job) => {
     const checkout = steps("library.yml", job).find((s) => s.uses?.startsWith("actions/checkout"));
     expect(checkout?.with?.ref).toBe("${{ inputs.ref }}");
     expect(checkout?.with?.["persist-credentials"]).toBe(false);
@@ -661,7 +661,7 @@ describe("Check pipelines", () => {
     const job = wf.jobs["test-versions"];
     expect(job?.name).toBe("test (${{ matrix.version }})");
     expect(job?.if).toBe("inputs.run_tests && inputs.test_versions != ''");
-    expect(job?.needs).toEqual(["lint", "scan"]);
+    expect(job?.needs).toEqual(["lint", "scan", "scan-osv"]);
     expect(job?.steps?.at(-1)?.run).toBe("npm test");
     // only the test stage uploads coverage
     expect(job?.steps?.some((s) => s.uses?.startsWith("actions/upload-artifact"))).toBe(false);
@@ -688,7 +688,7 @@ describe("Check pipelines", () => {
       expect(job?.name).toBe(`test (${os})`);
       // the stage builds too, so it runs without the tests
       expect(job?.if).toBe(`${input} != ''`);
-      expect(job?.needs).toEqual(["lint", "scan"]);
+      expect(job?.needs).toEqual(["lint", "scan", "scan-osv"]);
       expect(job?.["runs-on"]).toBe(
         `\${{ startsWith(${input}, '{') && (fromJSON(${input}).runs_on || '${runner}') || ${input} }}`,
       );
@@ -938,15 +938,19 @@ describe("Main's pipeline after an auto-merge", () => {
 });
 
 describe("OSV scan", () => {
-  const scan = step("library.yml", "scan", "Scan with OSV");
-  const report = step("library.yml", "scan", "Report OSV findings");
+  const scan = step("library.yml", "scan-osv", "Scan with OSV");
+  const report = step("library.yml", "scan-osv", "Report OSV findings");
 
   // runs the report step's github-script body with a stand-in for its core API; null writes no report
   async function runReport(outcome: string, results: unknown[] | null = [], enforce = true) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "forgejs-osv-"));
-    if (results) fs.writeFileSync(path.join(dir, "osv-results.json"), JSON.stringify({ results }));
-    const calls: Record<string, string[]> = { info: [], warning: [], error: [], setFailed: [] };
-    const record = (kind: string) => (message: string) => calls[kind]?.push(message);
+    // the scanner reports absolute paths, inside the workspace
+    if (results) fs.writeFileSync(path.join(dir, "osv-results.json"), JSON.stringify({ results }).replaceAll(WORKSPACE, dir));
+    const calls: Record<string, string[]> = { info: [], warning: [], error: [], setFailed: [], file: [] };
+    const record = (kind: string) => (message: string, props?: { file?: string }) => {
+      calls[kind]?.push(message);
+      if (props?.file !== undefined) calls.file?.push(props.file);
+    };
     const core = {
       info: record("info"),
       warning: record("warning"),
@@ -971,53 +975,43 @@ describe("OSV scan", () => {
     return calls;
   }
 
-  // the path the scanner's container reports, where the workspace is mounted
-  const lockfile = (dir = "/github/workspace") => ({ source: { path: `${dir}/package-lock.json` } });
+  const WORKSPACE = "<workspace>";
+  const lockfile = (dir = WORKSPACE) => ({ source: { path: `${dir}/package-lock.json` } });
   const finding = (id: string, maxSeverity: string, rating?: string) => ({
     package: { name: `pkg-${id}`, version: "1.0.0" },
     vulnerabilities: [{ id, summary: `advisory ${id}`, database_specific: rating ? { severity: rating } : {} }],
     groups: [{ ids: [id], max_severity: maxSeverity }],
   });
 
-  // Dependabot sees an action's version, not a downloaded binary's
-  it("should scan with OSV-Scanner's own action, pinned by commit", () => {
-    expect(scan?.uses).toBe(
-      "google/osv-scanner-action/osv-scanner-action@b1d267aea5211fa648d9d442fa64b90dbdcbdd36",
-    );
-    expect(read("library.yml")).toContain(`uses: ${scan?.uses} # v2.7.0`);
-    expect(scan?.run).toBeUndefined();
-    for (const file of files) {
-      expect(read(file), file).not.toContain("osv-scanner_SHA256SUMS");
-      expect(read(file), file).not.toContain("releases/latest/download/osv-scanner");
+  // a runner set with no Docker daemon runs a job container, but refuses a container action
+  it("should scan in OSV-Scanner's own image, as a stage of its own", () => {
+    for (const file of ["library.yml", "service.yml", "website.yml"]) {
+      const job = load(file).jobs["scan-osv"];
+      expect(job?.name).toBe("scan (osv)");
+      // an image key, so Dependabot's docker updates keep it current
+      expect(job?.container).toEqual({ image: expect.stringMatching(/^ghcr\.io\/google\/osv-scanner:v\d+\.\d+\.\d+$/) });
+      expect(job?.["runs-on"]).toBe("${{ inputs.scan_runs_on || inputs.runs_on }}");
+      expect(job?.permissions).toEqual({ contents: "read" });
+      expect(load(file).on.workflow_call?.inputs?.scan_runs_on).toMatchObject({ type: "string", required: false, default: "" });
+      expect(load(file).on.workflow_call?.inputs?.scan_container).toBeUndefined();
+      expect(read(file), file).not.toContain("google/osv-scanner-action");
     }
+  });
+
+  // the rest of the scan keeps to runs_on, with no container
+  it("should keep Gitleaks and the dependency review on runs_on", () => {
+    const job = load("library.yml").jobs.scan;
+    expect(job?.["runs-on"]).toBe("${{ inputs.runs_on }}");
+    expect(job?.container).toBeUndefined();
+    expect(job?.steps?.map((s) => s.name)).toEqual(["Check out", "Scan with Gitleaks", "Review dependencies"]);
   });
 
   it("should write a JSON report of the working directory into the workspace", () => {
-    const args = String(scan?.with?.["scan-args"]).split("\n");
-    expect(args).toEqual(["--format=json", "--output-file=osv-results.json", "--recursive", "./${{ inputs.working_directory }}"]);
+    expect(scan?.run).toBe(
+      '/osv-scanner scan source --format=json --output-file="$GITHUB_WORKSPACE/osv-results.json" --recursive --allow-no-lockfiles .',
+    );
+    expect(load("library.yml").jobs["scan-osv"]?.defaults?.run?.["working-directory"]).toBe("${{ inputs.working_directory }}");
     expect(report?.env?.OSV_REPORT).toBe("osv-results.json");
-  });
-
-  // a container action needs a runner that can run one: a hosted runner or a Kubernetes-mode runner set
-  it("should run the scan stage where its inputs say, defaulting to runs_on and no container", () => {
-    for (const file of ["library.yml", "service.yml", "website.yml"]) {
-      const inputs = load(file).on.workflow_call?.inputs ?? {};
-      for (const name of ["scan_runs_on", "scan_container"]) {
-        expect(inputs[name], `${file}:${name}`).toMatchObject({ type: "string", required: false, default: "" });
-      }
-      const job = load(file).jobs.scan;
-      expect(job?.["runs-on"]).toBe("${{ inputs.scan_runs_on || inputs.runs_on }}");
-      expect(job?.container).toBe("${{ inputs.scan_container }}");
-      expect(job?.permissions).toEqual({ contents: "read", "pull-requests": "write" });
-    }
-  });
-
-  // in a job container git runs as root over the runner user's checkout, and Gitleaks needs git
-  it("should trust the workspace right after checking it out", () => {
-    const list = steps("library.yml", "scan");
-    expect(list[0]?.uses).toMatch(/^actions\/checkout@/);
-    expect(list[1]?.name).toBe("Trust the workspace");
-    expect(list[1]?.run).toBe('git config --global --add safe.directory "$GITHUB_WORKSPACE"');
   });
 
   // private repositories need GitHub Code Security for it
@@ -1028,7 +1022,7 @@ describe("OSV scan", () => {
     expect(review?.with?.["fail-on-severity"]).toBe("high");
   });
 
-  // the action exits non-zero on a finding as on a failure, so the report decides
+  // the scanner exits non-zero on a finding as on a failure, so the report decides
   it("should never swallow the scanner's result", () => {
     expect(scan?.["continue-on-error"]).toBe(true);
     expect(report?.env?.OSV_OUTCOME).toBe("${{ steps.osv.outcome }}");
@@ -1061,8 +1055,9 @@ describe("OSV scan", () => {
   });
 
   it("should name the lockfile relative to the workspace", async () => {
-    const calls = await runReport("failure", [{ ...lockfile("/github/workspace/pkg"), packages: [finding("GHSA-low", "3.1")] }]);
+    const calls = await runReport("failure", [{ ...lockfile(`${WORKSPACE}/pkg`), packages: [finding("GHSA-low", "3.1")] }]);
     expect(calls.warning).toEqual([expect.stringContaining("GHSA-low")]);
+    expect(calls.file).toEqual([path.join("pkg", "package-lock.json")]);
   });
 
   it("should pass a clean scan", async () => {
@@ -1071,7 +1066,7 @@ describe("OSV scan", () => {
     expect(calls.warning).toEqual([]);
   });
 
-  // the action leaves no report when there's no lockfile
+  // a report-less success, as when nothing was scanned
   it("should note that there was nothing to scan when it succeeded without a report", async () => {
     const calls = await runReport("success", null);
     expect(calls.info).toEqual(["No lockfiles to scan"]);

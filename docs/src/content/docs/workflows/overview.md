@@ -15,9 +15,9 @@ A root job's id is the pipeline's name. A second call to the same pipeline names
 
 | Pipeline | Stages | Purpose |
 | :--- | :--- | :--- |
-| `library.yml` | lint, scan, test, test (windows), test (macos), test (&lt;version&gt;), build | A library's checks, and the build `publish.yml` ships |
-| `service.yml` | lint, scan, test, test (windows), test (macos), test (&lt;version&gt;), build | A backend's checks, and the build `debian.yml` packages |
-| `website.yml` | lint, scan, test, build, check | A website's checks, the build, and optional link and accessibility checks of it |
+| `library.yml` | lint, scan, scan (osv), test, test (windows), test (macos), test (&lt;version&gt;), build | A library's checks, and the build `publish.yml` ships |
+| `service.yml` | lint, scan, scan (osv), test, test (windows), test (macos), test (&lt;version&gt;), build | A backend's checks, and the build `debian.yml` packages |
+| `website.yml` | lint, scan, scan (osv), test, build, check | A website's checks, the build, and optional link and accessibility checks of it |
 | `debian.yml` | build, test | The `.deb`, packaged from the build with Snodeb, and read back |
 | `docker.yml` | build, build (arm64), push | A multi-platform image, pushed to GHCR on a release |
 | `version.yml` | release | release-please: the release pull request, then the tag and GitHub release |
@@ -26,7 +26,7 @@ A root job's id is the pipeline's name. A second call to the same pipeline names
 | `patch.yml` | update | Retired: only warns that Dependabot security updates replace it; see [Vulnerable dependencies](#vulnerable-dependencies) |
 | `merge.yml` | review, squash | A review request on Dependabot's pull requests, and their squash merge once the checks pass |
 
-The stages are `lint` (Biome and the type check), `scan` (Gitleaks and OSV-Scanner), `test`, `build`, `check` (a check of a built result), `push`, `release`, `package`, `assets`, `attest`, `deploy`, `update`, `review` and `squash`.
+The stages are `lint` (Biome and the type check), `scan` (Gitleaks, and OSV-Scanner as `scan (osv)`), `test`, `build`, `check` (a check of a built result), `push`, `release`, `package`, `assets`, `attest`, `deploy`, `update`, `review` and `squash`.
 
 ## When each pipeline runs
 
@@ -165,7 +165,7 @@ For GitHub Pages, set **Settings → Pages → Source** to **GitHub Actions**.
 
 ## Vulnerable dependencies
 
-Turn on **Settings → Code security → Dependabot security updates**. Dependabot then opens a pull request for each dependency with a known vulnerability, as soon as a fixed version exists, and the checks and `merge` handle it like any other update; it's free in private repositories too. The `scan` stage's OSV-Scanner stops a pull request from adding a high or critical vulnerability.
+Turn on **Settings → Code security → Dependabot security updates**. Dependabot then opens a pull request for each dependency with a known vulnerability, as soon as a fixed version exists, and the checks and `merge` handle it like any other update; it's free in private repositories too. The `scan (osv)` stage's OSV-Scanner stops a pull request from adding a high or critical vulnerability.
 
 Earlier versions ran a `patch` job weekly that committed `osv-scanner fix`'s changes straight to `main`. `patch.yml` now only warns that it does nothing, so a workflow still calling it keeps working; remove the `patch` job, and the `schedule` trigger if nothing else uses it, from your `.index.yml`.
 
@@ -182,4 +182,4 @@ On a public repository, also turn on two things GitHub offers free there, in **S
 - **CodeQL**: under **Code scanning**, choose **Set up → Default**, with JavaScript/TypeScript and GitHub Actions as its languages.
 - **Secret scanning push protection**, which blocks a push that contains a secret.
 
-On a private repository on a free plan neither is available; the `scan` stage's Gitleaks and OSV-Scanner cover secrets and vulnerable dependencies instead.
+On a private repository on a free plan neither is available; the `scan` stages' Gitleaks and OSV-Scanner cover secrets and vulnerable dependencies instead.

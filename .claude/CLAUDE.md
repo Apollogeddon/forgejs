@@ -24,7 +24,7 @@ forgejs is a project-scaffolding CLI: `src/index.ts` parses argv (`node:util` `p
 Generated file *content* lives in `src/templates/*.ts` as plain string/function exports, re-exported via `src/templates/index.ts`. Most extend forgejs's own shipped base configs (`configs/*.json`/`*.cjs`, published via `package.json` `exports`) — the layered-config pattern: a generated project's `biome.json`/`tsconfig.json`/etc. `extends` the version bundled with forgejs, and `core.ts` adds `@apollogeddon/forgejs` itself as a `devDependency` so those files actually resolve after `npm install`.
 
 **CI.** `.github/workflows/` holds forgejs's reusable pipelines, which projects call at `@main`:
-- **Check pipelines:** `library`, `service` and `website` (stages lint, scan, test, build, plus `check` for the website).
+- **Check pipelines:** `library`, `service` and `website` (stages lint, scan, scan (osv), test, build, plus `check` for the website).
 - **Packaging:** `debian` and `docker`.
 - **Release and delivery:** `version` (release-please), `publish` (package, assets, attest) and `pages` (deploy).
 - **Housekeeping:** `merge` (Dependabot review and squash), and `patch`, a retired stub that only warns, kept so projects still calling it don't fail (Dependabot security updates replace it).
