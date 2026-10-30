@@ -58,7 +58,7 @@
     "prepublishOnly": "npm run build && npm run type && npm run test && npm run publint"
   },
   "dependencies": {
-    "@biomejs/biome": "2.5.15",
+    "@biomejs/biome": "2.6.3",
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
     "@types/node": "26.6.5",
@@ -66,10 +66,10 @@
     "lefthook": "2.2.2",
     "publint": "0.3.25",
     "snodeb": "1.1.4",
-    "tsdown": "0.23.1",
+    "tsdown": "0.23.2",
     "tsx": "4.23.15",
     "typescript": "6.0.3",
-    "vite": "8.3.4",
+    "vite": "8.3.5",
     "vitest": "5.0.5"
   },
   "devDependencies": {
