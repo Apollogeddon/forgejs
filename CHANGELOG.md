@@ -1,5 +1,14 @@
 # Changelog
 
+## [7.1.1](https://github.com/Apollogeddon/forgejs/compare/v7.1.0...v7.1.1) (2026-11-02)
+
+
+### Bug Fixes
+
+* **deps:** bump the dependencies group with 3 updates ([#253](https://github.com/Apollogeddon/forgejs/issues/253)) ([55d4198](https://github.com/Apollogeddon/forgejs/commit/55d419880368e71905493619b78ac17149af72e9))
+* **deps:** pin re2js to 2.8.x from 2.8.7 in the docs, past GHSA-gg6h-894w-4m9c ([#256](https://github.com/Apollogeddon/forgejs/issues/256)) ([4df164d](https://github.com/Apollogeddon/forgejs/commit/4df164d0b2051f982f7a60bf5aaf7329e4266e64))
+* leave markdown out of the shared biome config, as biome 2.6 would reformat generated docs ([#259](https://github.com/Apollogeddon/forgejs/issues/259)) ([f9762fd](https://github.com/Apollogeddon/forgejs/commit/f9762fd78d92d8223126e84f4ca55f76237eb1ab))
+
 ## [7.1.0](https://github.com/Apollogeddon/forgejs/compare/v7.0.0...v7.1.0) (2026-10-23)
 
 
