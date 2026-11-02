@@ -940,8 +940,9 @@ describe("OSV scan", () => {
   // runs the report step's github-script body with a stand-in for its core API; null writes no report
   async function runReport(outcome: string, results: unknown[] | null = [], enforce = true) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "forgejs-osv-"));
-    // the scanner reports absolute paths, inside the workspace
-    if (results) fs.writeFileSync(path.join(dir, "osv-results.json"), JSON.stringify({ results }).replaceAll(WORKSPACE, dir));
+    // the scanner reports absolute paths, inside the workspace; escaped as JSON, as Windows paths hold backslashes
+    const escaped = JSON.stringify(dir).slice(1, -1);
+    if (results) fs.writeFileSync(path.join(dir, "osv-results.json"), JSON.stringify({ results }).replaceAll(WORKSPACE, escaped));
     const calls: Record<string, string[]> = { info: [], warning: [], error: [], setFailed: [], file: [] };
     const record = (kind: string) => (message: string, props?: { file?: string }) => {
       calls[kind]?.push(message);
