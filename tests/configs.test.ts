@@ -34,6 +34,19 @@ describe("Code Configurations Imports", () => {
     expect(configModule.default).toBeDefined();
     expect(configModule.default.extends).toBeDefined();
   });
+
+  // a project's CHANGELOG.md and generated docs belong to release-please and typedoc, not the formatter
+  it("should leave Markdown out of biome.json", () => {
+    const biome = JSON.parse(fs.readFileSync(path.join(process.cwd(), "configs", "biome.json"), "utf8"));
+    // an override, as extends merges files.includes and would widen a project's own
+    expect(biome.files).toBeUndefined();
+    expect(biome.overrides).toContainEqual({
+      includes: ["**/*.md"],
+      formatter: { enabled: false },
+      linter: { enabled: false },
+      assist: { enabled: false },
+    });
+  });
 });
 
 const rootDir = path.join(process.cwd(), "configs");
