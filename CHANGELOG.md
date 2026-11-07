@@ -1,5 +1,13 @@
 # Changelog
 
+## [7.1.2](https://github.com/Apollogeddon/forgejs/compare/v7.1.1...v7.1.2) (2026-11-07)
+
+
+### Bug Fixes
+
+* **deps:** bump the dependencies group across 1 directory with 3 updates ([#261](https://github.com/Apollogeddon/forgejs/issues/261)) ([98593a5](https://github.com/Apollogeddon/forgejs/commit/98593a5d9a902dc2b03fbc1352c4188011242178))
+* **deps:** bump the vitest group with 2 updates ([#260](https://github.com/Apollogeddon/forgejs/issues/260)) ([ef851d0](https://github.com/Apollogeddon/forgejs/commit/ef851d0c1fd9fff8b6ec85b592f364545cf4b802))
+
 ## [7.1.1](https://github.com/Apollogeddon/forgejs/compare/v7.1.0...v7.1.1) (2026-11-02)
 
 
