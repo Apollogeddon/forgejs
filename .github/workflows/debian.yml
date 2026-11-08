@@ -73,6 +73,9 @@ jobs:
           scope: "@${{ github.repository_owner }}"
           # no dependency cache for the release build, as a poisoned cache would be packaged
           package-manager-cache: false
+      # forgejs is published as @apollogeddon/forgejs, so a project owned by another account reads that scope too
+      - name: Read forgejs's scope
+        run: echo "@apollogeddon:registry=https://npm.pkg.github.com" >> "$NPM_CONFIG_USERCONFIG"
       - name: Install dependencies
         run: npm ci
         env:

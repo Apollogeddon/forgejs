@@ -131,7 +131,7 @@ If `.github/workflows/index.yml` (or `ci.yml` or `debian.yml`) calls forgejs's p
 
 ## Secrets
 
-None are required. The pipelines use the run's `GITHUB_TOKEN`, which a called workflow gets without `secrets: inherit`, and the `version` job passes one optional secret, a GitHub App's key, by name; see [Release pull requests' checks](#release-pull-requests-checks). It installs `@apollogeddon` packages from GitHub Packages, publishes libraries there, and drives release-please and the Dependabot merge. Don't add `secrets: inherit`: it hands every repository secret to a workflow that lives in another repository. The check pipelines take one optional secret, `GH_TOKEN`, for a [pre-build command](/forgejs/docs/workflows/reference#generating-content-before-the-build); pass it by name if you need it.
+None are required. The pipelines use the run's `GITHUB_TOKEN`, which a called workflow gets without `secrets: inherit`, and the `version` job passes one optional secret, a GitHub App's key, by name; see [Release pull requests' checks](#release-pull-requests-checks). It installs the repository owner's packages, and `@apollogeddon/forgejs`, from GitHub Packages, publishes libraries there, and drives release-please and the Dependabot merge. Don't add `secrets: inherit`: it hands every repository secret to a workflow that lives in another repository. The check pipelines take one optional secret, `GH_TOKEN`, for a [pre-build command](/forgejs/docs/workflows/reference#generating-content-before-the-build); pass it by name if you need it.
 
 GitHub doesn't start workflow runs for events made with `GITHUB_TOKEN`. So release-please's release pull requests don't run your checks on their own unless it uses a GitHub App's token, and the push a Dependabot merge makes to `main` doesn't run the pipeline either. The `merge` pipeline therefore sends a `repository_dispatch` event, `auto-merged`, once the pull request has merged: one of the two events `GITHUB_TOKEN` may start a run with. `.index.yml` listens for it, so `main` runs `version` and release-please opens or updates its release pull request. The event runs on the default branch.
 
@@ -151,7 +151,7 @@ Each root job grants what its pipeline's stages need, and nothing else:
 
 | Root job | Permissions | Needed for |
 | :--- | :--- | :--- |
-| `library`, `service`, `website` | `contents: read`, `packages: read`, `pull-requests: write` | Installing `@apollogeddon` packages; Gitleaks' comment on a pull request it finds a secret in |
+| `library`, `service`, `website` | `contents: read`, `packages: read`, `pull-requests: write` | Installing the owner's and forgejs's packages; Gitleaks' comment on a pull request it finds a secret in |
 | `debian` | `contents: read`, `packages: read` | Installing packages for the `.deb` |
 | `docker` | `contents: read`, `packages: write` | Pushing to GHCR |
 | `version` | `contents: write`, `pull-requests: write` | release-please's tags, releases and release pull requests |

@@ -5,8 +5,11 @@ import { createFile, type Feature, nodeVersion, removeFile, setScript } from "./
 export const DockerFeature: Feature = {
   shouldRun: (cfg) => cfg.docker,
   apply: (cwd, cfg, fs, packageJson) => {
+    const name = packageJson.name ? String(packageJson.name) : "";
+    const scope = name.startsWith("@") ? name.split("/")[0] : undefined;
     const content = (cfg.website ? templates.dockerConfigWebsite : templates.dockerConfigBackend)(
       nodeVersion(cwd, cfg, fs),
+      scope,
     );
     const dockerfile = fs.join(cwd, "Dockerfile");
     if (cfg.node !== undefined && !cfg.force && fs.existsSync(dockerfile)) {
@@ -18,7 +21,7 @@ export const DockerFeature: Feature = {
     const b = createFile(cwd, ".dockerignore", templates.dockerIgnore, cfg, fs);
 
     const image = imageName(packageJson.name ? String(packageJson.name) : fs.basename(cwd));
-    // NODE_AUTH_TOKEN (a token with read:packages) lets the build install @apollogeddon packages
+    // NODE_AUTH_TOKEN (a token with read:packages) lets the build install packages from GitHub Packages
     setScript(packageJson, cfg, "docker:build", `docker build --secret id=npm_token,env=NODE_AUTH_TOKEN -t ${image} .`);
     const ports = cfg.website ? "8080:80" : "3000:3000";
     setScript(packageJson, cfg, "docker:run", `docker run --rm -p ${ports} ${image}`);

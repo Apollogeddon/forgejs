@@ -117,6 +117,16 @@ describe("CLI Init Command", () => {
     expect(dockerfile).toContain("USER node");
   });
 
+  it("should read the project's own scope in the Dockerfile, beside forgejs's", () => {
+    fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify({ name: "@itscity/example", version: "1.0.0" }));
+    execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --docker`, { cwd: tempDir });
+
+    const dockerfile = fs.readFileSync(path.join(tempDir, "Dockerfile"), "utf-8");
+    expect(dockerfile).toContain(
+      "@apollogeddon:registry=https://npm.pkg.github.com\\n@itscity:registry=https://npm.pkg.github.com\\n",
+    );
+  });
+
   it("should name a scoped package's image for the package alone", () => {
     fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify({ name: "@acme/my-service" }));
     execSync(`node "${TSX_CLI}" ${CLI_SCRIPT} init --docker`, { cwd: tempDir });
