@@ -13,12 +13,15 @@ Forge.js sets up TypeScript and Node.js projects with a standard toolchain and a
 
 ## Install
 
-Point the `@apollogeddon` scope at GitHub Packages in your project's `.npmrc`. Keep the token in your user-level `~/.npmrc` or the environment, not in the repository:
+Point the `@apollogeddon` scope at GitHub Packages in your project's `.npmrc`, and your own scope too if your packages are published there under another account's name (`@your-org` here). Keep the token in your user-level `~/.npmrc` or the environment, not in the repository:
 
 ```ini
 @apollogeddon:registry=https://npm.pkg.github.com
+@your-org:registry=https://npm.pkg.github.com
 //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
 ```
+
+In CI, the pipelines read both: the repository owner's scope, and `@apollogeddon` for forgejs itself. The Dockerfile `--docker` writes reads both too, taking your scope from `package.json`'s `name`.
 
 Install the package as a development dependency:
 
