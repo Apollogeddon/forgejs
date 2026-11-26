@@ -938,11 +938,20 @@ describe("OSV scan", () => {
   const report = step("library.yml", "scan-osv", "Report OSV findings");
 
   // runs the report step's github-script body with a stand-in for its core API; null writes no report
-  async function runReport(outcome: string, results: unknown[] | null = [], enforce = true) {
+  // base is the base branch's report, written only when given, with its scan's outcome
+  async function runReport(
+    outcome: string,
+    results: unknown[] | null = [],
+    enforce = true,
+    base: { outcome: string; results?: unknown[] } = { outcome: "success", results: [] },
+  ) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "forgejs-osv-"));
     // the scanner reports absolute paths, inside the workspace; escaped as JSON, as Windows paths hold backslashes
     const escaped = JSON.stringify(dir).slice(1, -1);
     if (results) fs.writeFileSync(path.join(dir, "osv-results.json"), JSON.stringify({ results }).replaceAll(WORKSPACE, escaped));
+    if (base.results) {
+      fs.writeFileSync(path.join(dir, "osv-base.json"), JSON.stringify({ results: base.results }).replaceAll(WORKSPACE, escaped));
+    }
     const calls: Record<string, string[]> = { info: [], warning: [], error: [], setFailed: [], file: [] };
     const record = (kind: string) => (message: string, props?: { file?: string }) => {
       calls[kind]?.push(message);
@@ -959,6 +968,8 @@ describe("OSV scan", () => {
     Object.assign(process.env, {
       OSV_OUTCOME: outcome,
       OSV_REPORT: String(report?.env?.OSV_REPORT),
+      OSV_BASE_OUTCOME: base.outcome,
+      OSV_BASE_REPORT: String(report?.env?.OSV_BASE_REPORT),
       OSV_ENFORCE: String(enforce),
       GITHUB_WORKSPACE: dir,
     });
@@ -1028,10 +1039,75 @@ describe("OSV scan", () => {
   });
 
   it("should annotate a high finding outside a pull request, so a release still runs", async () => {
-    const calls = await runReport("failure", [{ ...lockfile(), packages: [finding("GHSA-high", "9.8")] }], false);
+    const calls = await runReport("failure", [{ ...lockfile(), packages: [finding("GHSA-high", "9.8")] }], false, {
+      outcome: "skipped",
+    });
     expect(calls.error).toEqual([expect.stringContaining("GHSA-high")]);
     expect(calls.setFailed).toEqual([]);
-    expect(calls.warning).toEqual([expect.stringContaining("fails pull requests")]);
+    expect(calls.warning).toEqual([expect.stringContaining("a pull request that adds one fails")]);
+  });
+
+  // a vulnerability no update fixes yet would otherwise fail every pull request, so nothing auto-merges,
+  // and two security updates, each leaving the other's advisory, would never merge
+  it("should annotate, not fail, a high finding already on the base branch", async () => {
+    const high = { ...lockfile(), packages: [finding("GHSA-high", "9.8")] };
+    const calls = await runReport("failure", [high], true, { outcome: "failure", results: [high] });
+    expect(calls.setFailed).toEqual([]);
+    expect(calls.error).toEqual([]);
+    expect(calls.warning).toEqual([
+      expect.stringContaining("GHSA-high"),
+      expect.stringContaining("1 high or critical vulnerability already on the base branch"),
+    ]);
+  });
+
+  it("should fail on a high finding the pull request adds, beside one already on the base branch", async () => {
+    const old = finding("GHSA-old", "9.8");
+    const calls = await runReport("failure", [{ ...lockfile(), packages: [old, finding("GHSA-new", "8.1")] }], true, {
+      outcome: "failure",
+      results: [{ ...lockfile(), packages: [old] }],
+    });
+    expect(calls.error).toEqual([expect.stringContaining("GHSA-new")]);
+    expect(calls.setFailed).toEqual([expect.stringContaining("1 high or critical vulnerability this pull request adds")]);
+  });
+
+  // the same advisory in another package is a new finding
+  it("should match a base finding by package as well as advisory", async () => {
+    const mine = finding("GHSA-x", "9.8");
+    const theirs = { ...mine, package: { name: "other", version: "1.0.0" } };
+    const calls = await runReport("failure", [{ ...lockfile(), packages: [mine] }], true, {
+      outcome: "failure",
+      results: [{ ...lockfile(), packages: [theirs] }],
+    });
+    expect(calls.setFailed).toHaveLength(1);
+  });
+
+  // a pull request still can't merge unchecked when the comparison is missing
+  it("should treat every high finding as new when the base branch couldn't be scanned", async () => {
+    const calls = await runReport("failure", [{ ...lockfile(), packages: [finding("GHSA-high", "9.8")] }], true, {
+      outcome: "failure",
+    });
+    expect(calls.warning).toEqual([expect.stringContaining("base branch couldn't be scanned")]);
+    expect(calls.setFailed).toHaveLength(1);
+  });
+
+  it("should scan the pull request's base branch beside its own checkout", () => {
+    const checkout = step("library.yml", "scan-osv", "Check out the base branch");
+    expect(checkout?.if).toBe("github.event_name == 'pull_request'");
+    expect(checkout?.with).toEqual({
+      ref: "${{ github.event.pull_request.base.sha }}",
+      path: ".osv-base",
+      "persist-credentials": false,
+    });
+    const base = step("library.yml", "scan-osv", "Scan the base branch with OSV");
+    expect(base?.id).toBe("osv-base");
+    expect(base?.["continue-on-error"]).toBe(true);
+    expect(base?.["working-directory"]).toBe(".osv-base/${{ inputs.working_directory }}");
+    expect(base?.run).toBe(String(scan?.run).replace("osv-results.json", "osv-base.json"));
+    expect(report?.env?.OSV_BASE_OUTCOME).toBe("${{ steps.osv-base.outcome }}");
+    expect(report?.env?.OSV_BASE_REPORT).toBe("osv-base.json");
+    // after the pull request's own scan, so its recursive scan never reads the base checkout
+    const names = steps("library.yml", "scan-osv").map((s) => s.name);
+    expect(names.indexOf("Scan with OSV")).toBeLessThan(names.indexOf("Check out the base branch"));
   });
 
   it("should fail on a high or critical finding and annotate the rest", async () => {

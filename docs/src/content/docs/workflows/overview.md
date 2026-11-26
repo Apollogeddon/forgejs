@@ -165,7 +165,7 @@ For GitHub Pages, set **Settings → Pages → Source** to **GitHub Actions**.
 
 ## Vulnerable dependencies
 
-Turn on **Settings → Code security → Dependabot security updates**. Dependabot then opens a pull request for each dependency with a known vulnerability, as soon as a fixed version exists, and the checks and `merge` handle it like any other update; it's free in private repositories too. The `scan (osv)` stage's OSV-Scanner stops a pull request from adding a high or critical vulnerability.
+Turn on **Settings → Code security → Dependabot security updates**. Dependabot then opens a pull request for each dependency with a known vulnerability, as soon as a fixed version exists, and the checks and `merge` handle it like any other update; it's free in private repositories too. The `scan (osv)` stage's OSV-Scanner stops a pull request from adding a high or critical vulnerability, and only annotates one already on the base branch, so an advisory nothing fixes yet doesn't hold up every other update.
 
 Earlier versions ran a `patch` job weekly that committed `osv-scanner fix`'s changes straight to `main`. `patch.yml` now only warns that it does nothing, so a workflow still calling it keeps working; remove the `patch` job, and the `schedule` trigger if nothing else uses it, from your `.index.yml`.
 
