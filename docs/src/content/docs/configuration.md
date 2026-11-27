@@ -207,11 +207,18 @@ registries:
     # Without a committed .npmrc, Dependabot needs the scope this registry serves.
     scope: "@apollogeddon"
     token: ${{ secrets.PACKAGES_TOKEN }}
+  # Only if your own packages are published under another account's scope, e.g. an organisation's.
+  npm-github-own:
+    type: npm-registry
+    url: https://npm.pkg.github.com
+    scope: "@your-org"
+    token: ${{ secrets.PACKAGES_TOKEN }}
 
 updates:
   - package-ecosystem: "npm"
     registries:
       - npm-github
+      - npm-github-own
     # ...the rest of the generated entry
 ```
 

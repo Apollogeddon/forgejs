@@ -161,6 +161,19 @@ describe.each(pipelines)("Pipeline %s", (file) => {
       for (const s of job.steps ?? []) expect(s.name, `${file}:${id} has an unnamed step`).toBeTruthy();
     }
   });
+
+  // a project owned by another account still installs @apollogeddon/forgejs from GitHub Packages
+  it("reads forgejs's scope wherever it sets up the owner's", () => {
+    for (const [id, job] of Object.entries(wf.jobs)) {
+      const steps = job.steps ?? [];
+      steps.forEach((s, i) => {
+        if (s.with?.["registry-url"] !== "https://npm.pkg.github.com") return;
+        expect(steps[i + 1]?.run, `${file}:${id}`).toBe(
+          'echo "@apollogeddon:registry=https://npm.pkg.github.com" >> "$NPM_CONFIG_USERCONFIG"',
+        );
+      });
+    }
+  });
 });
 
 // the caller's grant must cover every permission a called job asks for, or GitHub refuses the whole run
