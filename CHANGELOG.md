@@ -1,5 +1,16 @@
 # Changelog
 
+## [7.1.3](https://github.com/Apollogeddon/forgejs/compare/v7.1.2...v7.1.3) (2026-11-28)
+
+
+### Bug Fixes
+
+* **ci:** give the pages package stage empty permissions, as it needs none ([432d98e](https://github.com/Apollogeddon/forgejs/commit/432d98e02824f38f27a2c1008c051d36a82da1bb))
+* **ci:** upload the pages artifact a job before deploy, so deploy-pages finds it listed ([3edc01c](https://github.com/Apollogeddon/forgejs/commit/3edc01c0e6226adb3fecc149b0723b1389ddf59a))
+* **ci:** upload the pages artifact a job before deploy, so deploy-pages finds it listed ([ebabf63](https://github.com/Apollogeddon/forgejs/commit/ebabf638da984b0b55a2f2654af51b00a7c64de8))
+* **deps:** bump the dependencies group with 2 updates ([#276](https://github.com/Apollogeddon/forgejs/issues/276)) ([1e62b24](https://github.com/Apollogeddon/forgejs/commit/1e62b2464e1d617a202068b002809c87a512c1b2))
+* **deps:** bump the vitest group across 1 directory with 2 updates ([#275](https://github.com/Apollogeddon/forgejs/issues/275)) ([c745966](https://github.com/Apollogeddon/forgejs/commit/c745966ba0b0ceca93b90305bd2b7e5903e5de9b))
+
 ## [7.1.2](https://github.com/Apollogeddon/forgejs/compare/v7.1.1...v7.1.2) (2026-11-26)
 
 
