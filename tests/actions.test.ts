@@ -849,7 +849,7 @@ describe("pages.yml", () => {
   });
 
   it("should package the named build artifact, asking for no permissions", () => {
-    expect(pack?.permissions).toBeUndefined();
+    expect(pack?.permissions).toEqual({});
     expect(pack?.steps?.[0]?.with?.name).toBe("${{ inputs.artifact_name }}");
     expect(pack?.steps?.at(-1)?.name).toBe("Upload the Pages artifact");
   });
