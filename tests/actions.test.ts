@@ -67,7 +67,7 @@ const STAGES: Record<string, string[]> = {
   docker: ["build", "test", "push"],
   version: ["release"],
   publish: ["package", "assets", "attest"],
-  pages: ["deploy"],
+  pages: ["package", "deploy"],
   patch: ["update"],
   merge: ["review", "squash"],
 };
@@ -839,17 +839,27 @@ describe("Website site checks", () => {
 });
 
 describe("pages.yml", () => {
-  const deploy = load("pages.yml").jobs.deploy;
+  const wf = load("pages.yml");
+  const deploy = wf.jobs.deploy;
+  const pack = wf.jobs.package;
 
   it("should deploy one at a time, in a group a caller's own concurrency can't share", () => {
     expect(deploy?.concurrency?.group).toBe("pages-deploy");
     expect(deploy?.concurrency?.["cancel-in-progress"]).toBe(false);
   });
 
-  it("should deploy the named build artifact with only the Pages permissions", () => {
+  it("should package the named build artifact, asking for no permissions", () => {
+    expect(pack?.permissions).toEqual({});
+    expect(pack?.steps?.[0]?.with?.name).toBe("${{ inputs.artifact_name }}");
+    expect(pack?.steps?.at(-1)?.name).toBe("Upload the Pages artifact");
+  });
+
+  // deploy-pages finds the artifact through the artifacts API, which can lag an upload in the same job by
+  // a few seconds, so the upload is a job of its own and deploy waits for it
+  it("should deploy the Pages artifact from a later job, with only the Pages permissions", () => {
+    expect(deploy?.needs).toBe("package");
     expect(deploy?.permissions).toEqual({ pages: "write", "id-token": "write" });
-    expect(deploy?.steps?.[0]?.with?.name).toBe("${{ inputs.artifact_name }}");
-    expect(deploy?.steps?.at(-1)?.name).toBe("Deploy to Pages");
+    expect(deploy?.steps?.map((s) => s.name)).toEqual(["Deploy to Pages"]);
   });
 });
 
