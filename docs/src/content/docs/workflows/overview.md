@@ -22,7 +22,7 @@ A root job's id is the pipeline's name. A second call to the same pipeline names
 | `docker.yml` | build, build (arm64), push | A multi-platform image, pushed to GHCR on a release |
 | `version.yml` | release | release-please: the release pull request, then the tag and GitHub release |
 | `publish.yml` | package, assets, attest | The package to GitHub Packages, files attached to the release, and their build provenance |
-| `pages.yml` | deploy | The built website, to GitHub Pages |
+| `pages.yml` | package, deploy | The built website, to GitHub Pages |
 | `patch.yml` | update | Retired: only warns that Dependabot security updates replace it; see [Vulnerable dependencies](#vulnerable-dependencies) |
 | `merge.yml` | review, squash | A review request on Dependabot's pull requests, and their squash merge once the checks pass |
 
